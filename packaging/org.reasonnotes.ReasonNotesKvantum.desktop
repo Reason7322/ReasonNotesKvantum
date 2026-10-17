@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ReasonNotes Kvantum Candidate
+Comment=Isolated native Qt Widgets ReasonNotes candidate
+Exec="@CANDIDATE_LAUNCHER@"
+Icon=@CANDIDATE_ICON@
+Terminal=false
+Categories=Office;Utility;TextEditor;
+StartupNotify=true
+StartupWMClass=org.reasonnotes.ReasonNotesKvantum
