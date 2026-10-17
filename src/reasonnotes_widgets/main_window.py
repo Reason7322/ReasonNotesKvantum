@@ -7,7 +7,6 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QLabel,
     QMainWindow,
     QMessageBox,
     QSplitter,
@@ -15,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from .editor_page import EditorPage
+from .conflict_page import ConflictPage
 from .i18n import Translator
 from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
@@ -52,10 +52,9 @@ class ReasonNotesMainWindow(QMainWindow):
         self.page_stack.setObjectName("contentPages")
         self.page_stack.addWidget(self.editor)
         self.settings_page = SettingsPage(self.translator, self.page_stack)
-        self.conflict_placeholder = QLabel("Conflict", self.page_stack)
-        self.conflict_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.conflict_page = ConflictPage(controller, self.translator, self.page_stack)
         self.page_stack.addWidget(self.settings_page)
-        self.page_stack.addWidget(self.conflict_placeholder)
+        self.page_stack.addWidget(self.conflict_page)
 
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.main_splitter.setObjectName("mainSplitter")
@@ -257,8 +256,9 @@ class ReasonNotesMainWindow(QMainWindow):
                 self.controller.current_content,
             )
             self.editor.set_editable(self.controller.presenter.can_edit)
+            self.conflict_page.load()
             self.page_stack.setCurrentWidget(
-                self.conflict_placeholder
+                self.conflict_page
                 if self.controller.presenter.conflict_view is not None
                 else self.editor
             )
