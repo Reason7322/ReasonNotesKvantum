@@ -1,1 +1,8 @@
 .worktrees/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+linux-app/native/libreasonnotes_wayland_blur.so
