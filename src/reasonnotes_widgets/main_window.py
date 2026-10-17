@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
 )
 
 from .editor_page import EditorPage
+from .i18n import Translator
+from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
 
 
@@ -24,12 +26,14 @@ class ReasonNotesMainWindow(QMainWindow):
         controller,
         *,
         settings: QSettings | None = None,
+        translator: Translator | None = None,
         confirm_delete=None,
         parent=None,
     ):
         super().__init__(parent)
         self.controller = controller
         self.settings = settings if settings is not None else QSettings()
+        self.translator = translator or Translator(self.settings, self)
         self._refreshing = False
         self._first_show = True
         self._confirm_delete = confirm_delete or self._confirm_delete_dialog
@@ -46,11 +50,10 @@ class ReasonNotesMainWindow(QMainWindow):
         self.page_stack = QStackedWidget(self)
         self.page_stack.setObjectName("contentPages")
         self.page_stack.addWidget(self.editor)
-        self.settings_placeholder = QLabel("Settings", self.page_stack)
-        self.settings_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.settings_page = SettingsPage(self.translator, self.page_stack)
         self.conflict_placeholder = QLabel("Conflict", self.page_stack)
         self.conflict_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.page_stack.addWidget(self.settings_placeholder)
+        self.page_stack.addWidget(self.settings_page)
         self.page_stack.addWidget(self.conflict_placeholder)
 
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
@@ -76,6 +79,8 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.new_button.clicked.connect(self._new_note)
         self.sidebar.save_button.clicked.connect(self._save_now)
         self.sidebar.delete_button.clicked.connect(self.delete_selection)
+        self.sidebar.settings_button.clicked.connect(self.open_settings)
+        self.settings_page.back_requested.connect(self.back_to_notes)
         self.sidebar.search_field.textChanged.connect(controller.search)
         self.sidebar.list_view.clicked.connect(self.activate_note)
         self.sidebar.list_view.activated.connect(self.activate_note)
@@ -87,12 +92,39 @@ class ReasonNotesMainWindow(QMainWindow):
         controller.save_status_changed.connect(self._refresh_status)
         controller.conflict_changed.connect(self.refresh_from_controller)
         controller.models_changed.connect(self._restore_active_selection)
+        self.translator.language_changed.connect(lambda _language: self.retranslate())
 
         self._shortcuts = [
             QShortcut(QKeySequence.StandardKey.New, self, activated=self._new_note),
             QShortcut(QKeySequence.StandardKey.Save, self, activated=self._save_now),
             QShortcut(QKeySequence.StandardKey.Find, self, activated=self._focus_search),
         ]
+        self.retranslate()
+        self.refresh_from_controller()
+
+    def retranslate(self) -> None:
+        tr = self.translator.text
+        self.setWindowTitle(tr("app_name"))
+        self.sidebar.brand_label.setText(tr("app_name"))
+        self.sidebar.new_button.setText(tr("new_note"))
+        self.sidebar.save_button.setText(tr("save"))
+        self.sidebar.sync_button.setText(tr("sync"))
+        self.sidebar.delete_button.setText(tr("delete"))
+        self.sidebar.settings_button.setText(tr("settings"))
+        self.sidebar.search_field.setPlaceholderText(tr("search_notes"))
+        self.sidebar.search_field.setAccessibleName(tr("search_notes"))
+        self.editor.title_editor.setPlaceholderText(tr("note_title"))
+        self.editor.title_editor.setAccessibleName(tr("note_title"))
+        self.editor.body_editor.setPlaceholderText(tr("start_writing"))
+        self.settings_page.retranslate()
+        self._refresh_status()
+
+    def open_settings(self) -> None:
+        self.autosave_timer.stop()
+        if self.controller.save_now():
+            self.page_stack.setCurrentWidget(self.settings_page)
+
+    def back_to_notes(self) -> None:
         self.refresh_from_controller()
 
     def _title_edited(self, title: str) -> None:
@@ -188,18 +220,21 @@ class ReasonNotesMainWindow(QMainWindow):
 
     def _refresh_status(self) -> None:
         presenter = self.controller.presenter
-        text = presenter.save_state
+        tr = self.translator.text
+        state_key = presenter.save_state.casefold()
+        text = tr(state_key)
         if presenter.save_error:
             text += f": {presenter.save_error}"
         self.editor.save_status.setText(text)
-        self.sidebar.local_status.setText(f"Local: {text}")
+        self.sidebar.local_status.setText(f"{tr('local')}: {text}")
         sync = presenter.sync_state
+        sync = tr(sync.casefold())
         if presenter.sync_message:
             sync += f": {presenter.sync_message}"
-        self.sidebar.sync_status.setText(f"Phone: {sync}")
+        self.sidebar.sync_status.setText(f"{tr('phone')}: {sync}")
         active = presenter.active_note_id
         self.editor.delivery_status.setText(
-            "No note selected"
+            tr("no_note_selected")
             if active is None
             else self.controller._delivery_status_by_note.get(active, "Local")
         )
