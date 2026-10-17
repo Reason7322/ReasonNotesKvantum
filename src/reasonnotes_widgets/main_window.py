@@ -102,6 +102,8 @@ class ReasonNotesMainWindow(QMainWindow):
             QShortcut(QKeySequence.StandardKey.New, self, activated=self._new_note),
             QShortcut(QKeySequence.StandardKey.Save, self, activated=self._save_now),
             QShortcut(QKeySequence.StandardKey.Find, self, activated=self._focus_search),
+            QShortcut(QKeySequence("F5"), self,
+                      activated=self.controller.refresh_incoming),
         ]
         self.retranslate()
         self.refresh_from_controller()
