@@ -6,19 +6,33 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
-from PySide6.QtWidgets import QLabel, QMainWindow, QSplitter, QStackedWidget
+from PySide6.QtWidgets import (
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QSplitter,
+    QStackedWidget,
+)
 
 from .editor_page import EditorPage
 from .sidebar import NotesSidebar
 
 
 class ReasonNotesMainWindow(QMainWindow):
-    def __init__(self, controller, *, settings: QSettings | None = None, parent=None):
+    def __init__(
+        self,
+        controller,
+        *,
+        settings: QSettings | None = None,
+        confirm_delete=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.controller = controller
         self.settings = settings if settings is not None else QSettings()
         self._refreshing = False
         self._first_show = True
+        self._confirm_delete = confirm_delete or self._confirm_delete_dialog
         self.setObjectName("reasonNotesMainWindow")
         self.setWindowTitle("ReasonNotes")
         self.setMinimumSize(820, 560)
@@ -61,6 +75,7 @@ class ReasonNotesMainWindow(QMainWindow):
         self.editor.content_edited.connect(self._content_edited)
         self.sidebar.new_button.clicked.connect(self._new_note)
         self.sidebar.save_button.clicked.connect(self._save_now)
+        self.sidebar.delete_button.clicked.connect(self.delete_selection)
         self.sidebar.search_field.textChanged.connect(controller.search)
         self.sidebar.list_view.clicked.connect(self.activate_note)
         self.sidebar.list_view.activated.connect(self.activate_note)
@@ -120,6 +135,43 @@ class ReasonNotesMainWindow(QMainWindow):
         self.autosave_timer.stop()
         if self.controller.select_note(note_id):
             self.refresh_from_controller()
+
+    def sync_bulk_selection(self) -> None:
+        selected_rows = self.sidebar.list_view.selectionModel().selectedRows()
+        if not selected_rows and self.controller.bulk_selected_ids:
+            return
+        selected = tuple(
+            note_id
+            for index in selected_rows
+            if (note_id := self.controller.note_model.note_id_at(index.row()))
+            is not None
+        )
+        self.controller.set_bulk_selection(selected if len(selected) > 1 else ())
+
+    def _confirm_delete_dialog(self, count: int, bulk: bool) -> bool:
+        noun = "notes" if count != 1 else "note"
+        answer = QMessageBox.question(
+            self,
+            "Delete notes" if bulk else "Delete note",
+            f"Permanently delete {count} {noun} from this device? "
+            "Recoverable revision history remains protected by the repository.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def delete_selection(self) -> None:
+        self.sync_bulk_selection()
+        ids = self.controller.prepare_delete()
+        if not ids:
+            return
+        bulk = bool(self.controller.bulk_selected_ids)
+        if not self._confirm_delete(len(ids), bulk):
+            self.controller.cancel_delete()
+            return
+        self.autosave_timer.stop()
+        self.controller.confirm_delete()
+        self.refresh_from_controller()
 
     def _restore_active_selection(self) -> None:
         active = self.controller.active_note_id

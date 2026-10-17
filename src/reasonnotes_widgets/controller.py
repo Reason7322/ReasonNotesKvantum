@@ -266,6 +266,16 @@ class WidgetsController(QObject):
         self.selection_changed.emit()
         return True
 
+    def set_bulk_selection(self, note_ids) -> None:
+        live = {
+            str(row.note_id) for row in self.presenter.service.list_notes("")
+        }
+        self._bulk_selected_ids = {
+            note_id for note_id in note_ids if note_id in live
+        }
+        self.refresh_models()
+        self.selection_changed.emit()
+
     def clear_bulk_selection(self) -> None:
         if not self._bulk_selected_ids:
             return
