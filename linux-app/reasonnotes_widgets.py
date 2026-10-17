@@ -15,6 +15,11 @@ if str(SOURCE_ROOT) in sys.path:
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from reasonnotes_widgets.bootstrap import create_application, resolve_launch_paths
+from reasonnotes_widgets.controller import WidgetsController
+from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+from reasonnotes_app.presenter import NotePresenter
+from reasonnotes_app.service import NoteService
+from reasonnotes_sync.repository import Repository
 
 
 def parser() -> argparse.ArgumentParser:
@@ -28,15 +33,24 @@ def parser() -> argparse.ArgumentParser:
 
 def main(arguments=None) -> int:
     options = parser().parse_args(arguments)
-    resolve_launch_paths(
+    paths = resolve_launch_paths(
         root=options.root,
         inbox=options.inbox,
         received_dir=options.received_dir,
     )
-    create_application([sys.argv[0]])
+    application = create_application([sys.argv[0]])
+    repository = Repository.open(
+        paths.repository, local_device="linux", target_device="android"
+    )
+    controller = WidgetsController(
+        NotePresenter(NoteService(repository, origin_device="linux"))
+    )
+    window = ReasonNotesMainWindow(controller)
     if options.check_launch:
+        window.close()
         return 0
-    raise RuntimeError("The Widgets main window is not constructed yet")
+    window.show()
+    return application.exec()
 
 
 if __name__ == "__main__":
