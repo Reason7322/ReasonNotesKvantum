@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from reasonnotes_app.note_document import change_content, change_title, split_note
@@ -66,6 +68,7 @@ class WidgetsController(QObject):
         self._incoming_message = ""
         self._sync_workers: set[_CallableWorker] = set()
         self._delivery_status_by_note: dict[str, str] = {}
+        self.sync_model.selection_requested.connect(self.set_sync_selected)
         self.refresh_models()
 
     @staticmethod
@@ -88,6 +91,11 @@ class WidgetsController(QObject):
             "deleted": row.deleted,
             "body": row.body,
         }
+
+    @staticmethod
+    def _plain_preview(source: str) -> str:
+        one_line = " ".join(source.splitlines())
+        return re.sub(r"[#*_`>\[\]()~]", "", one_line).strip()
 
     @property
     def current_title(self) -> str:
@@ -146,7 +154,7 @@ class WidgetsController(QObject):
                 {
                     "noteId": row.note_id,
                     "title": row.title,
-                    "preview": row.preview,
+                    "preview": self._plain_preview(row.preview),
                     "selected": row.note_id in self._sync_selected_ids,
                     "deliveryStatus": row.delivery_status,
                 }

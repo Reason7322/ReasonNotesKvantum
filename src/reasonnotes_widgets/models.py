@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import QAbstractListModel, QByteArray, QModelIndex, QObject, Qt
+from PySide6.QtCore import (
+    QAbstractListModel,
+    QByteArray,
+    QModelIndex,
+    QObject,
+    Qt,
+    Signal,
+)
 
 
 class MappingListModel(QAbstractListModel):
@@ -82,12 +89,38 @@ class NoteListModel(MappingListModel):
 
 
 class SyncListModel(MappingListModel):
+    selection_requested = Signal(str, bool)
+
     def __init__(self, parent: QObject | None = None):
         super().__init__(
             ("noteId", "title", "preview", "selected", "deliveryStatus"),
             display_role="title",
             parent=parent,
         )
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.CheckStateRole and index.isValid():
+            return (
+                Qt.CheckState.Checked
+                if self.row(index.row()).get("selected")
+                else Qt.CheckState.Unchecked
+            )
+        return super().data(index, role)
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if index.isValid():
+            flags |= Qt.ItemFlag.ItemIsUserCheckable
+        return flags
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if role != Qt.ItemDataRole.CheckStateRole or not index.isValid():
+            return False
+        note_id = self.note_id_at(index.row())
+        if note_id is None:
+            return False
+        self.selection_requested.emit(note_id, value == Qt.CheckState.Checked)
+        return True
 
 
 class ConflictListModel(MappingListModel):

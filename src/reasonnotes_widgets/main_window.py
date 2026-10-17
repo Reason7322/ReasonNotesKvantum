@@ -18,6 +18,7 @@ from .editor_page import EditorPage
 from .i18n import Translator
 from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
+from .sync_panel import SyncPanel
 
 
 class ReasonNotesMainWindow(QMainWindow):
@@ -64,6 +65,9 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
         self.setCentralWidget(self.main_splitter)
+        self.sync_panel = SyncPanel(controller, self.translator, self)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.sync_panel)
+        self.sync_panel.hide()
 
         sidebar_width = self.settings.value("window/sidebarWidth", 300, int)
         self.main_splitter.setSizes([max(240, min(520, sidebar_width)), 980])
@@ -79,6 +83,7 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.new_button.clicked.connect(self._new_note)
         self.sidebar.save_button.clicked.connect(self._save_now)
         self.sidebar.delete_button.clicked.connect(self.delete_selection)
+        self.sidebar.sync_button.clicked.connect(self.open_sync_panel)
         self.sidebar.settings_button.clicked.connect(self.open_settings)
         self.settings_page.back_requested.connect(self.back_to_notes)
         self.sidebar.search_field.textChanged.connect(controller.search)
@@ -126,6 +131,11 @@ class ReasonNotesMainWindow(QMainWindow):
 
     def back_to_notes(self) -> None:
         self.refresh_from_controller()
+
+    def open_sync_panel(self) -> None:
+        self.controller.open_sync_panel()
+        self.sync_panel.show()
+        self.sync_panel.raise_()
 
     def _title_edited(self, title: str) -> None:
         if self._refreshing:
