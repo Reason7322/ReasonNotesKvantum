@@ -21,6 +21,10 @@ from reasonnotes_widgets.bootstrap import create_application, resolve_launch_pat
 from reasonnotes_widgets.controller import WidgetsController
 from reasonnotes_widgets.main_window import ReasonNotesMainWindow
 from reasonnotes_widgets.runtime import ApplicationRuntime
+from reasonnotes_widgets.wayland_blur import (
+    QWidgetBlurController,
+    prepare_translucent_surface,
+)
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
 from reasonnotes_sync.repository import Repository
@@ -107,15 +111,20 @@ def main(arguments=None) -> int:
     )
     controller.configure_incoming_scan(scan_received)
     window = ReasonNotesMainWindow(controller)
+    prepare_translucent_surface(window, platform_name=application.platformName())
+    blur = QWidgetBlurController()
     relay = None if options.check_launch else PurgeRelay(
         repository, shared_key(paths.data_root / "delete-sync-key")
     )
     runtime = ApplicationRuntime(repository, controller, relay=relay)
     application.aboutToQuit.connect(runtime.stop)
+    application.aboutToQuit.connect(blur.close)
     if options.check_launch:
+        blur.close()
         window.close()
         return 0
     window.show()
+    blur.attach(window)
     runtime.start(auto_receive=not options.no_auto_receive)
     return application.exec()
 
