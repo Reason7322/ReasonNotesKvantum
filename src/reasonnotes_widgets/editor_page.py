@@ -76,12 +76,14 @@ class EditorPage(QWidget):
         )
 
     def set_document(self, title: str, content: str) -> None:
-        title_blocker = QSignalBlocker(self.title_editor)
-        body_blocker = QSignalBlocker(self.body_editor)
-        self.title_editor.setText(title)
-        self.body_editor.setPlainText(content)
-        del body_blocker
-        del title_blocker
+        if self.title_editor.text() != title:
+            title_blocker = QSignalBlocker(self.title_editor)
+            self.title_editor.setText(title)
+            del title_blocker
+        if self.body_editor.toPlainText() != content:
+            body_blocker = QSignalBlocker(self.body_editor)
+            self.body_editor.setPlainText(content)
+            del body_blocker
 
     def set_editable(self, editable: bool) -> None:
         self.title_editor.setEnabled(editable)

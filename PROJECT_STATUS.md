@@ -24,7 +24,7 @@ acceptance and authorization for production replacement remain pending.
 
 ## Validation state
 
-- Complete automated suite: 212 tests passed in an isolated offscreen run.
+- Complete automated suite: 217 tests passed in an isolated offscreen run.
 - Native helper: compiled successfully from the system Wayland protocol.
 - Actual Hyprland session: Qt platform `wayland`, style `kvantum`, compositor
   blur active with no helper error, using disposable `/tmp` data.
@@ -45,7 +45,8 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. Complete whole-branch review, fix any important finding,
-install the exact final candidate under its distinct candidate paths, and hand
+Forge owns the branch. The whole-branch review's six Important findings were
+fixed through interaction-level RED/GREEN tests and the full suite is green.
+Install the exact final candidate under its distinct candidate paths and hand
 the owner the visual/device acceptance procedure. Do not modify `main` or the
 production launcher.

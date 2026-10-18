@@ -78,6 +78,15 @@ class WidgetsLifecycleTests(unittest.TestCase):
         self.window.activateWindow()
         self.window.editor.body_editor.setFocus()
         QCoreApplication.processEvents()
+        self.window.editor.body_editor.setPlainText("Exact dirty draft")
+        cursor = self.window.editor.body_editor.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.window.editor.body_editor.setTextCursor(cursor)
+        QTest.keyClicks(self.window.editor.body_editor, " plus")
+        cursor = self.window.editor.body_editor.textCursor()
+        cursor.setPosition(4)
+        self.window.editor.body_editor.setTextCursor(cursor)
+        self.assertTrue(self.window.editor.body_editor.document().isUndoAvailable())
         QTest.keyClick(self.window.editor.body_editor, Qt.Key.Key_F5)
         QTest.keyClick(self.window.editor.body_editor, Qt.Key.Key_F5)
         self.assertEqual(len(self.pool.workers), 1)
@@ -88,7 +97,9 @@ class WidgetsLifecycleTests(unittest.TestCase):
 
         self.assertEqual(len(scans), 2)
         self.assertTrue(self.controller.presenter.dirty)
-        self.assertEqual(self.controller.current_content, "Exact dirty draft")
+        self.assertEqual(self.controller.current_content, "Exact dirty draft plus")
+        self.assertEqual(self.window.editor.body_editor.textCursor().position(), 4)
+        self.assertTrue(self.window.editor.body_editor.document().isUndoAvailable())
 
     def test_deferred_startup_scan_window_first_and_teardown(self):
         from reasonnotes_widgets.runtime import ApplicationRuntime

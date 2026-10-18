@@ -14,14 +14,13 @@ continuation point if one becomes necessary.
 ## State
 
 Tasks 1-11 of the committed implementation plan are complete. Task 12 has a
-green 212-test pre-final suite, successful native helper build, and real
+green 217-test final suite, successful native helper build, and real
 Hyprland evidence (`wayland`, `kvantum`, blur active). A screenshot-discovered
 editor-width defect was fixed through RED/GREEN coverage. Foreground deletion
 pairing information and visible F5 status were also restored.
 
 ## Smallest next action
 
-Finish the required whole-branch review, apply one test-driven fix pass for any
-Critical/Important findings, rerun all tests, update the exact validation SHA,
-then push and independently verify the same SHA on `handoff` and `github`.
-Never modify production or merge `main` merely to checkpoint.
+Install and smoke-test the exact final commit through the candidate-only
+installer, then push and independently verify the same SHA on `handoff` and
+`github`. Never modify production or merge `main` merely to checkpoint.

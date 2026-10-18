@@ -318,14 +318,18 @@ class NotePresenter:
     def close_requested(self) -> bool:
         return self.save_active()
 
-    def delete_active(self) -> bool:
+    def delete_active(
+        self, expected_revision_ids: tuple[str, ...] | None = None
+    ) -> bool:
         if self.active_note_id is None:
             return False
         # Deleting must not save a pending draft into history just before
         # erasing it. The deletion fence is the authoritative operation.
         note_id = UUID(self.active_note_id)
         try:
-            self.service.delete_note(note_id)
+            self.service.delete_note(
+                note_id, expected_revision_ids=expected_revision_ids
+            )
         except Exception as error:
             self._set_save_error(error)
             return False
@@ -339,7 +343,12 @@ class NotePresenter:
         self.refresh()
         return True
 
-    def delete_notes(self, note_ids: Iterable[str]) -> tuple[str, ...]:
+    def delete_notes(
+        self,
+        note_ids: Iterable[str],
+        *,
+        expected_revisions: dict[str, tuple[str, ...]] | None = None,
+    ) -> tuple[str, ...]:
         """Purge each explicitly selected live note through the existing fence.
 
         Each successful deletion is committed independently by the repository.
@@ -357,7 +366,14 @@ class NotePresenter:
         failed = None
         for note_id in ids:
             try:
-                self.service.delete_note(UUID(note_id))
+                self.service.delete_note(
+                    UUID(note_id),
+                    expected_revision_ids=(
+                        None
+                        if expected_revisions is None
+                        else expected_revisions.get(note_id, ())
+                    ),
+                )
             except Exception as error:
                 # A durable deletion fence may already have been committed
                 # before a later cleanup step failed. Never keep a fenced

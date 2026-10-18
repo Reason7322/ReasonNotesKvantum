@@ -89,6 +89,22 @@ class WidgetsControllerTests(unittest.TestCase):
         self.assertFalse(any(row.note_id == first for row in controller.presenter.notes))
         self.assertTrue(any(row.note_id == second for row in controller.presenter.notes))
 
+    def test_deletion_snapshot_rejects_a_newer_revision_before_confirmation(self):
+        note_id = self.service.create_note("# First\n\nOriginal")
+        controller = self.controller()
+        controller.set_bulk_selection((str(note_id),))
+        self.assertEqual(controller.prepare_delete(), (str(note_id),))
+        self.service.open_note(note_id)
+        self.service.save_note(note_id, "# First\n\nNewer revision")
+
+        self.assertFalse(controller.confirm_delete())
+
+        self.assertFalse(self.repository.is_purged(note_id))
+        self.assertEqual(
+            self.service.open_note(note_id), "# First\n\nNewer revision"
+        )
+        self.assertIn("changed", controller.presenter.save_error.casefold())
+
     def test_async_incoming_refresh_updates_model_after_worker_completion(self):
         controller = self.controller()
         finished = []

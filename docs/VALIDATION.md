@@ -25,12 +25,20 @@ QT_QPA_PLATFORM=offscreen PYTHONPATH=src \
   /usr/bin/python3 -m unittest discover -s tests -v
 ```
 
-Result: **212 tests passed** in 4.936 seconds. Coverage includes imported
+Result after whole-branch review fixes: **217 tests passed** in 5.462 seconds.
+Coverage includes imported
 backend regressions and native Widgets bootstrap, models/controller, editor,
 sidebar selection, localization, Sync, Conflict, lifecycle, installer, and
 Wayland-blur behavior. Python emitted a three-object uncollectable
 `ResourceWarning` at interpreter shutdown after the successful PySide test run;
 no test failed.
+
+The fresh whole-branch review identified six Important interaction/safety
+defects and no Critical defects. Each Important issue received a regression
+that was observed failing before the fix: editor caret/undo retention, native
+Sync checkboxes, native Ctrl/Shift selection, stale deletion confirmation,
+candidate activation target validation, and canonical production-path checks
+under an overridden XDG data home. All were green in the 217-test final run.
 
 The purge protocol tests opened only loopback sockets and used disposable
 repositories. Candidate installer tests used temporary homes with production

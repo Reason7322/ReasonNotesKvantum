@@ -130,6 +130,62 @@ class WidgetsSelectionTests(unittest.TestCase):
             controller.note_model.note_id_at(view.currentIndex().row()),
         )
 
+    def test_native_shift_and_ctrl_selection_do_not_collapse_or_switch_draft(self):
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        for number in range(4):
+            self.service.create_note(f"# Note {number}")
+        controller = self.controller()
+        window = ReasonNotesMainWindow(controller, settings=self.settings)
+        self.addCleanup(window.close)
+        window.show()
+        view = window.sidebar.list_view
+        QTest.mouseClick(
+            view.viewport(), Qt.MouseButton.LeftButton,
+            pos=view.visualRect(controller.note_model.index(0, 0)).center(),
+        )
+        active = controller.active_note_id
+        QTest.mouseClick(
+            view.viewport(), Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.ShiftModifier,
+            view.visualRect(controller.note_model.index(3, 0)).center(),
+        )
+        self.assertEqual(
+            [index.row() for index in view.selectionModel().selectedRows()],
+            [0, 1, 2, 3],
+        )
+        self.assertEqual(controller.active_note_id, active)
+
+        QTest.mouseClick(
+            view.viewport(), Qt.MouseButton.LeftButton,
+            pos=view.visualRect(controller.note_model.index(1, 0)).center(),
+        )
+        active = controller.active_note_id
+        QTest.mouseClick(
+            view.viewport(), Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.ControlModifier,
+            view.visualRect(controller.note_model.index(3, 0)).center(),
+        )
+        self.assertEqual(
+            [index.row() for index in view.selectionModel().selectedRows()],
+            [1, 3],
+        )
+        self.assertEqual(controller.active_note_id, active)
+
+        QTest.mouseClick(
+            view.viewport(), Qt.MouseButton.LeftButton,
+            pos=view.visualRect(controller.note_model.index(0, 0)).center(),
+        )
+        active = controller.active_note_id
+        QTest.keyClick(
+            view, Qt.Key.Key_Down, Qt.KeyboardModifier.ShiftModifier
+        )
+        self.assertEqual(
+            [index.row() for index in view.selectionModel().selectedRows()],
+            [0, 1],
+        )
+        self.assertEqual(controller.active_note_id, active)
+
     def test_delete_confirmation_describes_irrecoverable_history_and_peer_purge(self):
         from reasonnotes_widgets.main_window import ReasonNotesMainWindow
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QApplication,
     QMainWindow,
     QMessageBox,
     QSplitter,
@@ -89,10 +90,9 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.settings_button.clicked.connect(self.open_settings)
         self.settings_page.back_requested.connect(self.back_to_notes)
         self.sidebar.search_field.textChanged.connect(controller.search)
-        self.sidebar.list_view.clicked.connect(self.activate_note)
         self.sidebar.list_view.activated.connect(self.activate_note)
         self.sidebar.list_view.selectionModel().currentChanged.connect(
-            lambda current, _previous: self.activate_note(current)
+            self._current_note_changed
         )
         controller.state_changed.connect(self.refresh_from_controller)
         controller.draft_changed.connect(self.refresh_from_controller)
@@ -186,6 +186,16 @@ class ReasonNotesMainWindow(QMainWindow):
         self.autosave_timer.stop()
         if self.controller.select_note(note_id):
             self.refresh_from_controller()
+
+    def _current_note_changed(self, current, _previous) -> None:
+        modifiers = QApplication.keyboardModifiers()
+        bulk_modifiers = (
+            Qt.KeyboardModifier.ControlModifier
+            | Qt.KeyboardModifier.ShiftModifier
+        )
+        if modifiers & bulk_modifiers:
+            return
+        self.activate_note(current)
 
     def sync_bulk_selection(self) -> None:
         selected_rows = self.sidebar.list_view.selectionModel().selectedRows()

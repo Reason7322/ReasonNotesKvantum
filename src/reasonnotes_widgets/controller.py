@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from uuid import UUID
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
@@ -59,6 +60,7 @@ class WidgetsController(QObject):
         self.conflict_model = ConflictListModel(self)
         self._bulk_selected_ids: set[str] = set()
         self._pending_delete_ids: tuple[str, ...] = ()
+        self._pending_delete_revisions: dict[str, tuple[str, ...]] = {}
         self._sync_selected_ids: set[str] = set()
         self._sync_query = ""
         self._incoming_scanner = None
@@ -298,23 +300,36 @@ class WidgetsController(QObject):
             self._pending_delete_ids = (self.presenter.active_note_id,)
         else:
             self._pending_delete_ids = ()
+        self._pending_delete_revisions = {
+            note_id: self.presenter.repository.note_revision_ids(UUID(note_id))
+            for note_id in self._pending_delete_ids
+        }
         self.selection_changed.emit()
         return self._pending_delete_ids
 
     def cancel_delete(self) -> None:
         self._pending_delete_ids = ()
+        self._pending_delete_revisions = {}
         self.selection_changed.emit()
 
     def confirm_delete(self) -> bool:
         ids = self._pending_delete_ids
+        expected_revisions = self._pending_delete_revisions
         self._pending_delete_ids = ()
+        self._pending_delete_revisions = {}
         if not ids:
             self.selection_changed.emit()
             return False
         if len(ids) == 1 and self.presenter.active_note_id == ids[0] and not self._bulk_selected_ids:
-            deleted = ids if self.presenter.delete_active() else ()
+            deleted = (
+                ids
+                if self.presenter.delete_active(expected_revisions[ids[0]])
+                else ()
+            )
         else:
-            deleted = self.presenter.delete_notes(ids)
+            deleted = self.presenter.delete_notes(
+                ids, expected_revisions=expected_revisions
+            )
         self._bulk_selected_ids.difference_update(deleted)
         self._notify(draft=bool(deleted), conflict=True)
         return len(deleted) == len(ids) and self.presenter.save_state != "Error"
@@ -405,7 +420,10 @@ class WidgetsController(QObject):
             self._sync_selected_ids.add(note_id)
         else:
             self._sync_selected_ids.discard(note_id)
-        self.refresh_models()
+        for row in range(self.sync_model.rowCount()):
+            if self.sync_model.note_id_at(row) == note_id:
+                self.sync_model.update_row(row, selected=selected)
+                break
         self.selection_changed.emit()
 
     def select_all_sync_notes(self) -> None:

@@ -73,6 +73,18 @@ class MappingListModel(QAbstractListModel):
             return {}
         return dict(self._rows[index])
 
+    def update_row(self, index: int, **changes) -> bool:
+        if not 0 <= index < len(self._rows):
+            return False
+        updated = dict(self._rows[index])
+        updated.update(changes)
+        if updated == self._rows[index]:
+            return False
+        self._rows[index] = updated
+        model_index = self.index(index, 0)
+        self.dataChanged.emit(model_index, model_index, [])
+        return True
+
     def note_id_at(self, index: int) -> str | None:
         value = self.row(index).get("noteId")
         return value if isinstance(value, str) else None
@@ -119,7 +131,11 @@ class SyncListModel(MappingListModel):
         note_id = self.note_id_at(index.row())
         if note_id is None:
             return False
-        self.selection_requested.emit(note_id, value == Qt.CheckState.Checked)
+        checked = (
+            value == Qt.CheckState.Checked
+            or value == Qt.CheckState.Checked.value
+        )
+        self.selection_requested.emit(note_id, checked)
         return True
 
 

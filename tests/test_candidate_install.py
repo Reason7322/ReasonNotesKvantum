@@ -142,6 +142,23 @@ class CandidateInstallTests(unittest.TestCase):
             )
         self.assert_production_untouched()
 
+    def test_activation_rejects_production_root_and_preserves_current_link(self):
+        production_root = self.home / ".local/opt/reasonnotes"
+        release = production_root / "releases/production-version"
+        release.mkdir(parents=True)
+        old_release = production_root / "releases/old-version"
+        old_release.mkdir()
+        current = production_root / "current"
+        current.symlink_to(Path("releases/old-version"))
+
+        with self.assertRaises(self.installer.UnsafeInstallTarget):
+            self.installer.activate_release(
+                production_root, "production-version", home=self.home
+            )
+
+        self.assertEqual(os.readlink(current), "releases/old-version")
+        self.assert_production_untouched()
+
 
 if __name__ == "__main__":
     unittest.main()

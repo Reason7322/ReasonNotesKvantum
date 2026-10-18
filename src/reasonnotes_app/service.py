@@ -190,13 +190,23 @@ class NoteService:
         self._edit_bases[note_id] = revision.revision_id
         return revision
 
-    def delete_note(self, note_id: UUID) -> None:
+    def delete_note(
+        self,
+        note_id: UUID,
+        *,
+        expected_revision_ids: tuple[str, ...] | None = None,
+    ) -> None:
         """Permanently purge all managed history, including conflicted heads.
 
         A durable content-free fence survives until other paired instances
         have also purged, preventing old KDE Connect transfers resurrecting it.
         """
-        self.repository.purge_note(note_id)
+        if expected_revision_ids is None:
+            self.repository.purge_note(note_id)
+        else:
+            self.repository.purge_note_if_revisions(
+                note_id, expected_revision_ids
+            )
         self._edit_bases.pop(note_id, None)
         self._conflict_snapshots.pop(note_id, None)
 

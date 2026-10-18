@@ -90,6 +90,23 @@ class WidgetsMainWindowTests(unittest.TestCase):
         saved = self.service.open_note(UUID(controller.active_note_id))
         self.assertEqual(saved, "# Native title\n\nMarkdown *body*")
 
+    def test_autosave_preserves_caret_selection_and_undo(self):
+        window, _ = self.make_window()
+        body = window.editor.body_editor
+        body.setFocus()
+        QTest.keyClicks(body, "abcdef")
+        cursor = body.textCursor()
+        cursor.setPosition(2)
+        cursor.setPosition(4, cursor.MoveMode.KeepAnchor)
+        body.setTextCursor(cursor)
+        self.assertTrue(body.document().isUndoAvailable())
+
+        QTest.qWait(560)
+
+        cursor = body.textCursor()
+        self.assertEqual((cursor.selectionStart(), cursor.selectionEnd()), (2, 4))
+        self.assertTrue(body.document().isUndoAvailable())
+
     def test_switching_notes_flushes_exact_draft(self):
         first = self.service.create_note("# First\n\nOld")
         second = self.service.create_note("# Second\n\nOther")

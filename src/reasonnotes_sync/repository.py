@@ -145,6 +145,31 @@ class Repository:
         return (self.purged_dir / f"{note_id}.id").is_file()
 
     @synchronized
+    def note_revision_ids(self, note_id: UUID) -> tuple[str, ...]:
+        """Return the exact immutable-history snapshot for one note."""
+
+        if not isinstance(note_id, UUID):
+            raise TypeError("note_id must be UUID")
+        revisions, _errors = self._load_revisions()
+        return tuple(
+            sorted(
+                revision.revision_id
+                for revision in revisions
+                if revision.note_id == note_id
+            )
+        )
+
+    @synchronized
+    def purge_note_if_revisions(
+        self, note_id: UUID, expected_revision_ids: tuple[str, ...]
+    ) -> None:
+        """Purge only if no revision arrived since confirmation began."""
+
+        if self.note_revision_ids(note_id) != tuple(expected_revision_ids):
+            raise ConflictRequired("note changed since deletion was requested")
+        self.purge_note(note_id)
+
+    @synchronized
     def purge_note(self, note_id: UUID) -> None:
         """Permanently delete managed note content, including all old history.
 

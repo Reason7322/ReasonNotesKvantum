@@ -66,6 +66,24 @@ class WidgetsBootstrapTests(unittest.TestCase):
                 with self.assertRaises(UnsafeProductionPath):
                     resolve_launch_paths(inbox=production / "inbox")
 
+    def test_canonical_production_path_is_rejected_when_xdg_data_home_changes(self):
+        from reasonnotes_widgets.bootstrap import UnsafeProductionPath, resolve_launch_paths
+
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            home = base / "home"
+            canonical = home / ".local/share/ReasonNotes"
+            environment = {
+                "HOME": str(home),
+                "XDG_DATA_HOME": str(base / "isolated-xdg"),
+            }
+            with self.assertRaises(UnsafeProductionPath):
+                resolve_launch_paths(
+                    root=canonical / "repository",
+                    environ=environment,
+                    home=home,
+                )
+
     def test_qapplication_uses_installed_kvantum_style_and_distinct_identity(self):
         from reasonnotes_widgets.bootstrap import APP_ID, create_application
 

@@ -51,6 +51,22 @@ def production_data_directory(
     return _data_home(environ, home=home) / PRODUCTION_NAME
 
 
+def protected_production_directories(
+    environ: Mapping[str, str] | None = None, *, home: Path | None = None
+) -> tuple[Path, ...]:
+    values = os.environ if environ is None else environ
+    user_home = (
+        Path(values.get("HOME", str(Path.home())))
+        if home is None
+        else Path(home)
+    )
+    roots = {
+        user_home.expanduser() / ".local/share" / PRODUCTION_NAME,
+        production_data_directory(values, home=user_home),
+    }
+    return tuple(sorted(roots, key=str))
+
+
 def _is_within(path: Path, parent: Path) -> bool:
     try:
         path.resolve(strict=False).relative_to(parent.resolve(strict=False))
@@ -79,13 +95,13 @@ def resolve_launch_paths(
             else data_root / "received"
         ),
     )
-    protected = production_data_directory(environ, home=home)
+    protected = protected_production_directories(environ, home=home)
     for label, path in (
         ("repository", paths.repository),
         ("inbox", paths.inbox),
         ("received directory", paths.received_dir),
     ):
-        if _is_within(path, protected):
+        if any(_is_within(path, root) for root in protected):
             raise UnsafeProductionPath(
                 f"Candidate {label} may not use protected production data: {path}"
             )

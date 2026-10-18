@@ -3,7 +3,8 @@ from tempfile import TemporaryDirectory
 import os
 import unittest
 
-from PySide6.QtCore import QCoreApplication, QSettings, Qt
+from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDockWidget
 
 from reasonnotes_app.presenter import NotePresenter
@@ -74,11 +75,24 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             panel.selected_button.click()
             self.assertFalse(panel.start_button.isEnabled())
             index = controller.sync_model.index(0, 0)
-            self.assertTrue(
-                controller.sync_model.setData(
-                    index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole
-                )
+            panel.note_list.setCurrentIndex(index)
+            panel.note_list.setFocus()
+            QTest.keyClick(panel.note_list, Qt.Key.Key_Space)
+            QCoreApplication.processEvents()
+            self.assertEqual(len(controller.sync_selected_ids), 1)
+
+            indicator = QPoint(
+                panel.note_list.visualRect(index).left() + 8,
+                panel.note_list.visualRect(index).center().y(),
             )
+            QTest.mouseClick(
+                panel.note_list.viewport(), Qt.MouseButton.LeftButton,
+                pos=indicator,
+            )
+            QCoreApplication.processEvents()
+            self.assertEqual(len(controller.sync_selected_ids), 0)
+            QTest.keyClick(panel.note_list, Qt.Key.Key_Space)
+            QCoreApplication.processEvents()
             self.assertEqual(len(controller.sync_selected_ids), 1)
             self.assertTrue(panel.start_button.isEnabled())
 

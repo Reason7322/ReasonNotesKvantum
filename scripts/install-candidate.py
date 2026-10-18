@@ -94,15 +94,35 @@ def _replace_text(path: Path, contents: str, *, executable: bool = False) -> Non
     os.replace(temporary, path)
 
 
-def activate_release(install_root: Path, version: str) -> Path:
+def activate_release(
+    install_root: Path, version: str, *, home: Path | None = None
+) -> Path:
     """Point the candidate-only ``current`` link at an existing release."""
 
     if not VERSION_PATTERN.fullmatch(version):
         raise ValueError(f"Unsafe release version: {version!r}")
     install_root = Path(install_root).expanduser()
+    user_home = Path.home() if home is None else Path(home).expanduser()
+    candidate_launcher = user_home / ".local/bin/reasonnotes-kvantum-candidate"
+    candidate_desktop = (
+        user_home
+        / ".local/share/applications/org.reasonnotes.ReasonNotesKvantum.desktop"
+    )
+    _validate_targets(
+        install_root,
+        candidate_launcher,
+        candidate_desktop,
+        home=user_home,
+    )
     release = install_root / "releases" / version
     if not release.is_dir():
         raise FileNotFoundError(f"Candidate release is not installed: {release}")
+    _validate_targets(
+        release.resolve(),
+        candidate_launcher,
+        candidate_desktop,
+        home=user_home,
+    )
     install_root.mkdir(parents=True, exist_ok=True)
     _replace_symlink(install_root / "current", Path("releases") / version)
     return release
@@ -160,7 +180,7 @@ def install_candidate(
             shutil.rmtree(staging)
         raise
 
-    activate_release(install_root, version)
+    activate_release(install_root, version, home=user_home)
     current = install_root / "current"
     entrypoint = current / "linux-app/reasonnotes_widgets.py"
     launcher = (
@@ -218,7 +238,9 @@ def main(arguments=None) -> int:
     parser.add_argument("--activate", metavar="VERSION")
     options = parser.parse_args(arguments)
     if options.activate:
-        release = activate_release(options.install_root, options.activate)
+        release = activate_release(
+            options.install_root, options.activate, home=home
+        )
         print(f"ACTIVATED_CANDIDATE={release}")
         return 0
     version = options.version or _default_version(options.source_root)
