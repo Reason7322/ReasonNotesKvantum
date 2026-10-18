@@ -41,3 +41,48 @@ Not installed; owner visual approval and physical Android interoperability
 pending. No production cutover or migration. Next action is review on a
 visually useful wallpaper/Dolphin comparison, then integrate accepted
 improvements without discarding Forge work or retesting unchanged backend.
+
+## Second design pass — 2026-10-18, owner requested retry
+
+Goal is unchanged: a complete, fully functional, visually owner-approved Qt
+Widgets + **system** Kvantum replacement for desktop ReasonNotes. Existing
+production, Android, and installed candidate remain protected.
+
+The first palette-only fill was visually rejected as a flat gray slab. This
+continuation replaces that flat sheet with a more deliberately composed,
+responsive writing interface while keeping the working backend/Qt architecture.
+
+Changes:
+- Introduced application-owned *layout surfaces* (not bundled themes, QSS, or
+  replacement button/control styles): translucent navigation rail, soft writing
+  surface, small grouped actions/search, and themed title rule.
+- Background/shades use the live Kvantum QPalette for hue, text, highlight,
+  and alpha. The system theme is still the authority; Wayland blur is retained.
+- The editor's native QLineEdit and QPlainTextEdit remain editable/transparent,
+  with increased spacing and typographic hierarchy, capped at 920 logical px.
+- Settings uses distinct Language and Delete-pairing panels (no back button),
+  improved responsive width, and a smaller fixed-pitch pairing key.
+- Replaced unrelated Qt file-manager fallback icons with compact, consistently
+  colored line pictograms. Added a localized Notes section heading.
+- Kept the sidebar Settings button as the navigation toggle.
+
+Verification:
+- 223 of 223 automated tests pass after final changes. Exact command:
+  QT_QPA_PLATFORM=offscreen PYTHONPATH=src /usr/bin/python3 -m unittest discover -s tests -q
+- Actual bounded Hyprland/Wayland previews against disposable repositories
+  and XDG locations reported Kvantum style and active compositor blur with an
+  empty blur error. Existing native helper was built in this separate checkout.
+- Visually inspected composited screenshots of the empty editor, populated
+  notes/editor, and Settings with a dummy pairing token. These substantiate
+  that the design has differentiated surfaces and correct Qt painting, but do
+  NOT prove owner approval or exact appearance over every wallpaper.
+- Previous test shutdown ResourceWarning and QColor NaN messages remain
+  observable despite all passing tests; no new root-cause diagnosis performed.
+- No candidate re-install, no production writes, no Android physical testing.
+
+Open:
+- Owner subjective visual acceptance on the real wallpaper/normal window
+  size, including controls and Settings.
+- Physical Android protocol compatibility and production cutover/rollback
+  remain unapproved and unperformed.
+- No new source commit should be merged to main just to checkpoint.

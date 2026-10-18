@@ -18,22 +18,24 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .material import GlassCard, NavigationRail, SearchWell
 from .visuals import (
     configure_action_button,
     integrate_line_edit,
     integrate_scroll_surface,
+    action_icon,
 )
 
 
-class NotesSidebar(QWidget):
+class NotesSidebar(NavigationRail):
     def __init__(self, model, *, icon_root: Path | None = None, parent=None):
         super().__init__(parent)
         self.setObjectName("notesSidebar")
         self.setMinimumWidth(240)
         self.setMaximumWidth(520)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 16, 14, 12)
-        layout.setSpacing(10)
+        layout.setContentsMargins(18, 22, 18, 18)
+        layout.setSpacing(14)
 
         brand_row = QHBoxLayout()
         brand_row.setSpacing(8)
@@ -51,38 +53,33 @@ class NotesSidebar(QWidget):
         layout.addLayout(brand_row)
 
         actions = QGridLayout()
-        actions.setSpacing(8)
+        actions.setSpacing(6)
         self.new_button = QToolButton(self)
         self.save_button = QToolButton(self)
         self.sync_button = QToolButton(self)
         self.delete_button = QToolButton(self)
         self.settings_button = QToolButton(self)
         button_icons = (
-            (self.new_button, "document-new", QStyle.StandardPixmap.SP_FileIcon),
-            (
-                self.save_button,
-                "document-save",
-                QStyle.StandardPixmap.SP_DialogSaveButton,
-            ),
-            (self.sync_button, "view-refresh", QStyle.StandardPixmap.SP_BrowserReload),
-            (self.delete_button, "edit-delete", QStyle.StandardPixmap.SP_TrashIcon),
-            (
-                self.settings_button,
-                "settings-configure",
-                QStyle.StandardPixmap.SP_FileDialogDetailedView,
-            ),
+            (self.new_button, "new"),
+            (self.save_button, "save"),
+            (self.sync_button, "sync"),
+            (self.delete_button, "delete"),
+            (self.settings_button, "settings"),
         )
-        for button, icon_name, fallback in button_icons:
+        for button, icon_name in button_icons:
             configure_action_button(button)
-            button.setIcon(
-                QIcon.fromTheme(icon_name, self.style().standardIcon(fallback))
-            )
+            button.setMinimumHeight(36)
+            button.setIcon(action_icon(icon_name, self.palette()))
         actions.addWidget(self.new_button, 0, 0)
         actions.addWidget(self.save_button, 0, 1)
         actions.addWidget(self.sync_button, 1, 0)
         actions.addWidget(self.delete_button, 1, 1)
         actions.addWidget(self.settings_button, 2, 0, 1, 2)
-        layout.addLayout(actions)
+        self.command_group = GlassCard(self)
+        action_group_layout = QVBoxLayout(self.command_group)
+        action_group_layout.setContentsMargins(12, 12, 12, 12)
+        action_group_layout.addLayout(actions)
+        layout.addWidget(self.command_group)
 
         self.search_field = QLineEdit(self)
         self.search_field.setObjectName("noteSearch")
@@ -90,14 +87,25 @@ class NotesSidebar(QWidget):
         self.search_field.setClearButtonEnabled(True)
         self.search_field.setAccessibleName("Search notes")
         self.search_field.addAction(
-            QIcon.fromTheme(
-                "edit-find",
-                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
-            ),
+            action_icon("search", self.palette()),
             QLineEdit.ActionPosition.LeadingPosition,
         )
         integrate_line_edit(self.search_field)
-        layout.addWidget(self.search_field)
+        self.search_well = SearchWell(self)
+        self.search_well.setObjectName("searchWell")
+        search_layout = QVBoxLayout(self.search_well)
+        search_layout.setContentsMargins(9, 5, 9, 5)
+        search_layout.addWidget(self.search_field)
+        layout.addWidget(self.search_well)
+
+        self.notes_heading = QLabel("NOTES", self)
+        self.notes_heading.setObjectName("notesHeading")
+        heading_font = self.notes_heading.font()
+        heading_font.setPointSize(max(heading_font.pointSize() - 1, 9))
+        heading_font.setBold(True)
+        self.notes_heading.setFont(heading_font)
+        self.notes_heading.setContentsMargins(4, 6, 0, 0)
+        layout.addWidget(self.notes_heading)
 
         self.list_view = QListView(self)
         self.list_view.setObjectName("noteList")

@@ -111,6 +111,22 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 painter.end()
                 self.assertEqual(image.pixelColor(image.rect().center()), untouched)
 
+    def test_line_icons_are_complete_high_dpi_drawings(self):
+        from reasonnotes_widgets.visuals import action_icon
+        for name in ("new", "save", "sync", "delete", "settings", "search"):
+            with self.subTest(name=name):
+                pixmap = action_icon(name, self.window.palette()).pixmap(48, 48)
+                image = pixmap.toImage()
+                self.assertFalse(image.isNull())
+                # Search's handle and the right-hand detail of other pictograms
+                # must survive the conversion to physical pixels.
+                filled = sum(
+                    image.pixelColor(x, y).alpha() > 40
+                    for x in range(image.width() // 2, image.width())
+                    for y in range(image.height())
+                )
+                self.assertGreater(filled, 3)
+
     def test_sidebar_actions_are_compact_native_tool_buttons(self):
         for button in (
             self.window.sidebar.new_button,
@@ -136,6 +152,8 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertLessEqual(page.content_column.maximumWidth(), 720)
         self.assertEqual(page.heading.parentWidget(), page.content_column)
         self.window.sidebar.settings_button.click()
+        QCoreApplication.processEvents()
+        self.assertGreaterEqual(page.content_column.width(), 500)
         self.assertIs(self.window.page_stack.currentWidget(), page)
         self.window.sidebar.settings_button.click()
         self.assertIsNot(self.window.page_stack.currentWidget(), page)
@@ -157,10 +175,13 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         canvas.fill(Qt.GlobalColor.transparent)
         self.window.render(canvas)
         pixel = canvas.pixelColor(self.window.width() - 30, self.window.height() // 2)
-        self.assertEqual(
-            pixel.alpha(), material.alpha(),
-            "The top-level material must preserve the system Kvantum alpha"
-        )
+        self.assertGreater(pixel.alpha(), 110)
+        self.assertLess(pixel.alpha(), 235)
+        # The material still belongs to the system palette family; the
+        # page/card/rail add separation rather than a solid background.
+        self.assertEqual(self.window.editor.writing_column.__class__.__name__, "GlassCard")
+        self.assertEqual(self.window.sidebar.__class__.__name__, "NotesSidebar")
+        self.assertEqual(self.window.sidebar.search_well.__class__.__name__, "SearchWell")
 
 
 if __name__ == "__main__":
