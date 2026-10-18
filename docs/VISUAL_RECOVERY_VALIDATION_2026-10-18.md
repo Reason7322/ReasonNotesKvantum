@@ -55,7 +55,7 @@ Complete suite (with localhost socket access for purge-relay tests):
 QT_QPA_PLATFORM=offscreen PYTHONPATH=src \
   /usr/bin/python3 -m unittest discover -v
 
-Ran 224 tests in 7.376s — OK
+Ran 224 tests in 7.514s — OK
 ```
 
 The first restricted-sandbox full run correctly failed five purge-relay tests
@@ -102,6 +102,26 @@ SETTINGS_STYLE=qt6ct-style
 SETTINGS_BLUR_ACTIVE=1
 SETTINGS_BACK_BUTTON=0
 ```
+
+### Native blur teardown correction
+
+The first exact installed-candidate timed probe rendered correctly but exited
+with status 139. The same result reproduced from source with both qt6ct and
+bare Kvantum, while a Wayland launch without the native blur controller exited
+normally. `coredumpctl` identified the fault in `free_blur()` at the
+`wl_surface_commit` performed after destroying the effect.
+
+Qt owns the `wl_surface` pointer borrowed by the helper and can destroy it
+before `QApplication.aboutToQuit`. Cleanup therefore must not dereference or
+commit that pointer. The helper now commits only during effect activation;
+teardown destroys the effect, manager, registry, and private event queue and
+flushes the still-live display. Surface destruction already discards pending
+effect state.
+
+A regression test asserts that the activation path retains its required
+commit and the cleanup path contains none. After rebuilding the helper, a new
+isolated Wayland source probe reported the same active qt6ct/Kvantum blur state
+and exited with status 0. The complete 224-test suite passed after this fix.
 
 The normal Qt/Kvantum runtime still emits pre-existing `QColor::set*F: invalid
 value nan` diagnostics and missing inherited icon-theme warnings for

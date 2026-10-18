@@ -99,6 +99,12 @@ The editor capture visibly retained background depth and a distinct readable
 writing panel; the Settings capture retained the sidebar and two translucent
 cards without a back button.
 
+An exact installed-candidate probe then exposed a pre-existing exit-time
+SIGSEGV in the native blur helper. Coredump evidence traced it to a cleanup
+commit on Qt's already-destroyed borrowed `wl_surface`. Cleanup no longer
+commits that surface; activation still does. The corrected source Wayland
+probe exits normally with status 0 while retaining active blur.
+
 **ENGINEERING CANDIDATE — VISUAL ACCEPTANCE PENDING.** Physical Android
 interoperability and production cutover remain pending. No production data,
 launcher, theme, compositor configuration, or Android state was changed.

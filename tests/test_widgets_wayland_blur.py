@@ -56,14 +56,18 @@ class WidgetsWaylandBlurTests(unittest.TestCase):
         controller._set_active(False)
         self.assertEqual(changes, [True, False])
 
-    def test_native_helper_commits_enable_and_disable_to_surface(self):
+    def test_native_helper_commits_enable_but_never_qt_surface_teardown(self):
         source = (
             Path(__file__).resolve().parents[1]
             / "linux-app/native/reasonnotes_wayland_blur.c"
         ).read_text()
-        effect = source.index("ext_background_effect_surface_v1_set_blur_region(")
-        self.assertGreater(source.index("wl_surface_commit(state->surface)", effect), effect)
-        self.assertIn("wl_surface_commit(state->surface)", source[:effect])
+        cleanup = source[
+            source.index("static void free_blur("):
+            source.index("void *rn_blur_enable(")
+        ]
+        enable = source[source.index("void *rn_blur_enable("):]
+        self.assertNotIn("wl_surface_commit", cleanup)
+        self.assertIn("wl_surface_commit(state->surface)", enable)
 
     def test_controller_does_not_modify_system_kvantum_configuration(self):
         from reasonnotes_widgets.wayland_blur import QWidgetBlurController

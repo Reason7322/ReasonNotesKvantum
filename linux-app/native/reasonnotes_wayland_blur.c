@@ -43,13 +43,12 @@ static const struct ext_background_effect_manager_v1_listener manager_events = {
 
 static void free_blur(struct rn_blur *state) {
     if (!state) return;
-    if (state->effect) {
+    if (state->effect)
         ext_background_effect_surface_v1_destroy(state->effect);
-        /* Effect removal is double-buffered, just like activation.
-         * Commit after destroy while Qt's wl_surface is still alive. */
-        if (state->surface)
-            wl_surface_commit(state->surface);
-    }
+    /* Never commit Qt's borrowed wl_surface during teardown. Qt can destroy
+     * that surface before QApplication.aboutToQuit, making a cleanup commit
+     * a use-after-free. Surface destruction already discards pending effect
+     * state; activation below remains the only explicit commit we need. */
     if (state->manager)
         ext_background_effect_manager_v1_destroy(state->manager);
     if (state->registry)
