@@ -10,7 +10,29 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import QAbstractScrollArea, QFrame, QLineEdit, QToolButton
+from PySide6.QtWidgets import (
+    QAbstractScrollArea,
+    QFrame,
+    QLineEdit,
+    QProxyStyle,
+    QStyle,
+    QToolButton,
+)
+
+
+class IntegratedLineEditStyle(QProxyStyle):
+    """Kvantum proxy that omits only its forced line-edit panel.
+
+    Kvantum deliberately renders ``PE_PanelLineEdit`` even when
+    ``QLineEdit.hasFrame()`` is false.  The proxy keeps a real Kvantum base
+    style for every other metric, icon, state, and primitive while leaving the
+    panel pixels to the translucent top-level material.
+    """
+
+    def drawPrimitive(self, element, option, painter, widget=None) -> None:
+        if element == QStyle.PrimitiveElement.PE_PanelLineEdit:
+            return
+        super().drawPrimitive(element, option, painter, widget)
 
 
 def _clear_base_brush(widget) -> None:
@@ -32,6 +54,10 @@ def integrate_line_edit(field: QLineEdit) -> None:
 
     field.setFrame(False)
     _clear_base_brush(field)
+    style = IntegratedLineEditStyle("kvantum")
+    style.setParent(field)
+    field.setStyle(style)
+    field._reasonnotes_line_edit_style = style
 
 
 def integrate_scroll_surface(view: QAbstractScrollArea) -> None:

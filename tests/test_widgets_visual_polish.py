@@ -4,11 +4,14 @@ import os
 import unittest
 
 from PySide6.QtCore import QCoreApplication, QSettings, Qt
-from PySide6.QtGui import QPalette
+from PySide6.QtGui import QColor, QImage, QPainter, QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
+    QProxyStyle,
     QSizePolicy,
+    QStyle,
+    QStyleOptionFrame,
     QToolButton,
 )
 
@@ -79,6 +82,34 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 self.assert_transparent_base(view.viewport())
                 self.assertFalse(view.viewport().autoFillBackground())
                 self.assertEqual(view.styleSheet(), "")
+
+    def test_line_edit_proxy_suppresses_only_the_forced_kvantum_panel(self):
+        fields = (
+            self.window.sidebar.search_field,
+            self.window.editor.title_editor,
+            self.window.settings_page.purge_address,
+            self.window.settings_page.purge_key,
+            self.window.sync_panel.search_field,
+        )
+        untouched = QColor(17, 23, 31)
+        for field in fields:
+            with self.subTest(field=field.objectName()):
+                self.assertIsInstance(field.style(), QProxyStyle)
+                self.assertEqual(field.style().baseStyle().objectName(), "kvantum")
+                image = QImage(40, 24, QImage.Format.Format_ARGB32_Premultiplied)
+                image.fill(untouched)
+                option = QStyleOptionFrame()
+                option.initFrom(field)
+                option.rect = image.rect()
+                painter = QPainter(image)
+                field.style().drawPrimitive(
+                    QStyle.PrimitiveElement.PE_PanelLineEdit,
+                    option,
+                    painter,
+                    field,
+                )
+                painter.end()
+                self.assertEqual(image.pixelColor(image.rect().center()), untouched)
 
     def test_sidebar_actions_are_compact_native_tool_buttons(self):
         for button in (
