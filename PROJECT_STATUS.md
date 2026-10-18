@@ -21,6 +21,8 @@ acceptance and authorization for production replacement remain pending.
   application-scoped candidate settings.
 - Versioned candidate packaging, immutable releases, candidate-only activation,
   and documented rollback. No production cutover has occurred.
+- The reviewed candidate is installed at candidate-only paths with launcher
+  `~/.local/bin/reasonnotes-kvantum-candidate`; production remains selected.
 
 ## Validation state
 
@@ -47,6 +49,6 @@ candidate rejects production data paths.
 
 Forge owns the branch. The whole-branch review's six Important findings were
 fixed through interaction-level RED/GREEN tests and the full suite is green.
-Install the exact final candidate under its distinct candidate paths and hand
-the owner the visual/device acceptance procedure. Do not modify `main` or the
-production launcher.
+The next action is owner visual/device acceptance through the candidate
+launcher. Do not modify `main` or the production launcher without explicit
+owner authorization.

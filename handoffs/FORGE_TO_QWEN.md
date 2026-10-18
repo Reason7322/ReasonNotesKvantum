@@ -21,6 +21,7 @@ pairing information and visible F5 status were also restored.
 
 ## Smallest next action
 
-Install and smoke-test the exact final commit through the candidate-only
-installer, then push and independently verify the same SHA on `handoff` and
-`github`. Never modify production or merge `main` merely to checkpoint.
+Push and independently verify the final documentation checkpoint on `handoff`
+and `github`, then leave production untouched for owner acceptance. The
+candidate-only launcher has been installed and smoke-tested. Never modify
+production or merge `main` merely to checkpoint.

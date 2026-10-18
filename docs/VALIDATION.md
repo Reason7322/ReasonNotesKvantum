@@ -60,6 +60,16 @@ The versioned installer was exercised under
 successful installed-launcher `--check-launch`. No home candidate or production
 installation was changed during that temporary exercise.
 
+After review fixes, implementation commit
+`83f9b339518459259370da9569730ec1d504c22d` was installed through the same
+installer at the candidate-only paths and passed both offscreen
+`--check-launch` and an actual bounded Wayland probe. The installed candidate
+launcher SHA-256 was
+`dce194190973cb08a37cbc04dffe85c1dea5dd55add6b1144c5ca6f95da4acda`.
+The production launcher hash remained
+`05406228cadb43bcb6ad37be63d057d645c90e286a5ba8632c64d28c10e66eca`
+before and after installation.
+
 ## Actual Hyprland/Wayland runtime
 
 The source candidate was displayed on the active Hyprland session for a bounded
@@ -89,6 +99,10 @@ Dolphin and not a substitute for owner visual acceptance.
 The bounded probe disabled the foreground purge listener to avoid colliding
 with any running production instance. Relay authentication, lifecycle, purge,
 and teardown are covered by isolated socket and runtime tests.
+
+The exact installed candidate was also probed after packaging and reported
+`wayland`, `kvantum`, blur active, no blur error, and candidate data root
+`/home/reason/.local/share/ReasonNotesKvantum-candidate`.
 
 ## System-style evidence
 
