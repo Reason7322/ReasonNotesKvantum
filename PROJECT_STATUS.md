@@ -128,3 +128,21 @@ installed candidate and all production state remain unchanged.
 **ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Physical Android
 interoperability and production cutover remain pending. See
 `docs/UI_PARITY_VALIDATION_2026-10-18.md`.
+
+## Forge glass artifact correction — 2026-10-18
+
+The accepted UI structure remains unchanged. A controlled real-Wayland
+comparison ruled out child-widget boundaries and the top-level gradient shape:
+the faint rectangles were compositor blur tiles remaining visible through the
+two lightest material stops. A minimum alpha of 178 on those stops masks the
+bands while retaining the existing gradient, card hierarchy, and background
+depth.
+
+Affected visual/main-window coverage passes 17/17 and the complete isolated
+suite passes 227/227. Normal-size editor and Settings captures from the actual
+patched source launch retained `qt6ct-style`, native Wayland, active blur, and
+no blur-helper error. Production and the installed candidate remain unchanged.
+
+**ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Physical Android
+interoperability and production cutover remain pending. See
+`docs/GLASS_ARTIFACT_VALIDATION_2026-10-18.md`.

@@ -237,6 +237,29 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertEqual(self.window.sidebar.__class__.__name__, "NotesSidebar")
         self.assertEqual(self.window.sidebar.search_well.__class__.__name__, "SearchWell")
 
+    def test_window_material_masks_compositor_tiles_at_its_lightest_points(self):
+        from reasonnotes_widgets.wayland_blur import prepare_translucent_surface
+
+        self.assertTrue(
+            prepare_translucent_surface(self.window, platform_name="wayland")
+        )
+        canvas = QImage(
+            self.window.size(), QImage.Format.Format_ARGB32_Premultiplied
+        )
+        canvas.fill(Qt.GlobalColor.transparent)
+        self.window.render(canvas)
+
+        # These points sit in the exposed main-window material around the
+        # writing card. Below this alpha the compositor's coarse blurred
+        # wallpaper tiles become visible as rectangular bands.
+        points = (
+            (int(self.window.width() * .54), 10),
+            (self.window.width() - 10, self.window.height() // 2),
+        )
+        for x, y in points:
+            with self.subTest(point=(x, y)):
+                self.assertGreaterEqual(canvas.pixelColor(x, y).alpha(), 178)
+
 
 if __name__ == "__main__":
     unittest.main()

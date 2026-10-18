@@ -316,8 +316,14 @@ class ReasonNotesMainWindow(QMainWindow):
             middle = base.lighter(112)
             right = window.lighter(104)
             left.setAlpha(min(235, int(alpha * 1.08)))
-            middle.setAlpha(max(105, int(alpha * .79)))
-            right.setAlpha(min(230, int(alpha * .93)))
+            # Hyprland blur can expose coarse sampling tiles beneath very
+            # light material. Keep our sheet translucent, but dense enough
+            # that those tiles do not read as rectangular bands through it.
+            material_alpha_floor = 178
+            middle.setAlpha(max(material_alpha_floor, int(alpha * .79)))
+            right.setAlpha(
+                max(material_alpha_floor, min(230, int(alpha * .93)))
+            )
             shade = QLinearGradient(0, 0, self.width(), self.height() * .24)
             shade.setColorAt(0.0, left)
             shade.setColorAt(.54, middle)
