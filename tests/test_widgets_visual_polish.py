@@ -126,21 +126,41 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                     button.toolButtonStyle(), Qt.ToolButtonStyle.ToolButtonTextBesideIcon
                 )
 
-    def test_settings_uses_compact_navigation_and_bounded_content_column(self):
+    def test_settings_has_no_back_button_and_sidebar_toggles(self):
         page = self.window.settings_page
-
-        self.assertIsInstance(page.back_button, QToolButton)
-        self.assertTrue(page.back_button.autoRaise())
+        self.assertFalse(hasattr(page, "back_button"))
         self.assertEqual(
-            page.back_button.toolButtonStyle(),
-            Qt.ToolButtonStyle.ToolButtonTextBesideIcon,
-        )
-        self.assertNotEqual(
-            page.back_button.sizePolicy().horizontalPolicy(),
-            QSizePolicy.Policy.Expanding,
+            [child.text() for child in page.findChildren(QToolButton)
+             if "Back to notes" in child.text()], []
         )
         self.assertLessEqual(page.content_column.maximumWidth(), 720)
         self.assertEqual(page.heading.parentWidget(), page.content_column)
+        self.window.sidebar.settings_button.click()
+        self.assertIs(self.window.page_stack.currentWidget(), page)
+        self.window.sidebar.settings_button.click()
+        self.assertIsNot(self.window.page_stack.currentWidget(), page)
+
+    def test_window_material_uses_system_kvantum_base_not_an_app_theme(self):
+        from PySide6.QtGui import QPalette
+        from PySide6.QtCore import Qt
+        from reasonnotes_widgets.wayland_blur import prepare_translucent_surface
+
+        self.assertTrue(
+            prepare_translucent_surface(self.window, platform_name="wayland")
+        )
+        material = self.window.palette().color(QPalette.ColorRole.Base)
+        self.assertGreater(material.alpha(), 0)
+        self.assertLess(material.alpha(), 255)
+        # A translucent window paints the actual material onto otherwise
+        # transparent space; it must not leave that space alpha=0.
+        canvas = QImage(self.window.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        canvas.fill(Qt.GlobalColor.transparent)
+        self.window.render(canvas)
+        pixel = canvas.pixelColor(self.window.width() - 30, self.window.height() // 2)
+        self.assertEqual(
+            pixel.alpha(), material.alpha(),
+            "The top-level material must preserve the system Kvantum alpha"
+        )
 
 
 if __name__ == "__main__":

@@ -52,3 +52,13 @@ fixed through interaction-level RED/GREEN tests and the full suite is green.
 The next action is owner visual/device acceptance through the candidate
 launcher. Do not modify `main` or the production launcher without explicit
 owner authorization.
+
+## ChatGPT-owned visual correction (2026-10-18)
+
+Owner rejected the post-4665147 wallpaper-portal appearance. Separate branch
+sol/qtwidgets-glass-balance adds a system-palette translucent backdrop and
+removes the Settings back button. The sidebar Settings button toggles.
+Full suite 222/222 passed; native Wayland/Kvantum/blur runtime verified.
+No installed candidate or production files changed. Owner visual acceptance,
+physical Android acceptance, and production cutover remain pending.
+See docs/GLASS_BALANCE_VALIDATION.md.
