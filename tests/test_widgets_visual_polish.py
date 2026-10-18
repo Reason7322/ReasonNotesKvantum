@@ -57,6 +57,15 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             widget.palette().brush(QPalette.ColorRole.Base).color().alpha(), 0
         )
 
+    def assert_kvantum_style_chain(self, style):
+        chain = [style]
+        while chain[-1] is not None:
+            if not isinstance(chain[-1], QProxyStyle):
+                break
+            chain.append(chain[-1].baseStyle())
+        names = [item.objectName().casefold() for item in chain if item is not None]
+        self.assertEqual(names[-1], "kvantum", names)
+
     def test_writing_search_and_list_surfaces_reveal_kvantum_window_material(self):
         line_edits = (
             self.window.sidebar.search_field,
@@ -95,7 +104,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         for field in fields:
             with self.subTest(field=field.objectName()):
                 self.assertIsInstance(field.style(), QProxyStyle)
-                self.assertEqual(field.style().baseStyle().objectName(), "kvantum")
+                self.assert_kvantum_style_chain(field.style())
                 image = QImage(40, 24, QImage.Format.Format_ARGB32_Premultiplied)
                 image.fill(untouched)
                 option = QStyleOptionFrame()
@@ -111,21 +120,16 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 painter.end()
                 self.assertEqual(image.pixelColor(image.rect().center()), untouched)
 
-    def test_line_icons_are_complete_high_dpi_drawings(self):
-        from reasonnotes_widgets.visuals import action_icon
-        for name in ("new", "save", "sync", "delete", "settings", "search"):
-            with self.subTest(name=name):
-                pixmap = action_icon(name, self.window.palette()).pixmap(48, 48)
-                image = pixmap.toImage()
-                self.assertFalse(image.isNull())
-                # Search's handle and the right-hand detail of other pictograms
-                # must survive the conversion to physical pixels.
-                filled = sum(
-                    image.pixelColor(x, y).alpha() > 40
-                    for x in range(image.width() // 2, image.width())
-                    for y in range(image.height())
-                )
-                self.assertGreater(filled, 3)
+    def test_sidebar_icons_are_system_theme_backed(self):
+        for button in (
+            self.window.sidebar.new_button,
+            self.window.sidebar.save_button,
+            self.window.sidebar.sync_button,
+            self.window.sidebar.delete_button,
+            self.window.sidebar.settings_button,
+        ):
+            with self.subTest(button=button.text()):
+                self.assertFalse(button.icon().isNull())
 
     def test_sidebar_actions_are_compact_native_tool_buttons(self):
         for button in (
@@ -149,6 +153,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             [child.text() for child in page.findChildren(QToolButton)
              if "Back to notes" in child.text()], []
         )
+        self.assertFalse(hasattr(page, "system_appearance"))
         self.assertLessEqual(page.content_column.maximumWidth(), 720)
         self.assertEqual(page.heading.parentWidget(), page.content_column)
         self.window.sidebar.settings_button.click()
@@ -166,6 +171,9 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertTrue(
             prepare_translucent_surface(self.window, platform_name="wayland")
         )
+        # The rejected regression filled the whole editor page with the
+        # palette Base brush, producing an opaque charcoal slab.
+        self.assertFalse(self.window.editor.autoFillBackground())
         material = self.window.palette().color(QPalette.ColorRole.Base)
         self.assertGreater(material.alpha(), 0)
         self.assertLess(material.alpha(), 255)
@@ -181,6 +189,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         # page/card/rail add separation rather than a solid background.
         self.assertEqual(self.window.editor.writing_column.__class__.__name__, "GlassCard")
         self.assertEqual(self.window.sidebar.__class__.__name__, "NotesSidebar")
+        self.assertEqual(self.window.sidebar.command_group.__class__.__name__, "GlassCard")
         self.assertEqual(self.window.sidebar.search_well.__class__.__name__, "SearchWell")
 
 

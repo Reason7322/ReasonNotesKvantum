@@ -86,3 +86,17 @@ Open:
 - Physical Android protocol compatibility and production cutover/rollback
   remain unapproved and unperformed.
 - No new source commit should be merged to main just to checkpoint.
+
+## Forge selective recovery — 2026-10-18
+
+Forge did not import Sol's latest rendering change wholesale. The verified
+qt6ct-to-Kvantum style preservation and system icons were combined with the
+earlier grouped, low-alpha layout surfaces. The later editor-wide Base
+autofill and flat frame substitution were omitted because actual compositor
+capture confirmed the remaining charcoal appearance.
+
+The recovered editor and Settings were launched and captured on real Wayland
+with the active system LiquidGlass theme, `qt6ct-style`, and compositor blur.
+The complete suite passes 224/224. Detailed commands, runtime evidence, and
+remaining warnings are recorded in
+`docs/VISUAL_RECOVERY_VALIDATION_2026-10-18.md`.

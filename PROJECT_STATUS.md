@@ -10,8 +10,9 @@ acceptance and authorization for production replacement remain pending.
 - Native `QApplication`/`QMainWindow`/Qt Widgets shell with a resizable 300 px
   sidebar, responsive editor capped at a 920 px writing column, native search,
   selection, keyboard navigation, dialogs, Settings, Sync, and Conflict views.
-- Installed system `kvantum` QStyle is required and selected without changing
-  the system theme or bundling application themes.
+- The system `qt6ct-style` proxy is preserved when it wraps the installed
+  `kvantum` QStyle, matching Dolphin's native font, icon, palette, and style
+  chain without changing or bundling system themes.
 - Optional `ext-background-effect-v1` compositor blur on Qt's QWidget Wayland
   surface, including pre-show alpha preparation and an opaque fallback.
 - Imported baseline application/sync logic with note CRUD, autosave/recovery,
@@ -26,10 +27,12 @@ acceptance and authorization for production replacement remain pending.
 
 ## Validation state
 
-- Complete automated suite: 217 tests passed in an isolated offscreen run.
+- Complete automated suite: 224 tests passed in an isolated offscreen run;
+  localhost purge-relay tests were run with socket access enabled.
 - Native helper: compiled successfully from the system Wayland protocol.
-- Actual Hyprland session: Qt platform `wayland`, style `kvantum`, compositor
-  blur active with no helper error, using disposable `/tmp` data.
+- Actual Hyprland session: Qt platform `wayland`, style `qt6ct-style` over
+  Kvantum, compositor blur active with no helper error, using disposable
+  `/tmp` data and configuration copies.
 - Composited screenshot inspected after correcting the responsive writing
   column. It is evidence of the observed candidate, not owner visual approval
   or a claim of identity with Dolphin.
@@ -78,3 +81,25 @@ disposable test notes and dummy pairing credentials.
 interoperability and authorized production cutover are still pending. No
 installed candidate or production files were changed during this iteration.
 See docs/GLASS_BALANCE_VALIDATION.md and handoffs/SOL_TO_FORGE.md.
+
+## Forge visual recovery — 2026-10-18
+
+Forge selectively integrated Sol's preferred-direction layout composition and
+the verified Dolphin-native qt6ct integration. The rejected editor-wide
+`QPalette.Base` autofill and flat native-frame replacement were not imported.
+The current source keeps the low-alpha writing/settings cards, grouped sidebar
+commands, search surround, title rule, and system icons, while all colors are
+derived from the active system palette. The Settings back bar and appearance
+explanation remain absent.
+
+The complete 224-test suite passes. Two unobstructed 2048x1106 Hyprland
+captures (editor and Settings) were inspected from isolated source launches;
+both reported `qt6ct-style`, native Wayland, active blur, and no blur error.
+The editor capture visibly retained background depth and a distinct readable
+writing panel; the Settings capture retained the sidebar and two translucent
+cards without a back button.
+
+**ENGINEERING CANDIDATE — VISUAL ACCEPTANCE PENDING.** Physical Android
+interoperability and production cutover remain pending. No production data,
+launcher, theme, compositor configuration, or Android state was changed.
+See `docs/VISUAL_RECOVERY_VALIDATION_2026-10-18.md`.

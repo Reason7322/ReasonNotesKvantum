@@ -23,7 +23,6 @@ from .visuals import (
     configure_action_button,
     integrate_line_edit,
     integrate_scroll_surface,
-    action_icon,
 )
 
 
@@ -59,17 +58,37 @@ class NotesSidebar(NavigationRail):
         self.sync_button = QToolButton(self)
         self.delete_button = QToolButton(self)
         self.settings_button = QToolButton(self)
+        # qt6ct supplies the same system icon theme used by Dolphin. Keep the
+        # visually preferred grouped card, but let the desktop own symbols.
         button_icons = (
-            (self.new_button, "new"),
-            (self.save_button, "save"),
-            (self.sync_button, "sync"),
-            (self.delete_button, "delete"),
-            (self.settings_button, "settings"),
+            (self.new_button, "document-new", QStyle.StandardPixmap.SP_FileIcon),
+            (
+                self.save_button,
+                "document-save",
+                QStyle.StandardPixmap.SP_DialogSaveButton,
+            ),
+            (
+                self.sync_button,
+                "view-refresh",
+                QStyle.StandardPixmap.SP_BrowserReload,
+            ),
+            (
+                self.delete_button,
+                "edit-delete",
+                QStyle.StandardPixmap.SP_TrashIcon,
+            ),
+            (
+                self.settings_button,
+                "settings-configure",
+                QStyle.StandardPixmap.SP_FileDialogDetailedView,
+            ),
         )
-        for button, icon_name in button_icons:
+        for button, theme_name, fallback in button_icons:
             configure_action_button(button)
             button.setMinimumHeight(36)
-            button.setIcon(action_icon(icon_name, self.palette()))
+            button.setIcon(
+                QIcon.fromTheme(theme_name, self.style().standardIcon(fallback))
+            )
         actions.addWidget(self.new_button, 0, 0)
         actions.addWidget(self.save_button, 0, 1)
         actions.addWidget(self.sync_button, 1, 0)
@@ -87,7 +106,10 @@ class NotesSidebar(NavigationRail):
         self.search_field.setClearButtonEnabled(True)
         self.search_field.setAccessibleName("Search notes")
         self.search_field.addAction(
-            action_icon("search", self.palette()),
+            QIcon.fromTheme(
+                "edit-find",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
+            ),
             QLineEdit.ActionPosition.LeadingPosition,
         )
         integrate_line_edit(self.search_field)

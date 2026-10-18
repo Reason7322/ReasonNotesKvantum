@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication
-from PySide6.QtWidgets import QApplication, QStyleFactory
+from PySide6.QtWidgets import QApplication, QProxyStyle, QStyleFactory
 
 
 APP_ID = "org.reasonnotes.ReasonNotesKvantum"
@@ -118,14 +118,23 @@ def create_application(argv: Sequence[str] | None = None) -> QApplication:
         application = QApplication(list(argv or ["reasonnotes-kvantum"]))
     application.setApplicationName("ReasonNotesKvantum")
     application.setDesktopFileName(APP_ID)
-    style = QStyleFactory.create("kvantum")
-    if style is None:
-        available = ", ".join(QStyleFactory.keys())
-        raise RuntimeError(
-            "The installed Qt 6 Kvantum style is required "
-            f"(available styles: {available or 'none'})."
-        )
-    application.setStyle(style)
-    if application.style().objectName().casefold() != "kvantum":
+    # Dolphin receives qt6ct-style from the platform theme, with Kvantum as
+    # its base style. Preserve that chain so the system font, icon theme and
+    # palette remain authoritative. Environments without qt6ct retain the
+    # original strict Kvantum fallback.
+    style = application.style()
+    base = style.baseStyle() if isinstance(style, QProxyStyle) else style
+    if base is None or base.objectName().casefold() != "kvantum":
+        kvantum = QStyleFactory.create("kvantum")
+        if kvantum is None:
+            available = ", ".join(QStyleFactory.keys())
+            raise RuntimeError(
+                "The installed Qt 6 Kvantum style is required "
+                f"(available styles: {available or 'none'})."
+            )
+        application.setStyle(kvantum)
+        style = application.style()
+        base = style.baseStyle() if isinstance(style, QProxyStyle) else style
+    if base is None or base.objectName().casefold() != "kvantum":
         raise RuntimeError("Qt rejected the installed Kvantum style")
     return application

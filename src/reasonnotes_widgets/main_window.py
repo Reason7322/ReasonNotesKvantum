@@ -5,7 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import (QCloseEvent, QKeySequence, QLinearGradient, QPainter, QPalette, QShortcut)
+from PySide6.QtGui import (
+    QCloseEvent,
+    QKeySequence,
+    QLinearGradient,
+    QPainter,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -295,9 +301,9 @@ class ReasonNotesMainWindow(QMainWindow):
             self._refreshing = False
 
     def paintEvent(self, event) -> None:
-        # The active system palette supplies hue and alpha. A spatially varied
-        # sheet stops the window from becoming either a charcoal slab or a
-        # naked portal into the blurred wallpaper.
+        # The active qt6ct/Kvantum palette supplies every hue. A low-alpha,
+        # spatially varied sheet preserves compositor blur while avoiding the
+        # flat charcoal result produced by an opaque native Base fill.
         if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
             window = self.palette().window().color()
             base = self.palette().base().color()
@@ -313,8 +319,9 @@ class ReasonNotesMainWindow(QMainWindow):
             shade.setColorAt(.54, middle)
             shade.setColorAt(1.0, right)
             painter = QPainter(self)
-            # Source composition preserves the Wayland buffer alpha.
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+            painter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_Source
+            )
             painter.fillRect(event.rect(), shade)
             painter.end()
         else:

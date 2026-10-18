@@ -6,7 +6,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QCoreApplication, QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMainWindow, QSplitter
+from PySide6.QtWidgets import QApplication, QMainWindow, QProxyStyle, QSplitter
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
@@ -55,7 +55,10 @@ class WidgetsMainWindowTests(unittest.TestCase):
         self.assertEqual(window.editor.writing_column.maximumWidth(), 920)
         self.assertGreaterEqual(window.main_splitter.sizes()[0], 285)
         self.assertLessEqual(window.main_splitter.sizes()[0], 315)
-        self.assertEqual(window.style().objectName().casefold(), "kvantum")
+        style_chain = [window.style()]
+        while isinstance(style_chain[-1], QProxyStyle):
+            style_chain.append(style_chain[-1].baseStyle())
+        self.assertEqual(style_chain[-1].objectName().casefold(), "kvantum")
         self.assertEqual(window.sidebar.brand_label.text(), "ReasonNotes")
 
     def test_writing_column_uses_available_space_before_centering_at_cap(self):
