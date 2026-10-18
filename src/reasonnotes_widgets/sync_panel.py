@@ -1,9 +1,16 @@
 """Right-edge native synchronization panel."""
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDockWidget, QHBoxLayout, QLabel, QLineEdit, QListView, QPushButton,
-    QRadioButton, QVBoxLayout, QWidget,
+    QRadioButton, QStyle, QToolButton, QVBoxLayout, QWidget,
+)
+
+from .visuals import (
+    configure_action_button,
+    integrate_line_edit,
+    integrate_scroll_surface,
 )
 
 
@@ -32,23 +39,52 @@ class SyncPanel(QDockWidget):
         self.all_summary = QLabel(content)
         self.all_summary.setWordWrap(True)
         self.search_field = QLineEdit(content)
+        self.search_field.setObjectName("syncSearch")
         self.search_field.setClearButtonEnabled(True)
+        self.search_field.addAction(
+            QIcon.fromTheme(
+                "edit-find",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
+            ),
+            QLineEdit.ActionPosition.LeadingPosition,
+        )
+        integrate_line_edit(self.search_field)
         selection_actions = QHBoxLayout()
-        self.select_all_button = QPushButton(content)
-        self.clear_button = QPushButton(content)
+        self.select_all_button = QToolButton(content)
+        self.clear_button = QToolButton(content)
+        for button in (self.select_all_button, self.clear_button):
+            configure_action_button(button)
+        self.select_all_button.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton)
+        )
+        self.clear_button.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogResetButton)
+        )
         self.selection_count = QLabel(content)
         selection_actions.addWidget(self.select_all_button)
         selection_actions.addWidget(self.clear_button)
         selection_actions.addStretch(1)
         selection_actions.addWidget(self.selection_count)
         self.note_list = QListView(content)
+        self.note_list.setObjectName("syncNoteList")
         self.note_list.setModel(controller.sync_model)
         self.note_list.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        integrate_scroll_surface(self.note_list)
         self.receipt_notice = QLabel(content)
         self.receipt_notice.setWordWrap(True)
         footer = QHBoxLayout()
-        self.cancel_button = QPushButton(content)
+        self.cancel_button = QToolButton(content)
+        configure_action_button(self.cancel_button)
+        self.cancel_button.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogCancelButton)
+        )
         self.start_button = QPushButton(content)
+        self.start_button.setIcon(
+            QIcon.fromTheme(
+                "document-send",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward),
+            )
+        )
         footer.addStretch(1)
         footer.addWidget(self.cancel_button)
         footer.addWidget(self.start_button)

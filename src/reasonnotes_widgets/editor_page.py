@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .visuals import integrate_line_edit, integrate_scroll_surface
+
 
 class EditorPage(QWidget):
     title_edited = Signal(str)
@@ -41,6 +43,7 @@ class EditorPage(QWidget):
         self.title_editor.setObjectName("titleEditor")
         self.title_editor.setPlaceholderText("Note title")
         self.title_editor.setAccessibleName("Note title")
+        integrate_line_edit(self.title_editor)
         title_font = QFont(self.title_editor.font())
         title_font.setPointSize(max(title_font.pointSize() + 7, 18))
         title_font.setWeight(QFont.Weight.DemiBold)
@@ -51,6 +54,8 @@ class EditorPage(QWidget):
         self.body_editor.setPlaceholderText("Start writing…")
         self.body_editor.setAccessibleName("Markdown note body")
         self.body_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
+        integrate_scroll_surface(self.body_editor)
+        self.body_editor.document().setDocumentMargin(6)
         body_font = QFont(self.body_editor.font())
         body_font.setPointSize(max(body_font.pointSize() + 2, 12))
         self.body_editor.setFont(body_font)

@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from .visuals import integrate_scroll_surface
+
 
 class ConflictCard(QFrame):
     def __init__(self, candidate, keep, parent=None):
@@ -22,6 +24,7 @@ class ConflictCard(QFrame):
         self.body = QPlainTextEdit(self)
         self.body.setReadOnly(True)
         self.body.setPlainText(candidate.body)
+        integrate_scroll_surface(self.body)
         self.keep_button = QPushButton("Keep this version", self)
         self.keep_button.clicked.connect(keep)
         layout.addWidget(self.origin_label)
@@ -47,6 +50,7 @@ class ConflictPage(QWidget):
         self.explanation.setWordWrap(True)
         self.scroll = QScrollArea(self)
         self.scroll.setWidgetResizable(True)
+        integrate_scroll_surface(self.scroll)
         self.container = QWidget(self.scroll)
         self.cards_layout = QHBoxLayout(self.container)
         self.scroll.setWidget(self.container)

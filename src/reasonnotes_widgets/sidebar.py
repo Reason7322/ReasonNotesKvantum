@@ -12,9 +12,16 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListView,
-    QPushButton,
+    QStyle,
+    QToolButton,
     QVBoxLayout,
     QWidget,
+)
+
+from .visuals import (
+    configure_action_button,
+    integrate_line_edit,
+    integrate_scroll_surface,
 )
 
 
@@ -45,11 +52,31 @@ class NotesSidebar(QWidget):
 
         actions = QGridLayout()
         actions.setSpacing(8)
-        self.new_button = QPushButton("New note", self)
-        self.save_button = QPushButton("Save", self)
-        self.sync_button = QPushButton("Sync", self)
-        self.delete_button = QPushButton("Delete", self)
-        self.settings_button = QPushButton("Settings", self)
+        self.new_button = QToolButton(self)
+        self.save_button = QToolButton(self)
+        self.sync_button = QToolButton(self)
+        self.delete_button = QToolButton(self)
+        self.settings_button = QToolButton(self)
+        button_icons = (
+            (self.new_button, "document-new", QStyle.StandardPixmap.SP_FileIcon),
+            (
+                self.save_button,
+                "document-save",
+                QStyle.StandardPixmap.SP_DialogSaveButton,
+            ),
+            (self.sync_button, "view-refresh", QStyle.StandardPixmap.SP_BrowserReload),
+            (self.delete_button, "edit-delete", QStyle.StandardPixmap.SP_TrashIcon),
+            (
+                self.settings_button,
+                "settings-configure",
+                QStyle.StandardPixmap.SP_FileDialogDetailedView,
+            ),
+        )
+        for button, icon_name, fallback in button_icons:
+            configure_action_button(button)
+            button.setIcon(
+                QIcon.fromTheme(icon_name, self.style().standardIcon(fallback))
+            )
         actions.addWidget(self.new_button, 0, 0)
         actions.addWidget(self.save_button, 0, 1)
         actions.addWidget(self.sync_button, 1, 0)
@@ -62,6 +89,14 @@ class NotesSidebar(QWidget):
         self.search_field.setPlaceholderText("Search notes")
         self.search_field.setClearButtonEnabled(True)
         self.search_field.setAccessibleName("Search notes")
+        self.search_field.addAction(
+            QIcon.fromTheme(
+                "edit-find",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
+            ),
+            QLineEdit.ActionPosition.LeadingPosition,
+        )
+        integrate_line_edit(self.search_field)
         layout.addWidget(self.search_field)
 
         self.list_view = QListView(self)
@@ -71,6 +106,7 @@ class NotesSidebar(QWidget):
         self.list_view.setSelectionBehavior(QListView.SelectionBehavior.SelectRows)
         self.list_view.setUniformItemSizes(True)
         self.list_view.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        integrate_scroll_surface(self.list_view)
         layout.addWidget(self.list_view, 1)
 
         self.local_status = QLabel("Local: Idle", self)
