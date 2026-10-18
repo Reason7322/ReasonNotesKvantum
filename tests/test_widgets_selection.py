@@ -130,6 +130,18 @@ class WidgetsSelectionTests(unittest.TestCase):
             controller.note_model.note_id_at(view.currentIndex().row()),
         )
 
+    def test_delete_confirmation_describes_irrecoverable_history_and_peer_purge(self):
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        window = ReasonNotesMainWindow(self.controller(), settings=self.settings)
+        self.addCleanup(window.close)
+
+        prompt = window._delete_confirmation_text(2)
+
+        self.assertIn("local revision history", prompt)
+        self.assertIn("paired phone", prompt)
+        self.assertNotIn("Recoverable", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,7 +25,7 @@ class EditorPage(QWidget):
         outer = QHBoxLayout(self)
         outer.setContentsMargins(32, 24, 32, 24)
         outer.setSpacing(0)
-        outer.addStretch(1)
+        outer.addStretch(0)
 
         self.writing_column = QWidget(self)
         self.writing_column.setObjectName("writingColumn")
@@ -68,7 +68,7 @@ class EditorPage(QWidget):
         column.addWidget(self.body_editor, 1)
         column.addLayout(footer)
         outer.addWidget(self.writing_column, 1)
-        outer.addStretch(1)
+        outer.addStretch(0)
 
         self.title_editor.textEdited.connect(self.title_edited)
         self.body_editor.textChanged.connect(

@@ -72,6 +72,28 @@ class WidgetsI18nTests(unittest.TestCase):
         self.assertEqual(set(TRANSLATIONS["en"]), set(TRANSLATIONS["pl"]))
         self.assertTrue(all(value.strip() for value in TRANSLATIONS["pl"].values()))
 
+    def test_settings_exposes_foreground_purge_pairing_without_theme_controls(self):
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        repository = Repository.open(self.base / "pairing-repo")
+        controller = WidgetsController(
+            NotePresenter(NoteService(repository, origin_device="linux"))
+        )
+        window = ReasonNotesMainWindow(
+            controller,
+            settings=self.settings,
+            deletion_pairing=("192.0.2.25", 49233, "ab" * 32),
+        )
+        self.addCleanup(window.close)
+
+        self.assertEqual(
+            window.settings_page.purge_address.text(), "192.0.2.25:49233"
+        )
+        self.assertEqual(window.settings_page.purge_key.text(), "ab" * 32)
+        self.assertTrue(window.settings_page.purge_address.isReadOnly())
+        self.assertTrue(window.settings_page.purge_key.isReadOnly())
+        self.assertFalse(hasattr(window.settings_page, "theme_group"))
+
 
 if __name__ == "__main__":
     unittest.main()

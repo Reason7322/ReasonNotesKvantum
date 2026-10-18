@@ -6,9 +6,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import re
+import socket
 import subprocess
 import sys
 from threading import Lock
+
+from PySide6.QtCore import QTimer
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +31,7 @@ from reasonnotes_widgets.wayland_blur import (
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
 from reasonnotes_sync.repository import Repository
-from reasonnotes_sync.foreground_purge import PurgeRelay, shared_key
+from reasonnotes_sync.foreground_purge import PORT, PurgeRelay, shared_key
 from reasonnotes_sync.kdeconnect_linux import KdeConnectLinux
 from reasonnotes_sync.receipt_return import return_pending_receipts
 from reasonnotes_sync.sync import scan_inbox, sync_linux
@@ -46,6 +49,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--target-device", default="android")
     result.add_argument("--no-auto-receive", action="store_true")
     result.add_argument("--check-launch", action="store_true", help=argparse.SUPPRESS)
+    result.add_argument("--runtime-probe-ms", type=int, help=argparse.SUPPRESS)
     return result
 
 
@@ -67,6 +71,15 @@ def discover_device_id(command_runner=subprocess.run) -> str | None:
     return next(iter(available)) if len(available) == 1 else None
 
 
+def computer_address() -> str:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 80))
+            return probe.getsockname()[0]
+    except OSError:
+        return "See this computer's LAN IPv4 address"
+
+
 def main(arguments=None) -> int:
     options = parser().parse_args(arguments)
     paths = resolve_launch_paths(
@@ -76,6 +89,8 @@ def main(arguments=None) -> int:
     )
     if options.device_id is not None and not DEVICE_ID_PATTERN.fullmatch(options.device_id):
         raise SystemExit("--device-id must contain 32 lowercase hexadecimal characters")
+    if options.runtime_probe_ms is not None and options.runtime_probe_ms < 1:
+        raise SystemExit("--runtime-probe-ms must be positive")
     device_id = options.device_id or discover_device_id()
     application = create_application([sys.argv[0]])
     repository = Repository.open(
@@ -110,12 +125,18 @@ def main(arguments=None) -> int:
         NotePresenter(NoteService(repository, origin_device="linux"), run_sync)
     )
     controller.configure_incoming_scan(scan_received)
-    window = ReasonNotesMainWindow(controller)
+    probe_mode = options.runtime_probe_ms is not None
+    relay = None
+    deletion_pairing = None
+    if not options.check_launch and not probe_mode:
+        key = shared_key(paths.data_root / "delete-sync-key")
+        relay = PurgeRelay(repository, key)
+        deletion_pairing = (computer_address(), PORT, key.hex())
+    window = ReasonNotesMainWindow(
+        controller, deletion_pairing=deletion_pairing
+    )
     prepare_translucent_surface(window, platform_name=application.platformName())
     blur = QWidgetBlurController()
-    relay = None if options.check_launch else PurgeRelay(
-        repository, shared_key(paths.data_root / "delete-sync-key")
-    )
     runtime = ApplicationRuntime(repository, controller, relay=relay)
     application.aboutToQuit.connect(runtime.stop)
     application.aboutToQuit.connect(blur.close)
@@ -126,6 +147,15 @@ def main(arguments=None) -> int:
     window.show()
     blur.attach(window)
     runtime.start(auto_receive=not options.no_auto_receive)
+    if probe_mode:
+        print(f"RUNTIME_STYLE={application.style().objectName().casefold()}")
+        print(f"RUNTIME_PLATFORM={application.platformName().casefold()}")
+        print(f"RUNTIME_BLUR_ACTIVE={int(blur.active)}")
+        print(f"RUNTIME_BLUR_ERROR={blur.last_error}")
+        print(f"RUNTIME_DATA_ROOT={paths.data_root}")
+        print("RUNTIME_PURGE_RELAY=disabled-for-probe")
+        sys.stdout.flush()
+        QTimer.singleShot(options.runtime_probe_ms, application.quit)
     return application.exec()
 
 

@@ -3,9 +3,9 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "reasonnotes-sync"
+name = "reasonnotes-kvantum"
 version = "0.1.0"
-description = "ReasonNotes offline-first synchronization core and application service"
+description = "Native Qt Widgets ReasonNotes desktop application with system Kvantum styling"
 requires-python = ">=3.14"
 dependencies = ["PySide6>=6.11,<7"]
 

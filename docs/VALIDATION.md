@@ -1,0 +1,115 @@
+# Validation evidence
+
+Date: 2026-10-18 (Europe/Warsaw)
+
+This document separates source checks, automated tests, built artifacts,
+actual graphical runtime evidence, and acceptance that remains with the owner.
+
+## Source and provenance
+
+- Destination bootstrap: `8f8ad43678f0a17856b6f22f77e8ada58c91f323`.
+- Imported source baseline:
+  `873dcd524179abc39ae708b055c76f2798af1e48`.
+- The original source worktree still reported that exact SHA and no changes.
+- The destination `main` worktree still reported the bootstrap SHA and no
+  changes. All implementation is on `forge/qtwidgets-rewrite`.
+- No Kvantum SVG, `.kvconfig`, application palette, QSS, or application theme
+  selector is present in the Widgets implementation.
+
+## Automated tests
+
+Command:
+
+```sh
+QT_QPA_PLATFORM=offscreen PYTHONPATH=src \
+  /usr/bin/python3 -m unittest discover -s tests -v
+```
+
+Result: **212 tests passed** in 4.936 seconds. Coverage includes imported
+backend regressions and native Widgets bootstrap, models/controller, editor,
+sidebar selection, localization, Sync, Conflict, lifecycle, installer, and
+Wayland-blur behavior. Python emitted a three-object uncollectable
+`ResourceWarning` at interpreter shutdown after the successful PySide test run;
+no test failed.
+
+The purge protocol tests opened only loopback sockets and used disposable
+repositories. Candidate installer tests used temporary homes with production
+marker files and proved those files were unchanged.
+
+## Build and launch
+
+The native helper built successfully with:
+
+```sh
+/usr/bin/python3 scripts/build-wayland-blur.py --target linux-app/native
+```
+
+Built helper SHA-256:
+`724dad85b3f2d5c3c71fbb8d0acc0ec76460e8c429b0bb97103c38ecb92f55cc`.
+
+The versioned installer was exercised under
+`/tmp/reasonnotes-kvantum-install-FETEfX`, including a compiled helper and a
+successful installed-launcher `--check-launch`. No home candidate or production
+installation was changed during that temporary exercise.
+
+## Actual Hyprland/Wayland runtime
+
+The source candidate was displayed on the active Hyprland session for a bounded
+probe using explicit disposable repository, inbox, received, XDG data, and XDG
+config paths under `/tmp/reasonnotes-kvantum-wayland-Q5LLdI`.
+
+Observed process evidence:
+
+```text
+RUNTIME_STYLE=kvantum
+RUNTIME_PLATFORM=wayland
+RUNTIME_BLUR_ACTIVE=1
+RUNTIME_BLUR_ERROR=
+RUNTIME_DATA_ROOT=/tmp/reasonnotes-kvantum-wayland-Q5LLdI/data3/ReasonNotesKvantum-candidate
+RUNTIME_PURGE_RELAY=disabled-for-probe
+```
+
+Hyprland independently reported a native (non-XWayland) client class
+`org.reasonnotes.ReasonNotesKvantum`. A composited capture was inspected at
+`/tmp/reasonnotes-kvantum-wayland-Q5LLdI/runtime-fixed.png`, SHA-256
+`043465b67b79b4ec102d4e1463aa2495f8cac597a51ae8b9c52e132942b4bb53`.
+The capture visibly showed the system material and compositor-blurred backdrop,
+native controls, the permanent sidebar, and the corrected wide editor column.
+This is actual runtime evidence, not a claim that the app is identical to
+Dolphin and not a substitute for owner visual acceptance.
+
+The bounded probe disabled the foreground purge listener to avoid colliding
+with any running production instance. Relay authentication, lifecycle, purge,
+and teardown are covered by isolated socket and runtime tests.
+
+## System-style evidence
+
+- Qt version observed: 6.11.2.
+- Installed plugin:
+  `/usr/lib64/qt6/plugins/styles/libkvantum.so`.
+- Plugin SHA-256:
+  `927508d712efda8b2c0c9bc9a5ef9f9028b4328fcf65de46306910a3b190aa9a`.
+- The application calls `QStyleFactory.create("kvantum")` and fails clearly if
+  the installed style is unavailable. It never selects or changes a Kvantum
+  theme, so the system's current theme is used on each launch.
+
+## Production isolation
+
+- Production launcher observed, not modified:
+  `/home/reason/.local/bin/reasonnotes`, SHA-256
+  `05406228cadb43bcb6ad37be63d057d645c90e286a5ba8632c64d28c10e66eca`.
+- No command targeted the production release, note repository, settings,
+  desktop entry, Kvantum configuration, Hyprland configuration, or Android
+  private data.
+- Candidate defaults to `ReasonNotesKvantum-candidate`, rejects production data
+  paths, uses distinct QSettings/application IDs, and has a distinct launcher
+  and desktop-entry template.
+
+## Not yet owner-accepted
+
+- Subjective visual approval, including comparison with the owner's preferred
+  Dolphin appearance.
+- Physical Android interoperability and device-side UX using disposable test
+  notes. No device mutation was attempted during engineering validation.
+- Production installation, live-data migration, launcher switch, or rollback
+  rehearsal. These remain explicitly gated by owner approval.

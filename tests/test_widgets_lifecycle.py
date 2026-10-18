@@ -81,6 +81,7 @@ class WidgetsLifecycleTests(unittest.TestCase):
         QTest.keyClick(self.window.editor.body_editor, Qt.Key.Key_F5)
         QTest.keyClick(self.window.editor.body_editor, Qt.Key.Key_F5)
         self.assertEqual(len(self.pool.workers), 1)
+        self.assertEqual(self.window.statusBar().currentMessage(), "Refresh queued…")
         self.pool.run_next()
         self.assertEqual(len(self.pool.workers), 1)
         self.pool.run_next()
@@ -146,6 +147,42 @@ class WidgetsLifecycleTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+    def test_runtime_probe_reports_real_qt_state_and_exits(self):
+        project = Path(__file__).resolve().parents[1]
+        base = Path(self.temporary.name)
+        environment = dict(os.environ)
+        environment["QT_QPA_PLATFORM"] = "offscreen"
+        environment["XDG_DATA_HOME"] = str(base / "probe-data")
+        environment["XDG_CONFIG_HOME"] = str(base / "probe-config")
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(project / "linux-app/reasonnotes_widgets.py"),
+                "--runtime-probe-ms",
+                "20",
+                "--no-auto-receive",
+                "--root",
+                str(base / "probe-repo"),
+                "--inbox",
+                str(base / "probe-inbox"),
+                "--received-dir",
+                str(base / "probe-received"),
+            ],
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("RUNTIME_STYLE=kvantum", completed.stdout)
+        self.assertIn("RUNTIME_PLATFORM=offscreen", completed.stdout)
+        self.assertIn("RUNTIME_BLUR_ACTIVE=0", completed.stdout)
+        self.assertIn(
+            f"RUNTIME_DATA_ROOT={base / 'probe-data/ReasonNotesKvantum-candidate'}",
+            completed.stdout,
+        )
 
 
 if __name__ == "__main__":

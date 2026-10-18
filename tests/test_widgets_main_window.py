@@ -58,6 +58,14 @@ class WidgetsMainWindowTests(unittest.TestCase):
         self.assertEqual(window.style().objectName().casefold(), "kvantum")
         self.assertEqual(window.sidebar.brand_label.text(), "ReasonNotes")
 
+    def test_writing_column_uses_available_space_before_centering_at_cap(self):
+        window, _ = self.make_window()
+        window.resize(1024, 800)
+        QCoreApplication.processEvents()
+
+        self.assertGreaterEqual(window.editor.writing_column.width(), 590)
+        self.assertLessEqual(window.editor.writing_column.width(), 920)
+
     def test_blank_startup_is_editable_focused_and_unpersisted(self):
         window, controller = self.make_window()
         window.editor.body_editor.setFocus()

@@ -28,6 +28,7 @@ class ReasonNotesMainWindow(QMainWindow):
         *,
         settings: QSettings | None = None,
         translator: Translator | None = None,
+        deletion_pairing=None,
         confirm_delete=None,
         parent=None,
     ):
@@ -51,7 +52,9 @@ class ReasonNotesMainWindow(QMainWindow):
         self.page_stack = QStackedWidget(self)
         self.page_stack.setObjectName("contentPages")
         self.page_stack.addWidget(self.editor)
-        self.settings_page = SettingsPage(self.translator, self.page_stack)
+        self.settings_page = SettingsPage(
+            self.translator, deletion_pairing, self.page_stack
+        )
         self.conflict_page = ConflictPage(controller, self.translator, self.page_stack)
         self.page_stack.addWidget(self.settings_page)
         self.page_stack.addWidget(self.conflict_page)
@@ -96,6 +99,7 @@ class ReasonNotesMainWindow(QMainWindow):
         controller.save_status_changed.connect(self._refresh_status)
         controller.conflict_changed.connect(self.refresh_from_controller)
         controller.models_changed.connect(self._restore_active_selection)
+        controller.incoming_message_changed.connect(self._show_incoming_message)
         self.translator.language_changed.connect(lambda _language: self.retranslate())
 
         self._shortcuts = [
@@ -107,6 +111,10 @@ class ReasonNotesMainWindow(QMainWindow):
         ]
         self.retranslate()
         self.refresh_from_controller()
+
+    def _show_incoming_message(self, message: str) -> None:
+        persistent = message in ("Checking incoming notes…", "Refresh queued…")
+        self.statusBar().showMessage(message, 0 if persistent else 5000)
 
     def retranslate(self) -> None:
         tr = self.translator.text
@@ -192,16 +200,19 @@ class ReasonNotesMainWindow(QMainWindow):
         self.controller.set_bulk_selection(selected if len(selected) > 1 else ())
 
     def _confirm_delete_dialog(self, count: int, bulk: bool) -> bool:
-        noun = "notes" if count != 1 else "note"
+        tr = self.translator.text
         answer = QMessageBox.question(
             self,
-            "Delete notes" if bulk else "Delete note",
-            f"Permanently delete {count} {noun} from this device? "
-            "Recoverable revision history remains protected by the repository.",
+            tr("delete_notes") if bulk else tr("delete_note"),
+            self._delete_confirmation_text(count),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
         return answer == QMessageBox.StandardButton.Yes
+
+    def _delete_confirmation_text(self, count: int) -> str:
+        key = "delete_confirm_one" if count == 1 else "delete_confirm_many"
+        return self.translator.text(key).format(count=count)
 
     def delete_selection(self) -> None:
         self.sync_bulk_selection()
