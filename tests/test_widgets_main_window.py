@@ -59,7 +59,10 @@ class WidgetsMainWindowTests(unittest.TestCase):
         while isinstance(style_chain[-1], QProxyStyle):
             style_chain.append(style_chain[-1].baseStyle())
         self.assertEqual(style_chain[-1].objectName().casefold(), "kvantum")
-        self.assertEqual(window.sidebar.brand_label.text(), "ReasonNotes")
+        self.assertEqual(
+            window.sidebar.brand_reason.text() + window.sidebar.brand_notes.text(),
+            "ReasonNotes",
+        )
 
     def test_writing_column_uses_available_space_before_centering_at_cap(self):
         window, _ = self.make_window()

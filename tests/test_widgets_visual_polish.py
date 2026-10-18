@@ -131,20 +131,66 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             with self.subTest(button=button.text()):
                 self.assertFalse(button.icon().isNull())
 
-    def test_sidebar_actions_are_compact_native_tool_buttons(self):
-        for button in (
-            self.window.sidebar.new_button,
-            self.window.sidebar.save_button,
-            self.window.sidebar.sync_button,
-            self.window.sidebar.delete_button,
-            self.window.sidebar.settings_button,
-        ):
+    def test_sidebar_restores_the_original_single_column_action_hierarchy(self):
+        sidebar = self.window.sidebar
+        self.assertEqual(sidebar.brand_reason.font().pixelSize(), 27)
+        self.assertEqual(sidebar.brand_notes.font().pixelSize(), 27)
+        self.assertTrue(sidebar.new_button.is_primary)
+        self.assertGreaterEqual(sidebar.new_button.minimumHeight(), 50)
+        self.assertFalse(sidebar.new_button.autoRaise())
+
+        secondary = (
+            sidebar.save_button,
+            sidebar.sync_button,
+            sidebar.delete_button,
+        )
+        for button in secondary:
             with self.subTest(button=button.text()):
                 self.assertIsInstance(button, QToolButton)
+                self.assertFalse(button.is_primary)
                 self.assertTrue(button.autoRaise())
-                self.assertEqual(
-                    button.toolButtonStyle(), Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-                )
+                self.assertGreaterEqual(button.minimumHeight(), 42)
+                self.assertGreaterEqual(button.iconSize().width(), 24)
+
+        layout = sidebar.layout()
+        indices = [
+            layout.indexOf(sidebar.new_button),
+            layout.indexOf(sidebar.save_button),
+            layout.indexOf(sidebar.sync_button),
+            layout.indexOf(sidebar.delete_button),
+            layout.indexOf(sidebar.search_well),
+            layout.indexOf(sidebar.list_view),
+            layout.indexOf(sidebar.settings_button),
+            layout.indexOf(sidebar.status_area),
+        ]
+        self.assertEqual(indices, sorted(indices))
+        self.assertEqual(len(indices), len(set(indices)))
+
+    def test_note_rows_restore_icons_and_comfortable_full_row_navigation(self):
+        sidebar = self.window.sidebar
+        delegate = sidebar.list_view.itemDelegate()
+        self.assertEqual(delegate.__class__.__name__, "NoteItemDelegate")
+        self.assertFalse(delegate.note_icon.isNull())
+        self.assertFalse(delegate.conflict_icon.isNull())
+        self.assertGreaterEqual(delegate.sizeHint(None, None).height(), 56)
+        self.assertEqual(sidebar.list_view.iconSize().width(), 22)
+        self.assertTrue(sidebar.list_view.hasMouseTracking())
+
+    def test_editor_matches_original_heading_body_and_status_hierarchy(self):
+        editor = self.window.editor
+        layout = editor.writing_column.layout()
+        self.assertLess(layout.indexOf(editor.status_bar),
+                        layout.indexOf(editor.title_editor))
+        self.assertEqual(editor.title_editor.font().pixelSize(), 36)
+        self.assertEqual(editor.body_editor.font().pixelSize(), 18)
+        self.assertEqual(editor.title_editor.placeholderText(), "Untitled")
+        editor.set_document(
+            "The beginning of a deliberately long title remains visible",
+            "Body",
+        )
+        self.assertEqual(editor.title_editor.cursorPosition(), 0)
+        self.assertTrue(editor.save_status.text().startswith("Local:"))
+        self.assertTrue(editor.delivery_status.text().startswith("Phone:"))
 
     def test_settings_has_no_back_button_and_sidebar_toggles(self):
         page = self.window.settings_page
@@ -189,7 +235,6 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         # page/card/rail add separation rather than a solid background.
         self.assertEqual(self.window.editor.writing_column.__class__.__name__, "GlassCard")
         self.assertEqual(self.window.sidebar.__class__.__name__, "NotesSidebar")
-        self.assertEqual(self.window.sidebar.command_group.__class__.__name__, "GlassCard")
         self.assertEqual(self.window.sidebar.search_well.__class__.__name__, "SearchWell")
 
 

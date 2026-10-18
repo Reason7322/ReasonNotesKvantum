@@ -2,8 +2,9 @@
 
 ## Current milestone
 
-Engineering candidate implemented on `forge/qtwidgets-rewrite`; owner visual
-acceptance and authorization for production replacement remain pending.
+UI-parity engineering candidate implemented on `forge/qtwidgets-rewrite`;
+owner visual acceptance and authorization for production replacement remain
+pending.
 
 ## Implemented
 
@@ -27,7 +28,7 @@ acceptance and authorization for production replacement remain pending.
 
 ## Validation state
 
-- Complete automated suite: 224 tests passed in an isolated offscreen run;
+- Complete automated suite: 226 tests passed in an isolated offscreen run;
   localhost purge-relay tests were run with socket access enabled.
 - Native helper: compiled successfully from the system Wayland protocol.
 - Actual Hyprland session: Qt platform `wayland`, style `qt6ct-style` over
@@ -109,3 +110,21 @@ probe exits normally with status 0 while retaining active blur.
 interoperability and production cutover remain pending. No production data,
 launcher, theme, compositor configuration, or Android state was changed.
 See `docs/VISUAL_RECOVERY_VALIDATION_2026-10-18.md`.
+
+## Forge production-UI parity restoration — 2026-10-18
+
+The native sidebar now restores the installed ReasonNotes hierarchy: split
+branding, a full-width primary New Note action, vertical secondary actions,
+prominent search, icon-bearing note rows, bottom Settings navigation, and
+grouped status. The editor retains the recovered glass card while restoring
+the original title/body scale and top-right Local/Phone status. Long titles
+open at their beginning. No Settings back control exists.
+
+Affected coverage passes 27/27 and the complete suite passes 226/226. Actual
+isolated Hyprland captures at wide and 1280x820 sizes retained `qt6ct-style`,
+native Wayland, active blur, and readable translucent material. The previous
+installed candidate and all production state remain unchanged.
+
+**ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Physical Android
+interoperability and production cutover remain pending. See
+`docs/UI_PARITY_VALIDATION_2026-10-18.md`.

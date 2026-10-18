@@ -124,7 +124,7 @@ class ReasonNotesMainWindow(QMainWindow):
     def retranslate(self) -> None:
         tr = self.translator.text
         self.setWindowTitle(tr("app_name"))
-        self.sidebar.brand_label.setText(tr("app_name"))
+        self.sidebar.set_brand_text(tr("app_name"))
         self.sidebar.new_button.setText(tr("new_note"))
         self.sidebar.save_button.setText(tr("save"))
         self.sidebar.sync_button.setText(tr("sync"))
@@ -133,7 +133,7 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.notes_heading.setText(tr("notes_section").upper())
         self.sidebar.search_field.setPlaceholderText(tr("search_notes"))
         self.sidebar.search_field.setAccessibleName(tr("search_notes"))
-        self.editor.title_editor.setPlaceholderText(tr("note_title"))
+        self.editor.title_editor.setPlaceholderText(tr("untitled"))
         self.editor.title_editor.setAccessibleName(tr("note_title"))
         self.editor.body_editor.setPlaceholderText(tr("start_writing"))
         self.settings_page.retranslate()
@@ -147,8 +147,10 @@ class ReasonNotesMainWindow(QMainWindow):
         self.autosave_timer.stop()
         if self.controller.save_now():
             self.page_stack.setCurrentWidget(self.settings_page)
+            self.sidebar.settings_button.setChecked(True)
 
     def back_to_notes(self) -> None:
+        self.sidebar.settings_button.setChecked(False)
         self.refresh_from_controller()
 
     def open_sync_panel(self) -> None:
@@ -267,7 +269,7 @@ class ReasonNotesMainWindow(QMainWindow):
         text = tr(state_key)
         if presenter.save_error:
             text += f": {presenter.save_error}"
-        self.editor.save_status.setText(text)
+        self.editor.save_status.setText(f"{tr('local')}: {text}")
         self.sidebar.local_status.setText(f"{tr('local')}: {text}")
         sync = presenter.sync_state
         sync = tr(sync.casefold())
@@ -275,13 +277,15 @@ class ReasonNotesMainWindow(QMainWindow):
             sync += f": {presenter.sync_message}"
         self.sidebar.sync_status.setText(f"{tr('phone')}: {sync}")
         active = presenter.active_note_id
-        self.editor.delivery_status.setText(
+        delivery = (
             tr("no_note_selected")
             if active is None
             else self.controller._delivery_status_by_note.get(active, "Local")
         )
+        self.editor.delivery_status.setText(f"{tr('phone')}: {delivery}")
 
     def refresh_from_controller(self) -> None:
+        self.sidebar.settings_button.setChecked(False)
         self._refreshing = True
         try:
             self.editor.set_document(

@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QSettings, Signal
 TRANSLATIONS = {
     "en": {
         "app_name": "ReasonNotes",
-        "new_note": "New note",
+        "new_note": "New Note",
         "save": "Save",
         "sync": "Sync",
         "delete": "Delete",
@@ -16,6 +16,7 @@ TRANSLATIONS = {
         "search_notes": "Search notes",
         "notes_section": "Notes",
         "note_title": "Note title",
+        "untitled": "Untitled",
         "start_writing": "Start writing…",
         "language": "Language",
         "english": "English",
@@ -58,6 +59,7 @@ TRANSLATIONS = {
         "search_notes": "Szukaj notatek",
         "notes_section": "Notatki",
         "note_title": "Tytuł notatki",
+        "untitled": "Bez tytułu",
         "start_writing": "Zacznij pisać…",
         "language": "Język",
         "english": "English",
