@@ -94,6 +94,40 @@ class WidgetsBootstrapTests(unittest.TestCase):
         self.assertEqual(application.applicationName(), "ReasonNotesKvantum")
         self.assertEqual(application.desktopFileName(), APP_ID)
 
+    def test_qt6ct_dolphin_style_proxy_preserved_in_separate_process(self):
+        """qt6ct-style over Kvantum must not be replaced by bare Kvantum."""
+        project = Path(__file__).resolve().parents[1]
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            qt6ct = base / "qt6ct"
+            qt6ct.mkdir(parents=True)
+            (qt6ct / "qt6ct.conf").write_text(
+                "[Appearance]\nstyle=kvantum\nicon_theme=YAMIS\n"
+                "color_scheme_path=/usr/share/color-schemes/BreezeDark.colors\n"
+                "custom_palette=true\n"
+                "[Fonts]\ngeneral=\"Lato,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0\"\n",
+                encoding="utf-8",
+            )
+            environment = dict(os.environ)
+            environment.update({
+                "QT_QPA_PLATFORM": "offscreen",
+                "QT_QPA_PLATFORMTHEME": "qt6ct",
+                "XDG_CONFIG_HOME": str(base),
+                "PYTHONPATH": str(project / "src"),
+            })
+            completed = subprocess.run([
+                sys.executable, "-c",
+                "from reasonnotes_widgets.bootstrap import create_application;"
+                "from PySide6.QtWidgets import QProxyStyle;"
+                "a=create_application(['probe']);"
+                "s=a.style();b=s.baseStyle() if isinstance(s,QProxyStyle) else s;"
+                "print(s.objectName(),b.objectName())"
+            ], env=environment, capture_output=True, text=True, timeout=10)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        if "qt6ct-style" not in completed.stdout:
+            self.skipTest("qt6ct platform theme plugin unavailable")
+        self.assertIn("qt6ct-style kvantum", completed.stdout)
+
     def test_candidate_entrypoint_check_launch_does_not_shadow_package(self):
         project = Path(__file__).resolve().parents[1]
         environment = dict(os.environ)

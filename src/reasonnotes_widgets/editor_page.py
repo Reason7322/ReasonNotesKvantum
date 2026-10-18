@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSignalBlocker, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPalette
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -25,12 +25,19 @@ class EditorPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("editorPage")
+        # Dolphin's content pane uses the actual system view/Base brush.
+        # Give the editor that material directly rather than wrapping the
+        # writing area in a floating, imitation glass card.
+        self.setBackgroundRole(QPalette.ColorRole.Base)
+        self.setAutoFillBackground(True)
         outer = QHBoxLayout(self)
         outer.setContentsMargins(32, 30, 32, 32)
         outer.setSpacing(0)
         outer.addStretch(0)
 
         self.writing_column = GlassCard(self)
+        self.writing_column.setFrameShape(GlassCard.Shape.NoFrame)
+        self.writing_column.setAutoFillBackground(False)
         self.writing_column.setObjectName("writingColumn")
         self.writing_column.setMaximumWidth(920)
         self.writing_column.setSizePolicy(

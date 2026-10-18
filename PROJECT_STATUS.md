@@ -78,3 +78,24 @@ disposable test notes and dummy pairing credentials.
 interoperability and authorized production cutover are still pending. No
 installed candidate or production files were changed during this iteration.
 See docs/GLASS_BALANCE_VALIDATION.md and handoffs/SOL_TO_FORGE.md.
+
+## Native Dolphin theme investigation and continuation — 2026-10-18
+
+An investigation of the actual running Dolphin process established the Qt
+platform chain qt6ct-style -> Kvantum (LiquidGlass), Lato 11, YAMIS,
+BreezeDark, and Hyprland native Wayland. This supersedes earlier assumptions
+that selecting bare Kvantum was equivalent. Prior isolated previews had
+inadvertently hidden system qt6ct/Kvantum config via an empty XDG_CONFIG_HOME.
+
+The separate sol/qtwidgets-glass-balance continuation now preserves that
+native platform/style proxy, lets Kvantum render its real PE_Widget window
+material, uses its palette for the editor pane, and removes the handwritten
+imitation glass/card/icon painters. The Language pane no longer discusses
+theming. The Settings back button remains absent.
+
+Latest source test: 224/224 PASS. Actual Wayland preview with disposable
+copies of the system theme: qt6ct-style, active compositor blur, no blur
+error. No Forge/installed candidate/production mutation. Owner visual
+acceptance and physical Android interoperability remain pending. The
+original full product deliverable is INCOMPLETE pending those gates.
+See docs/DOLPHIN_NATIVE_THEME_2026-10-18.md.

@@ -5,13 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import (QCloseEvent, QKeySequence, QLinearGradient, QPainter, QPalette, QShortcut)
+from PySide6.QtGui import QCloseEvent, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QMessageBox,
     QSplitter,
     QStackedWidget,
+    QStyle,
+    QStyleOption,
 )
 
 from .editor_page import EditorPage
@@ -295,30 +297,21 @@ class ReasonNotesMainWindow(QMainWindow):
             self._refreshing = False
 
     def paintEvent(self, event) -> None:
-        # The active system palette supplies hue and alpha. A spatially varied
-        # sheet stops the window from becoming either a charcoal slab or a
-        # naked portal into the blurred wallpaper.
-        if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
-            window = self.palette().window().color()
-            base = self.palette().base().color()
-            alpha = base.alpha()
-            left = window.lighter(109)
-            middle = base.lighter(112)
-            right = window.lighter(104)
-            left.setAlpha(min(235, int(alpha * 1.08)))
-            middle.setAlpha(max(105, int(alpha * .79)))
-            right.setAlpha(min(230, int(alpha * .93)))
-            shade = QLinearGradient(0, 0, self.width(), self.height() * .24)
-            shade.setColorAt(0.0, left)
-            shade.setColorAt(.54, middle)
-            shade.setColorAt(1.0, right)
-            painter = QPainter(self)
-            # Source composition preserves the Wayland buffer alpha.
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
-            painter.fillRect(event.rect(), shade)
-            painter.end()
-        else:
+        if not self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
             super().paintEvent(event)
+            return
+        # The installed Kvantum style paints its own SVG-backed Window
+        # primitive. This is the real LiquidGlass material, not an app skin.
+        option = QStyleOption()
+        option.initFrom(self)
+        painter = QPainter(self)
+        painter.setCompositionMode(
+            QPainter.CompositionMode.CompositionMode_Source
+        )
+        self.style().drawPrimitive(
+            QStyle.PrimitiveElement.PE_Widget, option, painter, self
+        )
+        painter.end()
 
     def save_ui_state(self) -> None:
         sizes = self.main_splitter.sizes()
