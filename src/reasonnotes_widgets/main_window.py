@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeySequence, QPainter, QPalette, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -88,7 +88,6 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.delete_button.clicked.connect(self.delete_selection)
         self.sidebar.sync_button.clicked.connect(self.open_sync_panel)
         self.sidebar.settings_button.clicked.connect(self.open_settings)
-        self.settings_page.back_requested.connect(self.back_to_notes)
         self.sidebar.search_field.textChanged.connect(controller.search)
         self.sidebar.list_view.activated.connect(self.activate_note)
         self.sidebar.list_view.selectionModel().currentChanged.connect(
@@ -134,6 +133,10 @@ class ReasonNotesMainWindow(QMainWindow):
         self._refresh_status()
 
     def open_settings(self) -> None:
+        # The permanent sidebar is the navigation control; Settings toggles.
+        if self.page_stack.currentWidget() is self.settings_page:
+            self.back_to_notes()
+            return
         self.autosave_timer.stop()
         if self.controller.save_now():
             self.page_stack.setCurrentWidget(self.settings_page)
@@ -289,6 +292,22 @@ class ReasonNotesMainWindow(QMainWindow):
             self._refresh_status()
         finally:
             self._refreshing = False
+
+    def paintEvent(self, event) -> None:
+        # A translucent QMainWindow with transparent scroll-area viewports can
+        # expose the blurred wallpaper directly. Paint ONE system-derived
+        # material behind all child widgets; don't paint separate opaque slabs.
+        # Preserve the theme's own Base alpha, or its opacity if fully opaque.
+        if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
+            material = self.palette().color(QPalette.ColorRole.Base)
+            painter = QPainter(self)
+            # Replace the framebuffer pixel including alpha; SourceOver can
+            # blend against Qt's initialized opaque backing and erase blur.
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+            painter.fillRect(event.rect(), material)
+            painter.end()
+        else:
+            super().paintEvent(event)
 
     def save_ui_state(self) -> None:
         sizes = self.main_splitter.sizes()
