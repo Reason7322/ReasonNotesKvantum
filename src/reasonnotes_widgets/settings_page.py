@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from PySide6.QtGui import QFontDatabase
+
 from PySide6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
@@ -14,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .visuals import integrate_line_edit
+from .material import GlassCard
 
 
 class SettingsPage(QWidget):
@@ -68,6 +71,9 @@ class SettingsPage(QWidget):
         self.purge_key.setObjectName("purgeKey")
         self.purge_key.setReadOnly(True)
         self.purge_key.setClearButtonEnabled(False)
+        key_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        key_font.setPointSize(10)
+        self.purge_key.setFont(key_font)
         integrate_line_edit(self.purge_key)
         pairing_widgets = (
             self.deletion_heading,
@@ -84,19 +90,37 @@ class SettingsPage(QWidget):
             address, port, key = deletion_pairing
             self.purge_address.setText(f"{address}:{port}")
             self.purge_key.setText(key)
+            # Show the beginning of long credentials rather than a clipped tail;
+            # users can still select/copy the entire read-only field.
+            self.purge_key.setCursorPosition(0)
         layout.addWidget(self.heading)
-        layout.addSpacing(20)
-        layout.addWidget(self.language_label)
-        layout.addWidget(self.english_button)
-        layout.addWidget(self.polish_button)
-        layout.addSpacing(8)
-        layout.addWidget(self.system_appearance)
-        layout.addSpacing(20)
+        layout.addSpacing(14)
+
+        self.language_card = GlassCard(self.content_column)
+        language_layout = QVBoxLayout(self.language_card)
+        language_layout.setContentsMargins(26, 22, 26, 24)
+        language_layout.setSpacing(13)
+        language_layout.addWidget(self.language_label)
+        language_layout.addWidget(self.english_button)
+        language_layout.addWidget(self.polish_button)
+        language_layout.addSpacing(9)
+        language_layout.addWidget(self.system_appearance)
+        layout.addWidget(self.language_card)
+
+        self.pairing_card = GlassCard(self.content_column)
+        pairing_layout = QVBoxLayout(self.pairing_card)
+        pairing_layout.setContentsMargins(26, 22, 26, 24)
+        pairing_layout.setSpacing(11)
         for widget in pairing_widgets:
-            layout.addWidget(widget)
+            pairing_layout.addWidget(widget)
+        if deletion_pairing is None:
+            self.pairing_card.hide()
+        else:
+            layout.addSpacing(10)
+            layout.addWidget(self.pairing_card)
         layout.addStretch(1)
         outer.addStretch(1)
-        outer.addWidget(self.content_column, 1)
+        outer.addWidget(self.content_column, 7)
         outer.addStretch(1)
         self.english_button.clicked.connect(lambda: translator.set_language("en"))
         self.polish_button.clicked.connect(lambda: translator.set_language("pl"))

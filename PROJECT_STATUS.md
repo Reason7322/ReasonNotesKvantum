@@ -62,3 +62,19 @@ Full suite 222/222 passed; native Wayland/Kvantum/blur runtime verified.
 No installed candidate or production files changed. Owner visual acceptance,
 physical Android acceptance, and production cutover remain pending.
 See docs/GLASS_BALANCE_VALIDATION.md.
+
+## Second visual design iteration — 2026-10-18
+
+Owner rejected the first flat-gray material pass. The current sol-owned
+continuation adds real UI hierarchy using the active Kvantum palette:
+NavigationRail, GlassCard editor/Settings, grouped action/search surfaces,
+themed title rule, improved spacing, consistent iconography, and localized
+Notes heading. It preserves the existing backend and removes all separate
+Settings back navigation. Full suite 223/223 passed. Real Wayland/Kvantum
+and compositor blur verified, with visual screenshots inspected using
+disposable test notes and dummy pairing credentials.
+
+**PRODUCT INCOMPLETE:** owner has not approved visuals; physical Android
+interoperability and authorized production cutover are still pending. No
+installed candidate or production files were changed during this iteration.
+See docs/GLASS_BALANCE_VALIDATION.md and handoffs/SOL_TO_FORGE.md.

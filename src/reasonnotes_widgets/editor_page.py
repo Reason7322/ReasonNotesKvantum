@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from .visuals import integrate_line_edit, integrate_scroll_surface
+from .material import GlassCard, TitleRule
 
 
 class EditorPage(QWidget):
@@ -25,19 +26,19 @@ class EditorPage(QWidget):
         super().__init__(parent)
         self.setObjectName("editorPage")
         outer = QHBoxLayout(self)
-        outer.setContentsMargins(32, 24, 32, 24)
+        outer.setContentsMargins(32, 30, 32, 32)
         outer.setSpacing(0)
         outer.addStretch(0)
 
-        self.writing_column = QWidget(self)
+        self.writing_column = GlassCard(self)
         self.writing_column.setObjectName("writingColumn")
         self.writing_column.setMaximumWidth(920)
         self.writing_column.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         column = QVBoxLayout(self.writing_column)
-        column.setContentsMargins(0, 0, 0, 0)
-        column.setSpacing(12)
+        column.setContentsMargins(38, 30, 38, 26)
+        column.setSpacing(16)
 
         self.title_editor = QLineEdit(self.writing_column)
         self.title_editor.setObjectName("titleEditor")
@@ -45,10 +46,11 @@ class EditorPage(QWidget):
         self.title_editor.setAccessibleName("Note title")
         integrate_line_edit(self.title_editor)
         title_font = QFont(self.title_editor.font())
-        title_font.setPointSize(max(title_font.pointSize() + 7, 18))
+        title_font.setPointSize(max(title_font.pointSize() + 8, 21))
         title_font.setWeight(QFont.Weight.DemiBold)
         self.title_editor.setFont(title_font)
 
+        self.title_rule = TitleRule(self.writing_column)
         self.body_editor = QPlainTextEdit(self.writing_column)
         self.body_editor.setObjectName("bodyEditor")
         self.body_editor.setPlaceholderText("Start writing…")
@@ -70,6 +72,7 @@ class EditorPage(QWidget):
         footer.addWidget(self.delivery_status)
 
         column.addWidget(self.title_editor)
+        column.addWidget(self.title_rule)
         column.addWidget(self.body_editor, 1)
         column.addLayout(footer)
         outer.addWidget(self.writing_column, 1)
