@@ -152,3 +152,33 @@ unchanged. Owner validation is still required.
 **ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Physical Android
 interoperability and production cutover remain pending. See
 `docs/GLASS_ARTIFACT_VALIDATION_2026-10-18.md`.
+
+## Remaining vertical glass artifacts — 2026-10-19
+
+Owner testing of `8150569` found that the horizontal quantization changed but
+large vertical patches remained. The candidate is **NOT VISUALLY ACCEPTED**.
+
+A controlled multi-factor Wayland matrix compared current, uniform GlassCard,
+uniform navigation rail, and both-uniform materials, each with and without the
+application blur request. Raw Qt framebuffers and final compositor captures
+were collected at identical 1280x820 geometry for editor and Settings views.
+
+The vertical regions remained after both child gradients were removed and did
+not exist in the raw Qt framebuffer. Blur-requested and request-omitted
+Settings captures were pixel-identical. Moving the whole window by 284 logical
+pixels moved the regions within the window while their strongest transitions
+remained at physical screen x=1092 and x=1478. The remaining effect is the
+desktop background/compositor result showing through the correctly
+translucent surface, not a Qt paint layer or child overlap.
+
+No product code was changed. The Wayland protocol exposes only a blur region
+and leaves the algorithm to compositor policy. Removing the remaining regions
+would require an owner decision to trade away material density, blur behavior,
+or pure system-material rendering. Production, installed candidate, Android,
+and global desktop configuration remain unchanged.
+
+**INCOMPLETE — OWNER VISUAL DECISION REQUIRED.** The unchanged final goal is
+a complete, functional, visually accepted native Qt Widgets/Kvantum
+replacement. Physical Android interoperability and authorized production
+cutover also remain outstanding. See
+`docs/VERTICAL_GLASS_ARTIFACT_DIAGNOSIS_2026-10-19.md`.
