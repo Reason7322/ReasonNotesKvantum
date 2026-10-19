@@ -131,17 +131,23 @@ interoperability and production cutover remain pending. See
 
 ## Forge glass artifact correction — 2026-10-18
 
-The accepted UI structure remains unchanged. A controlled real-Wayland
-comparison ruled out child-widget boundaries and the top-level gradient shape:
-the faint rectangles were compositor blur tiles remaining visible through the
-two lightest material stops. A minimum alpha of 178 on those stops masks the
-bands while retaining the existing gradient, card hierarchy, and background
-depth.
+The alpha-floor attempt in commit `8eb91e1` **FAILED VISUAL ACCEPTANCE**. Its
+test covered opacity, not the reported rectangular pattern.
 
-Affected visual/main-window coverage passes 17/17 and the complete isolated
-suite passes 227/227. Normal-size editor and Settings captures from the actual
-patched source launch retained `qt6ct-style`, native Wayland, active blur, and
-no blur-helper error. Production and the installed candidate remain unchanged.
+A controlled blur/no-blur/raw-framebuffer A/B then located the pattern in the
+Qt-painted surface before compositor processing. The shallow window-sized
+gradient produced 44 long identical-color runs through 8-bit quantization.
+The top-level material is now a uniform palette-derived translucent sheet at
+the original alpha factor; local cards and the navigation rail still supply
+depth, so the accepted UI hierarchy and compositor blur are unchanged.
+
+The replacement rendering regression fails on the rejected gradient and
+passes on the corrected material. Affected visual/main-window coverage passes
+17/17 and the complete isolated suite passes 227/227. Matching 1280x820 editor
+and Settings captures from the patched source retained `qt6ct-style`, native
+Wayland, active blur, and no blur-helper error; the repeated bands were absent
+in full-resolution inspection. Production and the installed candidate remain
+unchanged. Owner validation is still required.
 
 **ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Physical Android
 interoperability and production cutover remain pending. See

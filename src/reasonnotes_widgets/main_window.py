@@ -8,7 +8,6 @@ from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import (
     QCloseEvent,
     QKeySequence,
-    QLinearGradient,
     QPainter,
     QShortcut,
 )
@@ -305,34 +304,19 @@ class ReasonNotesMainWindow(QMainWindow):
             self._refreshing = False
 
     def paintEvent(self, event) -> None:
-        # The active qt6ct/Kvantum palette supplies every hue. A low-alpha,
-        # spatially varied sheet preserves compositor blur while avoiding the
-        # flat charcoal result produced by an opaque native Base fill.
+        # The active qt6ct/Kvantum palette supplies the material. Keep the
+        # top-level sheet uniform: shallow 8-bit gradients quantize into long
+        # equal-color runs that become rectangular bands through translucent
+        # child surfaces. Cards and the navigation rail provide local depth.
         if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
-            window = self.palette().window().color()
             base = self.palette().base().color()
-            alpha = base.alpha()
-            left = window.lighter(109)
-            middle = base.lighter(112)
-            right = window.lighter(104)
-            left.setAlpha(min(235, int(alpha * 1.08)))
-            # Hyprland blur can expose coarse sampling tiles beneath very
-            # light material. Keep our sheet translucent, but dense enough
-            # that those tiles do not read as rectangular bands through it.
-            material_alpha_floor = 178
-            middle.setAlpha(max(material_alpha_floor, int(alpha * .79)))
-            right.setAlpha(
-                max(material_alpha_floor, min(230, int(alpha * .93)))
-            )
-            shade = QLinearGradient(0, 0, self.width(), self.height() * .24)
-            shade.setColorAt(0.0, left)
-            shade.setColorAt(.54, middle)
-            shade.setColorAt(1.0, right)
+            material = base.lighter(108)
+            material.setAlpha(max(105, min(230, int(base.alpha() * .93))))
             painter = QPainter(self)
             painter.setCompositionMode(
                 QPainter.CompositionMode.CompositionMode_Source
             )
-            painter.fillRect(event.rect(), shade)
+            painter.fillRect(event.rect(), material)
             painter.end()
         else:
             super().paintEvent(event)
