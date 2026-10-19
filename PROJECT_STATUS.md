@@ -243,3 +243,30 @@ unchanged final goal remains a complete, functional, visually accepted native
 Qt Widgets/Kvantum replacement. Physical Android interoperability and
 authorized production cutover also remain outstanding. See
 `docs/NATIVE_KVANTUM_MATERIAL_EXPERIMENT_2026-10-19.md`.
+
+## Kitty / Qt glass equivalence experiment — 2026-10-19
+
+A disposable plain `QWidget` submitted a uniform `#1C2121` framebuffer at
+alpha 209, matching Kitty's active color and 0.82 opacity. At identical
+Workspace 10 geometry, all 1,245,600 pixels in the common 80 px inset were
+byte-for-byte identical between the final Kitty and Qt captures. Every Qt raw
+framebuffer pixel was exactly `(28, 33, 33, 209)`.
+
+The normal full-window residual is confined to Kitty's configured client-side
+edge shader and cursor. Disabling that shader through a disposable config copy
+removed the perimeter residual. Qt captures with and without the ReasonNotes
+background-effect request were byte-identical, so the request is not the
+source of the appearance difference under the active Hyprland blur policy.
+
+The evidence supports a next, owner-gated ReasonNotes A/B variant: one
+continuous `QColor(28, 33, 33, 209)` top-level sheet, no native Kvantum
+`PE_Widget` background, and pane-sized translucent fills bypassed while the
+accepted layout and controls remain unchanged. This mission did not apply that
+change. No application source, production state, global configuration, build,
+installation, or deployment changed.
+
+**EXPERIMENT COMPLETE — OWNER DECISION REQUIRED BEFORE REASONNOTES CHANGES.**
+The unchanged final goal remains a complete, functional, visually accepted
+native Qt Widgets/Kvantum replacement. Physical Android interoperability and
+authorized production cutover remain outstanding. See
+`docs/KITTY_QT_GLASS_EQUIVALENCE_2026-10-19.md`.
