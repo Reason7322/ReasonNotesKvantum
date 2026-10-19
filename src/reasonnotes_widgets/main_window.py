@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSplitter,
     QStackedWidget,
+    QStyle,
+    QStyleOption,
 )
 
 from .editor_page import EditorPage
@@ -36,6 +38,7 @@ class ReasonNotesMainWindow(QMainWindow):
         translator: Translator | None = None,
         deletion_pairing=None,
         confirm_delete=None,
+        native_window_material: bool = False,
         parent=None,
     ):
         super().__init__(parent)
@@ -45,6 +48,9 @@ class ReasonNotesMainWindow(QMainWindow):
         self._refreshing = False
         self._first_show = True
         self._confirm_delete = confirm_delete or self._confirm_delete_dialog
+        self.window_material_mode = (
+            "native-kvantum" if native_window_material else "reasonnotes-custom"
+        )
         self.setObjectName("reasonNotesMainWindow")
         self.setWindowTitle("ReasonNotes")
         self.setMinimumSize(820, 560)
@@ -304,19 +310,40 @@ class ReasonNotesMainWindow(QMainWindow):
             self._refreshing = False
 
     def paintEvent(self, event) -> None:
-        # The active qt6ct/Kvantum palette supplies the material. Keep the
-        # top-level sheet uniform: shallow 8-bit gradients quantize into long
-        # equal-color runs that become rectangular bands through translucent
-        # child surfaces. Cards and the navigation rail provide local depth.
         if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
-            base = self.palette().base().color()
-            material = base.lighter(108)
-            material.setAlpha(max(105, min(230, int(base.alpha() * .93))))
             painter = QPainter(self)
-            painter.setCompositionMode(
-                QPainter.CompositionMode.CompositionMode_Source
-            )
-            painter.fillRect(event.rect(), material)
+            if self.window_material_mode == "native-kvantum":
+                # A plain QMainWindow paint event does not guarantee that the
+                # style's window primitive is drawn. Clear the damaged alpha
+                # region, then explicitly delegate the complete window sheet
+                # to the active qt6ct -> Kvantum style chain.
+                painter.setClipRegion(event.region())
+                painter.setCompositionMode(
+                    QPainter.CompositionMode.CompositionMode_Source
+                )
+                painter.fillRect(event.rect(), Qt.GlobalColor.transparent)
+                painter.setCompositionMode(
+                    QPainter.CompositionMode.CompositionMode_SourceOver
+                )
+                option = QStyleOption()
+                option.initFrom(self)
+                self.style().drawPrimitive(
+                    QStyle.PrimitiveElement.PE_Widget,
+                    option,
+                    painter,
+                    self,
+                )
+            else:
+                # Keep the accepted renderer available as the default A/B
+                # path. Its uniform palette-derived sheet avoids quantized
+                # full-window gradient bands while cards provide local depth.
+                base = self.palette().base().color()
+                material = base.lighter(108)
+                material.setAlpha(max(105, min(230, int(base.alpha() * .93))))
+                painter.setCompositionMode(
+                    QPainter.CompositionMode.CompositionMode_Source
+                )
+                painter.fillRect(event.rect(), material)
             painter.end()
         else:
             super().paintEvent(event)

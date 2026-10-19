@@ -213,3 +213,33 @@ a complete, functional, visually accepted native Qt Widgets/Kvantum
 replacement. Owner visual acceptance, physical Android interoperability, and
 authorized production cutover remain outstanding. See
 `docs/ORIGINAL_GLASS_RENDERING_COMPARISON_2026-10-19.md`.
+
+## Native Kvantum window-material experiment — 2026-10-19
+
+A reversible source-only variant now explicitly delegates the complete
+top-level window sheet to the active `qt6ct-style → Kvantum` chain. This was
+necessary because removing the custom paint event does not itself make Qt draw
+Kvantum's `PE_Widget` primitive. The accepted custom path remains the default;
+the experimental path is available only through the hidden
+`--native-window-material` switch.
+
+Matched isolated Hyprland captures showed that the native path raises the
+effective blank-editor alpha from mean `193.524` to `239.703`. Broad
+composited column variation falls from range `10.461` to `2.668`, but the
+result is an almost opaque charcoal surface with materially less LiquidGlass
+depth. It hides the wallpaper-derived patches through density rather than
+providing a smoother translucent material, and it is visibly flatter than the
+existing Kitty optical reference.
+
+Focused native-material tests pass 2/2, affected Widgets coverage passes
+31/31, and the complete suite passes 229/229 with the localhost socket access
+required by the purge-relay tests. Both source variants ran on native Wayland
+with `qt6ct-style`, active blur, no blur-helper error, and clean exit. No
+candidate installation, production data, Android state, or global desktop
+configuration was changed.
+
+**ENGINEERING EXPERIMENT COMPLETE — OWNER VISUAL ACCEPTANCE PENDING.** The
+unchanged final goal remains a complete, functional, visually accepted native
+Qt Widgets/Kvantum replacement. Physical Android interoperability and
+authorized production cutover also remain outstanding. See
+`docs/NATIVE_KVANTUM_MATERIAL_EXPERIMENT_2026-10-19.md`.

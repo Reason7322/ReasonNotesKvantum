@@ -50,6 +50,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--no-auto-receive", action="store_true")
     result.add_argument("--check-launch", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--runtime-probe-ms", type=int, help=argparse.SUPPRESS)
+    result.add_argument(
+        "--native-window-material", action="store_true", help=argparse.SUPPRESS
+    )
     return result
 
 
@@ -133,7 +136,9 @@ def main(arguments=None) -> int:
         relay = PurgeRelay(repository, key)
         deletion_pairing = (computer_address(), PORT, key.hex())
     window = ReasonNotesMainWindow(
-        controller, deletion_pairing=deletion_pairing
+        controller,
+        deletion_pairing=deletion_pairing,
+        native_window_material=options.native_window_material,
     )
     prepare_translucent_surface(window, platform_name=application.platformName())
     blur = QWidgetBlurController()
@@ -153,6 +158,7 @@ def main(arguments=None) -> int:
         print(f"RUNTIME_BLUR_ACTIVE={int(blur.active)}")
         print(f"RUNTIME_BLUR_ERROR={blur.last_error}")
         print(f"RUNTIME_DATA_ROOT={paths.data_root}")
+        print(f"RUNTIME_WINDOW_MATERIAL={window.window_material_mode}")
         print("RUNTIME_PURGE_RELAY=disabled-for-probe")
         sys.stdout.flush()
         QTimer.singleShot(options.runtime_probe_ms, application.quit)
