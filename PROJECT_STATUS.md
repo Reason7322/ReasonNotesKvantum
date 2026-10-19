@@ -182,3 +182,34 @@ a complete, functional, visually accepted native Qt Widgets/Kvantum
 replacement. Physical Android interoperability and authorized production
 cutover also remain outstanding. See
 `docs/VERTICAL_GLASS_ARTIFACT_DIAGNOSIS_2026-10-19.md`.
+
+## Original-renderer controlled comparison — 2026-10-19
+
+The installed Qt Quick application and current Widgets source were captured on
+empty Hyprland Workspace 10 with identical synthetic notes, theme copies,
+window geometry, position, and screenshot method. The original ran with the
+Fusion Qt Quick Controls style and its explicit Noctalia-derived material; the
+candidate retained `qt6ct-style → Kvantum`. Both used native Wayland and active
+compositor blur.
+
+The original raw editor is one uniform alpha-184 sheet. The current Widgets
+card is alpha 192–195 over its shared window material. In the same blank editor
+region, current Widgets reduced broad horizontal luminance variation to 12.320
+from the original's 14.143.
+
+A temporary Widgets probe reproduced the original continuous sheet, sidebar
+tint, and transparent card fill. Its raw alpha and final compositor variation
+matched the original exactly, with only a one-level blue-channel rounding
+difference. This proves that Qt Quick versus Widgets rendering is not the
+source of the desktop-coordinate regions. Promoting the probe would strengthen
+the reported variation and weaken the approved writing-surface depth, so no
+product rendering code was changed.
+
+Full-resolution matched, raw, and side-by-side evidence is committed under
+`docs/evidence/original-glass-comparison-2026-10-19/`.
+
+**INCOMPLETE — OWNER VISUAL DECISION REQUIRED.** The unchanged final goal is
+a complete, functional, visually accepted native Qt Widgets/Kvantum
+replacement. Owner visual acceptance, physical Android interoperability, and
+authorized production cutover remain outstanding. See
+`docs/ORIGINAL_GLASS_RENDERING_COMPARISON_2026-10-19.md`.
