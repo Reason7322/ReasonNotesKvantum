@@ -152,6 +152,106 @@ class NativeWindowMaterialTests(unittest.TestCase):
                 self.assertEqual(image.pixelColor(center).alpha(), 0)
                 self.assertGreater(image.pixelColor(edge).alpha(), 0)
 
+    def _render_widget_image(self, widget, width, height):
+        image = QImage(width, height, QImage.Format.Format_RGBA8888)
+        image.fill(Qt.GlobalColor.transparent)
+        widget.render(image)
+        return image
+
+    @staticmethod
+    def _kitty_card():
+        from reasonnotes_widgets.material import GlassCard
+
+        card = GlassCard()
+        card.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        card.set_material_fill_enabled(False)  # Kitty-equivalent presentation.
+        card.resize(480, 320)
+        card.show()
+        QCoreApplication.processEvents()
+        return card
+
+    def test_kitty_sheet_pixels_unchanged_in_unobstructed_regions(self):
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        window = ReasonNotesMainWindow(
+            self.controller,
+            settings=self.settings,
+            kitty_window_material=True,
+        )
+        self.addCleanup(window.close)
+        window.resize(1280, 800)
+        self.assertTrue(prepare_translucent_surface(window, platform_name="wayland"))
+        window.show()
+        QCoreApplication.processEvents()
+
+        actual = QImage(window.size(), QImage.Format.Format_RGBA8888)
+        actual.fill(Qt.GlobalColor.transparent)
+        window.render(actual)
+
+        # Points outside every painted child (above the writing column,
+        # below it, and in its right margin) must remain the measured sheet.
+        for point in (QPoint(740, 10), QPoint(740, 790), QPoint(1260, 10)):
+            with self.subTest(point=point):
+                self.assertEqual(actual.pixelColor(point), QColor(28, 33, 33, 209))
+
+    def test_kitty_card_interior_stays_free_of_pane_fill(self):
+        from reasonnotes_widgets.material import GlassCard
+
+        card = self._kitty_card()
+        self.addCleanup(card.close)
+        image = self._render_widget_image(card, 480, 320)
+
+        # A grid across the card interior (more than two rim widths inside
+        # every boundary) must remain fully transparent: no pane-sized fill.
+        for x in range(30, 451, 10):
+            for y in range(26, 295, 10):
+                with self.subTest(x=x, y=y):
+                    self.assertEqual(image.pixelColor(QPoint(x, y)).alpha(), 0)
+
+    def test_kitty_card_edge_treatment_is_visible_and_localized(self):
+        from reasonnotes_widgets.material import GlassCard
+
+        card = self._kitty_card()
+        self.addCleanup(card.close)
+        image = self._render_widget_image(card, 480, 320)
+
+        def alpha(point):
+            return image.pixelColor(QPoint(*point)).alpha()
+
+        # Visible rim pixels a few pixels inside each boundary. The top edge
+        # is the strongest because the existing reflection line overlaps it.
+        visible = ((240, 1, 80), (240, 4, 35), (3, 160, 35), (475, 160, 35),
+                  (240, 315, 35))
+        for x, y, minimum in visible:
+            with self.subTest(x=x, y=y):
+                self.assertGreaterEqual(alpha((x, y)), minimum)
+
+        # The treatment must stay localized: beyond the rim fade width the
+        # surface is transparent again.
+        clear = ((240, 16), (18, 160), (463, 160), (240, 304))
+        for point in clear:
+            with self.subTest(point=point):
+                self.assertEqual(alpha(point), 0)
+
+    def test_default_card_still_paints_gradient_fill(self):
+        from reasonnotes_widgets.material import GlassCard
+
+        card = GlassCard()  # material fill stays enabled by default.
+        card.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        card.resize(480, 320)
+        card.show()
+        QCoreApplication.processEvents()
+        self.addCleanup(card.close)
+        image = self._render_widget_image(card, 480, 320)
+
+        center = image.pixelColor(QPoint(240, 160)).alpha()
+        top_mid = image.pixelColor(QPoint(240, 60)).alpha()
+        bottom_mid = image.pixelColor(QPoint(240, 260)).alpha()
+
+        self.assertGreater(center, 55)
+        self.assertLess(center, 95)
+        self.assertGreater(top_mid, bottom_mid)
+
     def test_entrypoint_exposes_mutually_exclusive_kitty_material_switch(self):
         project = Path(__file__).resolve().parents[1]
         entrypoint = project / "linux-app/reasonnotes_widgets.py"

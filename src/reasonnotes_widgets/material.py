@@ -8,7 +8,13 @@ bundled theme resources, or window-sized opaque overlays.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPen
+from PySide6.QtGui import (
+    QColor,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
 from PySide6.QtWidgets import QWidget
 
 
@@ -85,6 +91,23 @@ class GlassCard(QWidget):
             fill if self._material_fill_enabled else Qt.BrushStyle.NoBrush
         )
         painter.drawRoundedRect(bounds, 13, 13)
+        if not self._material_fill_enabled:
+            # The Kitty-equivalent sheet is already one continuous material,
+            # so a transparent card needs its separation from the boundary
+            # itself. Concentric strokes fading inward over a few pixels
+            # read as a glass rim; clipping to the card shape keeps them off
+            # the surrounding sheet, and the interior stays fill-free.
+            depth = QPainterPath()
+            depth.addRoundedRect(bounds, 13, 13)
+            painter.setClipPath(depth)
+            light = palette.light().color()
+            steps = 9
+            for step in range(steps):
+                alpha = int(18 * (steps - step) / steps)
+                width = 2 * (step + 1)
+                painter.setPen(QPen(tinted(light, max(alpha, 1)), width))
+                painter.drawRoundedRect(bounds, 13, 13)
+            painter.setClipping(False)
         # The upper reflection reads as a glass edge without extra controls.
         painter.setPen(QPen(tinted(palette.light().color(), 42), 1))
         painter.drawLine(bounds.left() + 18, bounds.top() + 1,
