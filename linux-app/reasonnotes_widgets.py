@@ -50,8 +50,12 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--no-auto-receive", action="store_true")
     result.add_argument("--check-launch", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--runtime-probe-ms", type=int, help=argparse.SUPPRESS)
-    result.add_argument(
+    material = result.add_mutually_exclusive_group()
+    material.add_argument(
         "--native-window-material", action="store_true", help=argparse.SUPPRESS
+    )
+    material.add_argument(
+        "--kitty-window-material", action="store_true", help=argparse.SUPPRESS
     )
     return result
 
@@ -139,6 +143,7 @@ def main(arguments=None) -> int:
         controller,
         deletion_pairing=deletion_pairing,
         native_window_material=options.native_window_material,
+        kitty_window_material=options.kitty_window_material,
     )
     prepare_translucent_surface(window, platform_name=application.platformName())
     blur = QWidgetBlurController()

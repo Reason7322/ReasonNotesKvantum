@@ -24,16 +24,29 @@ def tinted(color: QColor, alpha: int, *, brighten: int = 0) -> QColor:
 class NavigationRail(QWidget):
     """Small translucent tint and a thin edge, not an opaque sidebar slab."""
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._material_fill_enabled = True
+
+    @property
+    def material_fill_enabled(self) -> bool:
+        return self._material_fill_enabled
+
+    def set_material_fill_enabled(self, enabled: bool) -> None:
+        self._material_fill_enabled = bool(enabled)
+        self.update()
+
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         palette = self.palette()
-        surface = palette.window().color()
-        gradient = QLinearGradient(0, 0, 0, self.height())
-        gradient.setColorAt(0.0, tinted(surface, 108, brighten=8))
-        gradient.setColorAt(0.55, tinted(surface, 90))
-        gradient.setColorAt(1.0, tinted(surface, 114))
-        painter.fillRect(event.rect(), gradient)
+        if self._material_fill_enabled:
+            surface = palette.window().color()
+            gradient = QLinearGradient(0, 0, 0, self.height())
+            gradient.setColorAt(0.0, tinted(surface, 108, brighten=8))
+            gradient.setColorAt(0.55, tinted(surface, 90))
+            gradient.setColorAt(1.0, tinted(surface, 114))
+            painter.fillRect(event.rect(), gradient)
         separator = tinted(palette.text().color(), 28)
         painter.setPen(QPen(separator, 1))
         painter.drawLine(self.width() - 1, 18, self.width() - 1, self.height() - 18)
@@ -42,6 +55,18 @@ class NavigationRail(QWidget):
 
 class GlassCard(QWidget):
     """A quiet frosted writing/settings surface with a themed outline."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._material_fill_enabled = True
+
+    @property
+    def material_fill_enabled(self) -> bool:
+        return self._material_fill_enabled
+
+    def set_material_fill_enabled(self, enabled: bool) -> None:
+        self._material_fill_enabled = bool(enabled)
+        self.update()
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
@@ -56,7 +81,9 @@ class GlassCard(QWidget):
         fill.setColorAt(0, top)
         fill.setColorAt(1, bottom)
         painter.setPen(QPen(tinted(palette.text().color(), 35), 1))
-        painter.setBrush(fill)
+        painter.setBrush(
+            fill if self._material_fill_enabled else Qt.BrushStyle.NoBrush
+        )
         painter.drawRoundedRect(bounds, 13, 13)
         # The upper reflection reads as a glass edge without extra controls.
         painter.setPen(QPen(tinted(palette.light().color(), 42), 1))

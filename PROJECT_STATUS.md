@@ -270,3 +270,9 @@ The unchanged final goal remains a complete, functional, visually accepted
 native Qt Widgets/Kvantum replacement. Physical Android interoperability and
 authorized production cutover remain outstanding. See
 `docs/KITTY_QT_GLASS_EQUIVALENCE_2026-10-19.md`.
+
+## Kitty-equivalent ReasonNotes variant — 2026-10-19
+
+A reversible source-only --kitty-window-material mode now uses the measured Kitty QColor(28,33,33,209) top-level sheet, suppressing pane-sized rail/card fills in that mode only while preserving the default UI, controls and existing native-material diagnostic. Six focused tests and the 233-test suite passed; both source variants ran and exited normally on actual Wayland/Kvantum with disposable Workspace 10 preview data. Full-resolution comparison is retained in docs/evidence/kitty-reasonnotes-material-2026-10-19, report docs/KITTY_MATERIAL_REASONNOTES_VALIDATION_2026-10-19.md.
+
+The experimental variant is visibly darker/flatter and still shows broad underlying background regions. OWNER VISUAL ACCEPTANCE NOT GRANTED. No build, candidate or production deployment, Android activity, or global theme/Hyprland change occurred. PRODUCT INCOMPLETE; physical Android interoperability and separately authorized cutover remain pending. Next action is owner evaluation of the new A/B and a bounded visual refinement decision, not automatic promotion.

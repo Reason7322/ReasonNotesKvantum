@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import (
     QCloseEvent,
+    QColor,
     QKeySequence,
     QPainter,
     QShortcut,
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
 from .editor_page import EditorPage
 from .conflict_page import ConflictPage
 from .i18n import Translator
+from .material import GlassCard
 from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
 from .sync_panel import SyncPanel
@@ -39,18 +41,24 @@ class ReasonNotesMainWindow(QMainWindow):
         deletion_pairing=None,
         confirm_delete=None,
         native_window_material: bool = False,
+        kitty_window_material: bool = False,
         parent=None,
     ):
         super().__init__(parent)
+        if native_window_material and kitty_window_material:
+            raise ValueError("window material variants are mutually exclusive")
         self.controller = controller
         self.settings = settings if settings is not None else QSettings()
         self.translator = translator or Translator(self.settings, self)
         self._refreshing = False
         self._first_show = True
         self._confirm_delete = confirm_delete or self._confirm_delete_dialog
-        self.window_material_mode = (
-            "native-kvantum" if native_window_material else "reasonnotes-custom"
-        )
+        if kitty_window_material:
+            self.window_material_mode = "kitty-equivalent"
+        elif native_window_material:
+            self.window_material_mode = "native-kvantum"
+        else:
+            self.window_material_mode = "reasonnotes-custom"
         self.setObjectName("reasonNotesMainWindow")
         self.setWindowTitle("ReasonNotes")
         self.setMinimumSize(820, 560)
@@ -82,6 +90,14 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sync_panel = SyncPanel(controller, self.translator, self)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.sync_panel)
         self.sync_panel.hide()
+
+        if self.window_material_mode == "kitty-equivalent":
+            # The measured Kitty-equivalent sheet is already the complete
+            # window material. Keep local outlines and controls, but avoid
+            # compositing pane-sized fills over that calibrated base.
+            self.sidebar.set_material_fill_enabled(False)
+            for card in self.findChildren(GlassCard):
+                card.set_material_fill_enabled(False)
 
         sidebar_width = self.settings.value("window/sidebarWidth", 300, int)
         self.main_splitter.setSizes([max(240, min(520, sidebar_width)), 980])
@@ -333,6 +349,11 @@ class ReasonNotesMainWindow(QMainWindow):
                     painter,
                     self,
                 )
+            elif self.window_material_mode == "kitty-equivalent":
+                painter.setCompositionMode(
+                    QPainter.CompositionMode.CompositionMode_Source
+                )
+                painter.fillRect(event.rect(), QColor(28, 33, 33, 209))
             else:
                 # Keep the accepted renderer available as the default A/B
                 # path. Its uniform palette-derived sheet avoids quantized
