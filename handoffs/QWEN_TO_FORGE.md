@@ -1,33 +1,48 @@
-# Qwen → Forge Handoff — Kitty Glass Card-Rim Checkpoint (2026-10-19)
+# Qwen → Forge Handoff — Mission 02 Native Wayland A/B Capture (2026-10-20)
 
-**Overall product: INCOMPLETE.** Deliver a fully functional, owner-visually-approved native Qt Widgets/Kvantum ReasonNotes replacement preserving familiar UI, editing, autosave/recovery, history, KDE Connect/Android sync, conflict/deletion handling, and English/Polish localization. Production replacement remains separately owner-authorized; physical Android acceptance and final visual approval are outstanding.
+**Overall product: INCOMPLETE.** The unchanged goal is a complete, functional, owner-visually-approved native Qt Widgets/Kvantum ReasonNotes replacement preserving the existing layout, editing, autosave/recovery, immutable history, KDE Connect/Android synchronization, conflict/deletion handling, and English/Polish localization. Outstanding acceptance criteria: (1) owner visual judgment of this A/B evidence, (2) physical Android interoperability validation, (3) separately authorized production cutover with rollback. **Nothing was deployed.** No candidate or production state was modified in this shift.
 
 ## Exact transfer state
 
 - Qwen-owned worktree: `/home/reason/Temporary/QwenProjects/ReasonNotesKvantum-kitty-glass-refinement`
-- Sender branch: `qwen/kitty-glass-refinement`
-- Source/base SHA: `30bc0fe7ccd9bce6e0844876295f3e073fe9807f` (`forge/qtwidgets-rewrite` source state).
-- Transfer commit: use the verified tip of this branch; the coordinator reports the identical full SHA of local HEAD, `handoff`, and `github` after both pushes. Do not treat this source/base SHA as the new handoff SHA.
-- This handoff was recorded by ChatGPT at the owner's request, using Qwen's uncommitted implementation and the saved `Vision Sidequest v2` transcript/checkpoint; it is **not** a claim that Qwen itself executed the handoff.
+- Branch: `qwen/kitty-glass-refinement`
+- Incoming checkpoint (rim implementation): `459367402ee3c251e55660121d763d821b85233e` — verified identical on local HEAD, `handoff`, and `github` before this shift started.
+- Base/source material checkpoint (version A origin): `30bc0fe7ccd9bce6e0844876295f3e073fe9807f`.
+- This transfer commit adds exactly four files/changes: the two composited screenshots below plus this document and `PROJECT_STATUS.md`. It is a checkpoint, not product completion.
 
-## Implemented in this checkpoint
+## Implemented in the previous checkpoint (unchanged here)
 
-- `src/reasonnotes_widgets/material.py`: for `GlassCard` with material fill disabled, paint nine translucent rounded, clipped strokes that fade inward; keep card interiors fill-free and retain the existing top reflection.
-- `tests/test_widgets_native_material.py`: four additional regression tests for exact unobstructed Kitty sheet RGBA `(28,33,33,209)`, transparent card interiors, localized visible rims, and preservation of default gradient cards.
-- The experimental `--kitty-window-material` variant remains opt-in. Preserve the unchanged RGBA sheet and the custom default and `--native-window-material` variants.
-- Prior Forge source-only Kitty equivalence work, screenshot evidence, and the original UI/behavior remain as established in `docs/KITTY_MATERIAL_REASONNOTES_VALIDATION_2026-10-19.md`.
+A nine-stroke inward-fading glass rim painted only for `GlassCard`s with material fill disabled (Kitty mode), keeping card interiors fill-free; four pixel regression tests added to `tests/test_widgets_native_material.py`; top-level sheet preserved at exactly `QColor(28,33,33,209)`; default and native-material variants untouched. The only functional A→B source delta is the rim block in `src/reasonnotes_widgets/material.py` (plus those tests).
 
-## Evidence and limits
+## This shift's captured evidence
 
-- ChatGPT verified the two-file implementation diff on 2026-10-19 and `git diff --check` reported no errors before this checkpoint.
-- Saved Qwen chat reports focused 10/10 PASS and full unittest 237/237 OK, using `QT_QPA_PLATFORM=offscreen HOME=/home/reason XDG_CONFIG_HOME=/home/reason/.config PYTHONPATH=src /usr/bin/python3 -m unittest discover -s tests -q 2>&1 | tail -4`. These were **not rerun by ChatGPT**. Pipeline status can reflect `tail` unless `pipefail` is active; the recorded unittest text says OK. Nonfatal GC ResourceWarning at shutdown.
-- LM Studio tool command environment omitted `HOME`, `XDG_CONFIG_HOME`, and `WAYLAND_DISPLAY`; missing Qt configuration caused an opaque fallback Kvantum palette `(46,46,46,255)` instead of the actual LiquidGlass base `(42,50,50,184)`. Supply the correct theme/session environment and isolate XDG *writes* when previewing.
-- **No native Wayland A/B screenshots of this rim change, no owner visual approval, no new helper build, no new distributable build, no deployment, and no Android physical-device validation were verified.** Tests establish pixel-level constraints, not appearance acceptance.
+Two full-resolution native Wayland compositor screenshots (`grim -o DP-2`, 2560x1440 RGB, original resolution preserved):
 
-## Exactly what remains
+- Version A (before rim, base `30bc0fe7` source export run from a separate Qwen-owned tree): `docs/evidence/kitty-rim-wayland-ab/reasonnotes-before.png`
+- Version B (after rim, checkpoint `45936740…`): `docs/evidence/kitty-rim-wayland-ab/reasonnotes-after.png`
 
-1. Check Hyprland Workspace 10 is unoccupied, then produce native Wayland, matched-geometry A/B captures from isolated source previews with disposable notes/settings and correct LiquidGlass theme. Build the native blur helper only if needed.
-2. Assess card-rim depth and wallpaper-derived patches from actual captures; owner performs subjective visual approval. Do not claim wallpaper patches or visual depth are fixed on the basis of offscreen tests.
-3. Continue the **same** full ReasonNotes product goal: owner visual acceptance, physical KDE Connect/Android interoperability, and separately authorized production cutover with rollback remain outstanding.
+Both ran on Hyprland 0.56.2, monitor DP-2, exclusively occupying empty Workspace 10 at settled geometry `[0,46]`, size `[2048,1106]` logical (dwindle full-workspace tiling), with: native Wayland platform; `QT_QPA_PLATFORMTHEME=qt6ct` over byte-identical disposable copies of the live qt6ct/LiquidGlass configuration (offscreen probe confirmed style chain `qt6ct-style → kvantum` and LiquidGlass base palette `(42,50,50,184)` before launch); independent disposable XDG data/cache roots, repositories, inboxes, and settings; each repository seeded via its own source tree's `NoteService` API with one identical three-line synthetic note (`Wayland rim A-B synthetic fixture.` / `Second line of the shared note body.` / `Third and final line for both versions.`); launch flags `--kitty-window-material --no-auto-receive --runtime-probe-ms 12000`.
 
-**Do not redo:** prior Forge Kitty pixel-equivalence research, source implementation, Qwen's reported green test run, or diagnosed Qt environment issue absent a concrete changed prerequisite or contradiction. No live production data, user notes, global Qt/Kvantum/Hyprland/Kitty settings, or installation may be changed under this handoff. This checkpoint is a transfer, not authorization to launch the app or load Qwen.
+### Actual runtime results observed
+
+Both processes exited with status **0**. Both printed:
+`RUNTIME_STYLE=qt6ct-style`, `RUNTIME_PLATFORM=wayland`, `RUNTIME_BLUR_ACTIVE=1`, empty `RUNTIME_BLUR_ERROR`, `RUNTIME_WINDOW_MATERIAL=kitty-equivalent`, `RUNTIME_PURGE_RELAY=disabled-for-probe`. Data roots were the per-version disposable directories under `/home/reason/Temporary/QwenProjects/rn-rim-ab-20261019/staging/run-A|B/`; no live notes, Android device, or global configuration was touched.
+
+### Uncertainties and limits
+
+- **No pixel comparison has been run in this shift.** Whether the rim is measurable at full resolution, whether card interiors show any pane-wide fill, whether broad wallpaper-derived patches persist/improve/worsen, and whether sidebar/editor controls remain visually intact are all open until someone inspects or measures these images. A screenshot is evidence, not owner visual approval.
+- Supplementary raw-framebuffer grabs (in-process `QWidget::grab` of each version at 2560x1383 with identical settled geometry) exist **outside this repository** at `/home/reason/Temporary/QwenProjects/rn-rim-ab-20261019/staging/raw/raw-a.png` and `raw-b.png`, with geometry logs in the same directory's `probe-a.log` / `probe-b.log`. Both probes reported window size `[2048,1106]`, blur active without error, kitty-equivalent material, sidebar width 300, and one visible writing card at logical `(718,30)` size `920x1044` in both versions. These raw files are not committed here; they are referenced for the next reviewer's convenience only.
+- The compositor screenshot path captures what Hyprland displayed on Workspace 10 (window plus top workspace label strip); wallpaper is present behind nothing because the window filled the entire workspace area, so A-vs-B pixel differences should be confined to renderer changes if the desktop background was static between captures (it was not independently verified).
+
+## Previously reported tests (not rerun this shift)
+
+From the rim implementation checkpoint: focused material tests **10/10 PASS**; complete unittest suite **237/237 OK** under explicitly restored `HOME`/`XDG_CONFIG_HOME`. Qualification preserved from that record: the full-suite command was piped through `... | tail -4`, so its standalone process exit code was never independently established (the recorded unittest output says OK). No tests were executed in this shift; no new code or tests were added.
+
+## Remaining next action
+
+1. Review and compare `reasonnotes-before.png` vs `reasonnotes-after.png` at original resolution (full-window diff plus close-ups around the writing-card boundary); optionally use the referenced raw grabs for compositor-independent isolation of the rim.
+2. Obtain owner visual judgment on whether the rim improves depth without unwanted background artifacts. Then decide: keep, tune, or revert the rim; only after that do physical Android acceptance and separately authorized production cutover remain as final product gates.
+
+## Prohibited-state confirmation
+
+No production installation, no real notes or Android synchronization activity, no global Hyprland/Kitty/qt6ct/Kvantum modification, no writes in Forge's workspace, no default renderer change, no change to the proven `QColor(28,33,33,209)` sheet. The branch has not been merged into `main`.
