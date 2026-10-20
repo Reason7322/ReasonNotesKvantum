@@ -10,6 +10,7 @@ from PySide6.QtGui import (
     QColor,
     QKeySequence,
     QPainter,
+    QPalette,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -84,6 +85,27 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter.setChildrenCollapsible(False)
         self.main_splitter.addWidget(self.sidebar)
         self.main_splitter.addWidget(self.page_stack)
+        # The sidebar/content boundary handle stays fully draggable but must
+        # paint nothing over the window material at rest. Clear only its idle
+        # palette roles: any stylesheet on this splitter corrupts Kvantum
+        # style integration for every descendant widget.
+        boundary_handle = self.main_splitter.handle(1)
+        if boundary_handle is not None:
+            transparent = QColor(Qt.GlobalColor.transparent)
+            handle_palette = boundary_handle.palette()
+            for group in (
+                QPalette.ColorGroup.Active,
+                QPalette.ColorGroup.Inactive,
+                QPalette.ColorGroup.Disabled,
+            ):
+                for role in (
+                    QPalette.ColorRole.Base,
+                    QPalette.ColorRole.Window,
+                    QPalette.ColorRole.AlternateBase,
+                    QPalette.ColorRole.Button,
+                ):
+                    handle_palette.setColor(group, role, transparent)
+            boundary_handle.setPalette(handle_palette)
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
         self.setCentralWidget(self.main_splitter)

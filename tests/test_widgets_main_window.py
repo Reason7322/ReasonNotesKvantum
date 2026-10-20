@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QProxyStyle,
     QSplitter,
-    QSplitterHandle,
 )
 
 from reasonnotes_app.presenter import NotePresenter
@@ -162,18 +161,17 @@ class WidgetsMainWindowTests(unittest.TestCase):
         self.assertGreaterEqual(second.main_splitter.sizes()[0], 365)
         self.assertLessEqual(second.main_splitter.sizes()[0], 379)
 
-    def test_sidebar_splitter_handle_is_hover_only_and_still_resizable(self):
+    def test_sidebar_splitter_handle_is_transparent_at_rest_and_still_resizable(self):
         window, _ = self.make_window()
-        handles = [
-            handle
-            for handle in window.main_splitter.findChildren(QSplitterHandle)
-            if handle.width() > 0 and handle.height() > 0
-        ]
-        self.assertEqual(len(handles), 1)
-        handle = handles[0]
 
-        # Invisible at rest: the unhovered handle paints nothing over the
-        # window material.
+        # The boundary handle between sidebar widget 0 and page-stack widget 1.
+        handle = window.main_splitter.handle(1)
+        self.assertIsNotNone(handle)
+        self.assertGreater(handle.width(), 0)
+        self.assertGreater(handle.height(), 0)
+
+        # Transparent at rest: the unhovered boundary handle paints nothing
+        # over the window material.
         image = QImage(
             handle.size(), QImage.Format.Format_ARGB32_Premultiplied
         )
@@ -185,24 +183,19 @@ class WidgetsMainWindowTests(unittest.TestCase):
                     image.pixelColor(x, image.height() // 2).alpha(), 0
                 )
 
-        # Hover presentation is stylesheet-scoped to the handle only.
-        sheet = window.main_splitter.styleSheet()
-        self.assertIn("QSplitter::handle", sheet)
-        self.assertIn(":hover", sheet)
-
-        # The default hit target stays draggable: a synthetic drag from the
-        # handle grows the sidebar by roughly the drag distance.
-        start_x = window.sidebar.geometry().right() + max(1, handle.width() // 2)
+        # The default hit target stays draggable: synthetic drag events are
+        # delivered directly to the boundary handle in handle-local
+        # coordinates and grow the sidebar by roughly the drag distance.
+        grab = QPoint(
+            max(1, handle.width() // 2), min(300, max(1, handle.height() - 1))
+        )
         before = window.main_splitter.sizes()[0]
-        QTest.mousePress(
-            window, Qt.MouseButton.LeftButton, pos=QPoint(start_x, 300)
-        )
+        QTest.mousePress(handle, Qt.MouseButton.LeftButton, pos=grab)
         QCoreApplication.processEvents()
-        QTest.mouseMove(window, QPoint(start_x + 42, 300))
+        drag_end = grab + QPoint(42, 0)
+        QTest.mouseMove(handle, drag_end)
         QCoreApplication.processEvents()
-        QTest.mouseRelease(
-            window, Qt.MouseButton.LeftButton, pos=QPoint(start_x + 42, 300)
-        )
+        QTest.mouseRelease(handle, Qt.MouseButton.LeftButton, pos=drag_end)
         QCoreApplication.processEvents()
         self.assertGreaterEqual(window.main_splitter.sizes()[0], before + 30)
 
