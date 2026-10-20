@@ -10,7 +10,6 @@ from PySide6.QtGui import (
     QColor,
     QKeySequence,
     QPainter,
-    QPalette,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -83,15 +82,6 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.main_splitter.setObjectName("mainSplitter")
         self.main_splitter.setChildrenCollapsible(False)
-        # The sidebar resize handle stays out of sight until the cursor
-        # reaches it. A scoped stylesheet tints only the hover presentation;
-        # the default hit target, width, and persisted size are untouched.
-        grip = self.palette().color(QPalette.ColorRole.Text)
-        hover_color = f"rgba({grip.red()}, {grip.green()}, {grip.blue()}, 110)"
-        self.main_splitter.setStyleSheet(
-            "QSplitter::handle:horizontal { background-color: transparent; }"
-            f"QSplitter::handle:horizontal:hover {{ background-color: {hover_color}; }}"
-        )
         self.main_splitter.addWidget(self.sidebar)
         self.main_splitter.addWidget(self.page_stack)
         self.main_splitter.setStretchFactor(0, 0)
