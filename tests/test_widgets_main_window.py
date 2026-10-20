@@ -199,6 +199,57 @@ class WidgetsMainWindowTests(unittest.TestCase):
         QCoreApplication.processEvents()
         self.assertGreaterEqual(window.main_splitter.sizes()[0], before + 30)
 
+    def test_sidebar_splitter_grip_appears_on_hover_and_disappears_on_leave(self):
+        window, _ = self.make_window()
+        handle = window.main_splitter.handle(1)
+        self.assertIsNotNone(handle)
+
+        hover_pos = handle.mapTo(window, QPoint(handle.width() // 2, 300))
+        away_pos = window.main_splitter.mapTo(window, QPoint(100, 300))
+
+        def render_handle():
+            image = QImage(
+                handle.size(), QImage.Format.Format_ARGB32_Premultiplied
+            )
+            image.fill(Qt.GlobalColor.transparent)
+            handle.render(image)
+            return image
+
+        # Pointer enters the real boundary handle: a small grip appears.
+        QTest.mouseMove(window, hover_pos)
+        QCoreApplication.processEvents()
+        self.assertTrue(handle.underMouse())
+        handle.update()  # mirrors the platform hover-triggered repaint
+        QCoreApplication.processEvents()
+        hovered = render_handle()
+        nontransparent = sum(
+            1
+            for y in range(hovered.height())
+            for x in range(hovered.width())
+            if hovered.pixelColor(x, y).alpha() > 0
+        )
+        self.assertGreater(nontransparent, 0)
+        # The grip is small and centered: near the edges stays transparent.
+        edge_x = handle.width() // 2
+        self.assertEqual(hovered.pixelColor(edge_x, 3).alpha(), 0)
+        self.assertEqual(
+            hovered.pixelColor(edge_x, handle.height() - 4).alpha(), 0)
+
+        # Pointer leaves: the divider is completely transparent again.
+        QTest.mouseMove(window, away_pos)
+        QCoreApplication.processEvents()
+        self.assertFalse(handle.underMouse())
+        handle.update()
+        QCoreApplication.processEvents()
+        left = render_handle()
+        leftover = sum(
+            1
+            for y in range(left.height())
+            for x in range(left.width())
+            if left.pixelColor(x, y).alpha() > 0
+        )
+        self.assertEqual(leftover, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
