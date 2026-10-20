@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSignalBlocker, Signal, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
-    QFrame,
-    QLabel,
     QLineEdit,
     QPlainTextEdit,
     QSizePolicy,
@@ -15,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .visuals import integrate_line_edit, integrate_scroll_surface
+from .visuals import integrate_line_edit, integrate_solid_surface
 from .material import GlassCard, TitleRule
 
 
@@ -41,31 +39,9 @@ class EditorPage(QWidget):
         column.setContentsMargins(38, 22, 38, 26)
         column.setSpacing(0)
 
-        self.status_bar = QWidget(self.writing_column)
-        self.status_bar.setObjectName("editorStatusBar")
-        self.status_bar.setMinimumHeight(40)
-        status_layout = QHBoxLayout(self.status_bar)
-        status_layout.setContentsMargins(0, 0, 0, 0)
-        status_layout.setSpacing(10)
-        self.save_status = QLabel("Idle", self.status_bar)
-        self.save_status.setObjectName("saveStatus")
-        self.delivery_status = QLabel("No note selected", self.status_bar)
-        self.delivery_status.setObjectName("deliveryStatus")
-        self.status_separator = QFrame(self.status_bar)
-        self.status_separator.setFrameShape(QFrame.Shape.VLine)
-        self.status_separator.setFrameShadow(QFrame.Shadow.Plain)
-        for label in (self.save_status, self.delivery_status):
-            status_font = QFont(label.font())
-            status_font.setPixelSize(13)
-            label.setFont(status_font)
-        status_layout.addStretch(1)
-        status_layout.addWidget(self.save_status)
-        status_layout.addWidget(self.status_separator)
-        status_layout.addWidget(self.delivery_status)
-
         self.title_editor = QLineEdit(self.writing_column)
         self.title_editor.setObjectName("titleEditor")
-        self.title_editor.setPlaceholderText("Note title")
+        self.title_editor.setPlaceholderText("Title")
         self.title_editor.setAccessibleName("Note title")
         integrate_line_edit(self.title_editor)
         title_font = QFont(self.title_editor.font())
@@ -76,21 +52,18 @@ class EditorPage(QWidget):
         self.title_rule = TitleRule(self.writing_column)
         self.body_editor = QPlainTextEdit(self.writing_column)
         self.body_editor.setObjectName("bodyEditor")
-        self.body_editor.setPlaceholderText("Start writing…")
         self.body_editor.setAccessibleName("Markdown note body")
         self.body_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-        integrate_scroll_surface(self.body_editor)
+        # The editable writing region is one uniform opaque sheet. The glass
+        # material and approved rim stay on the window and card around it.
+        integrate_solid_surface(self.body_editor, QColor(0x2C, 0x35, 0x39))
         self.body_editor.document().setDocumentMargin(6)
         body_font = QFont(self.body_editor.font())
         body_font.setPixelSize(18)
         self.body_editor.setFont(body_font)
 
-        column.addWidget(self.status_bar)
-        column.addSpacing(16)
         column.addWidget(self.title_editor)
-        column.addSpacing(12)
         column.addWidget(self.title_rule)
-        column.addSpacing(22)
         column.addWidget(self.body_editor, 1)
         outer.addWidget(self.writing_column, 1)
         outer.addStretch(0)

@@ -55,6 +55,12 @@ class WidgetsI18nTests(unittest.TestCase):
         )
         self.addCleanup(window.close)
 
+        # English empty-note placeholders before the language switch.
+        self.assertEqual(
+            window.editor.title_editor.placeholderText(), "Title"
+        )
+        self.assertEqual(window.editor.body_editor.placeholderText(), "")
+
         window.open_settings()
         window.settings_page.polish_button.click()
 
@@ -62,9 +68,16 @@ class WidgetsI18nTests(unittest.TestCase):
         self.assertEqual(window.sidebar.settings_button.text(), "Ustawienia")
         self.assertEqual(window.settings_page.heading.text(), "Ustawienia")
         self.assertFalse(hasattr(window.settings_page, "appearance_group"))
+        # Polish switches the empty-title prompt; saved titles are intact.
+        self.assertEqual(
+            window.editor.title_editor.placeholderText(), "Tytuł"
+        )
+        self.assertEqual(window.editor.body_editor.placeholderText(), "")
         self.assertEqual(controller.current_title, "Tytuł użytkownika")
+        self.assertEqual(window.editor.title_editor.text(), "Tytuł użytkownika")
         self.assertEqual(controller.current_content, "Treść *Markdown*")
         self.assertEqual(service.open_note(note_id), "# Tytuł użytkownika\n\nTreść *Markdown*")
+
 
     def test_all_declared_polish_labels_are_nonempty(self):
         from reasonnotes_widgets.i18n import TRANSLATIONS

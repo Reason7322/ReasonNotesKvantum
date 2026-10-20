@@ -8,11 +8,13 @@ from PySide6.QtGui import QColor, QImage, QPainter, QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
+    QLabel,
     QProxyStyle,
     QSizePolicy,
     QStyle,
     QStyleOptionFrame,
     QToolButton,
+    QWidget,
 )
 
 from reasonnotes_app.presenter import NotePresenter
@@ -80,7 +82,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 self.assert_transparent_base(field)
                 self.assertEqual(field.styleSheet(), "")
 
-        text_views = (self.window.editor.body_editor,)
+        text_views = ()
         item_views = (
             self.window.sidebar.list_view,
             self.window.sync_panel.note_list,
@@ -91,6 +93,32 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 self.assert_transparent_base(view.viewport())
                 self.assertFalse(view.viewport().autoFillBackground())
                 self.assertEqual(view.styleSheet(), "")
+
+    def test_note_body_is_one_uniform_opaque_solid_surface(self):
+        body = self.window.editor.body_editor
+        surface = QColor(44, 53, 57)  # #2C3539
+        for group in (
+            QPalette.ColorGroup.Active,
+            QPalette.ColorGroup.Inactive,
+            QPalette.ColorGroup.Disabled,
+        ):
+            with self.subTest(group=group):
+                self.assertEqual(
+                    body.palette().color(group, QPalette.ColorRole.Base),
+                    surface,
+                )
+        self.assertEqual(body.frameShape(), QFrame.Shape.NoFrame)
+
+        image = QImage(body.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(Qt.GlobalColor.transparent)
+        body.render(image)
+        for x in range(1, image.width() - 1, 9):
+            for y in range(1, image.height() - 1, 13):
+                with self.subTest(x=x, y=y):
+                    self.assertEqual(
+                        image.pixelColor(x, y), surface,
+                        f"patchy or translucent writing surface at ({x},{y})",
+                    )
 
     def test_line_edit_proxy_suppresses_only_the_forced_kvantum_panel(self):
         fields = (
@@ -176,21 +204,36 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertEqual(sidebar.list_view.iconSize().width(), 22)
         self.assertTrue(sidebar.list_view.hasMouseTracking())
 
-    def test_editor_matches_original_heading_body_and_status_hierarchy(self):
+    def test_editor_title_rule_body_hierarchy_without_header_status(self):
         editor = self.window.editor
-        layout = editor.writing_column.layout()
-        self.assertLess(layout.indexOf(editor.status_bar),
-                        layout.indexOf(editor.title_editor))
+        # The top-right Local/Phone block is gone from the writing card; its
+        # object names must no longer exist anywhere in the page.
+        self.assertIsNone(editor.findChild(QWidget, "editorStatusBar"))
+        self.assertIsNone(editor.findChild(QLabel, "saveStatus"))
+        self.assertIsNone(editor.findChild(QLabel, "deliveryStatus"))
         self.assertEqual(editor.title_editor.font().pixelSize(), 36)
         self.assertEqual(editor.body_editor.font().pixelSize(), 18)
-        self.assertEqual(editor.title_editor.placeholderText(), "Untitled")
+        # Empty-title placeholder is the localized title prompt; the body
+        # keeps no placeholder of its own.
+        self.assertEqual(editor.title_editor.placeholderText(), "Title")
+        self.assertEqual(editor.body_editor.placeholderText(), "")
+        layout = editor.writing_column.layout()
+        # The rule sits immediately below the title with no spacer between
+        # them, and the writing area follows directly after the rule.
+        self.assertEqual(
+            layout.indexOf(editor.title_rule),
+            layout.indexOf(editor.title_editor) + 1,
+        )
+        self.assertEqual(
+            layout.indexOf(editor.body_editor),
+            layout.indexOf(editor.title_rule) + 1,
+        )
         editor.set_document(
             "The beginning of a deliberately long title remains visible",
             "Body",
         )
         self.assertEqual(editor.title_editor.cursorPosition(), 0)
-        self.assertTrue(editor.save_status.text().startswith("Local:"))
-        self.assertTrue(editor.delivery_status.text().startswith("Phone:"))
+
 
     def test_settings_has_no_back_button_and_sidebar_toggles(self):
         page = self.window.settings_page

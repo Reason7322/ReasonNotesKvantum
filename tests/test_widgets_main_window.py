@@ -4,9 +4,16 @@ import os
 import unittest
 from uuid import UUID
 
-from PySide6.QtCore import QCoreApplication, QSettings, Qt
+from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
+from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMainWindow, QProxyStyle, QSplitter
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QProxyStyle,
+    QSplitter,
+    QSplitterHandle,
+)
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
@@ -154,6 +161,50 @@ class WidgetsMainWindowTests(unittest.TestCase):
 
         self.assertGreaterEqual(second.main_splitter.sizes()[0], 365)
         self.assertLessEqual(second.main_splitter.sizes()[0], 379)
+
+    def test_sidebar_splitter_handle_is_hover_only_and_still_resizable(self):
+        window, _ = self.make_window()
+        handles = [
+            handle
+            for handle in window.main_splitter.findChildren(QSplitterHandle)
+            if handle.width() > 0 and handle.height() > 0
+        ]
+        self.assertEqual(len(handles), 1)
+        handle = handles[0]
+
+        # Invisible at rest: the unhovered handle paints nothing over the
+        # window material.
+        image = QImage(
+            handle.size(), QImage.Format.Format_ARGB32_Premultiplied
+        )
+        image.fill(Qt.GlobalColor.transparent)
+        handle.render(image)
+        for x in range(1, image.width() - 1):
+            with self.subTest(x=x):
+                self.assertEqual(
+                    image.pixelColor(x, image.height() // 2).alpha(), 0
+                )
+
+        # Hover presentation is stylesheet-scoped to the handle only.
+        sheet = window.main_splitter.styleSheet()
+        self.assertIn("QSplitter::handle", sheet)
+        self.assertIn(":hover", sheet)
+
+        # The default hit target stays draggable: a synthetic drag from the
+        # handle grows the sidebar by roughly the drag distance.
+        start_x = window.sidebar.geometry().right() + max(1, handle.width() // 2)
+        before = window.main_splitter.sizes()[0]
+        QTest.mousePress(
+            window, Qt.MouseButton.LeftButton, pos=QPoint(start_x, 300)
+        )
+        QCoreApplication.processEvents()
+        QTest.mouseMove(window, QPoint(start_x + 42, 300))
+        QCoreApplication.processEvents()
+        QTest.mouseRelease(
+            window, Qt.MouseButton.LeftButton, pos=QPoint(start_x + 42, 300)
+        )
+        QCoreApplication.processEvents()
+        self.assertGreaterEqual(window.main_splitter.sizes()[0], before + 30)
 
 
 if __name__ == "__main__":

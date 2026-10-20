@@ -1,48 +1,47 @@
-# Qwen → Forge Handoff — Mission 02 Native Wayland A/B Capture (2026-10-20)
+# Qwen → Forge Handoff — Mission 03 Editor UI Cleanup Checkpoint (2026-10-20)
 
-**Overall product: INCOMPLETE.** The unchanged goal is a complete, functional, owner-visually-approved native Qt Widgets/Kvantum ReasonNotes replacement preserving the existing layout, editing, autosave/recovery, immutable history, KDE Connect/Android synchronization, conflict/deletion handling, and English/Polish localization. Outstanding acceptance criteria: (1) owner visual judgment of this A/B evidence, (2) physical Android interoperability validation, (3) separately authorized production cutover with rollback. **Nothing was deployed.** No candidate or production state was modified in this shift.
+**Overall product: INCOMPLETE.** Unchanged goal: complete, functional, owner-visually-approved native Qt Widgets/Kvantum ReasonNotes replacement preserving editing, autosave/recovery, history, KDE Connect/Android sync, conflict/deletion handling, and EN/PL localization. The owner-approved Kitty-mode glass rim is preserved (rim tests green this shift). Outstanding gates remain: visual acceptance of the Mission 03 changes, physical Android validation, authorized production cutover. Nothing was deployed; no live configuration or production state changed.
 
-## Exact transfer state
+## Transfer state
 
-- Qwen-owned worktree: `/home/reason/Temporary/QwenProjects/ReasonNotesKvantum-kitty-glass-refinement`
-- Branch: `qwen/kitty-glass-refinement`
-- Incoming checkpoint (rim implementation): `459367402ee3c251e55660121d763d821b85233e` — verified identical on local HEAD, `handoff`, and `github` before this shift started.
-- Base/source material checkpoint (version A origin): `30bc0fe7ccd9bce6e0844876295f3e073fe9807f`.
-- This transfer commit adds exactly four files/changes: the two composited screenshots below plus this document and `PROJECT_STATUS.md`. It is a checkpoint, not product completion.
+- Worktree: `/home/reason/Temporary/QwenProjects/ReasonNotesKvantum-kitty-glass-refinement`
+- Branch: `qwen/kitty-glass-refinement`; incoming checkpoint of this work: `f11df11572108e01c68274b4326d45af34fab15d`.
+- This commit adds the Mission 03 source/test changes below plus status docs. It is a checkpoint, not product completion.
 
-## Implemented in the previous checkpoint (unchanged here)
+## What can be safely reused (done and tested)
 
-A nine-stroke inward-fading glass rim painted only for `GlassCard`s with material fill disabled (Kitty mode), keeping card interiors fill-free; four pixel regression tests added to `tests/test_widgets_native_material.py`; top-level sheet preserved at exactly `QColor(28,33,33,209)`; default and native-material variants untouched. The only functional A→B source delta is the rim block in `src/reasonnotes_widgets/material.py` (plus those tests).
+- `src/reasonnotes_widgets/editor_page.py` — writing card now `title_editor → title_rule → body_editor` contiguous; no status bar objects exist anymore.
+- `src/reasonnotes_widgets/visuals.py::integrate_solid_surface(view, color)` — opaque exact-color writing surface (used for the note body only).
+- `src/reasonnotes_widgets/i18n.py` — `title_placeholder` key (`Title` / `Tytuł`); `untitled` and `start_writing` removed from both catalogs.
+- `src/reasonnotes_widgets/main_window.py::retranslate()` (placeholders) and `_refresh_status()` (sidebar-only status updates; controller events untouched).
+- Tests: new/updated regressions in `tests/test_widgets_visual_polish.py`, `tests/test_widgets_main_window.py`, `tests/test_widgets_i18n.py`.
 
-## This shift's captured evidence
+Valid test environment (established this shift): disposable qt6ct + LiquidGlass copies in a Qwen-owned isolated HOME/XDG, e.g. copy live `~/.config/qt6ct/qt6ct.conf` (strip the `color_scheme_path=` line — that data-home file is outside Qwen's read set; set `custom_palette=false`) and `~/.config/Kvantum/kvantum.kvconfig` + `LiquidGlass/{LiquidGlass.kvconfig,LiquidGlass.svg}` into `$E/home/.config/...`, then:
 
-Two full-resolution native Wayland compositor screenshots (`grim -o DP-2`, 2560x1440 RGB, original resolution preserved):
+    QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=qt6ct PYTHONPATH=src \
+    HOME=$E/home XDG_CONFIG_HOME=$E/home/.config XDG_DATA_HOME=$E/home/.local/share \
+    python3 -m unittest tests.test_widgets_main_window tests.test_widgets_visual_polish \
+      tests.test_widgets_i18n tests.test_widgets_native_material
 
-- Version A (before rim, base `30bc0fe7` source export run from a separate Qwen-owned tree): `docs/evidence/kitty-rim-wayland-ab/reasonnotes-before.png`
-- Version B (after rim, checkpoint `45936740…`): `docs/evidence/kitty-rim-wayland-ab/reasonnotes-after.png`
+Bare offscreen without qt6ct is NOT a valid recipe (fails unrelated palette/frame assertions).
 
-Both ran on Hyprland 0.56.2, monitor DP-2, exclusively occupying empty Workspace 10 at settled geometry `[0,46]`, size `[2048,1106]` logical (dwindle full-workspace tiling), with: native Wayland platform; `QT_QPA_PLATFORMTHEME=qt6ct` over byte-identical disposable copies of the live qt6ct/LiquidGlass configuration (offscreen probe confirmed style chain `qt6ct-style → kvantum` and LiquidGlass base palette `(42,50,50,184)` before launch); independent disposable XDG data/cache roots, repositories, inboxes, and settings; each repository seeded via its own source tree's `NoteService` API with one identical three-line synthetic note (`Wayland rim A-B synthetic fixture.` / `Second line of the shared note body.` / `Third and final line for both versions.`); launch flags `--kitty-window-material --no-auto-receive --runtime-probe-ms 12000`.
+## This checkpoint's test evidence
 
-### Actual runtime results observed
+Four suites, isolated env above: **33 ran, 9 failures**. All 9 are splitter-change fallout; everything else passed — including autosave/persistence/shortcuts, EN↔PL placeholder switching with saved titles intact, exact-`#2C3539` body-surface pixel grid, and all Kitty sheet/rim/native-material pixel tests.
 
-Both processes exited with status **0**. Both printed:
-`RUNTIME_STYLE=qt6ct-style`, `RUNTIME_PLATFORM=wayland`, `RUNTIME_BLUR_ACTIVE=1`, empty `RUNTIME_BLUR_ERROR`, `RUNTIME_WINDOW_MATERIAL=kitty-equivalent`, `RUNTIME_PURGE_RELAY=disabled-for-probe`. Data roots were the per-version disposable directories under `/home/reason/Temporary/QwenProjects/rn-rim-ab-20261019/staging/run-A|B/`; no live notes, Android device, or global configuration was touched.
+Failures:
+1. `test_sidebar_splitter_handle_is_hover_only_and_still_resizable` — handle-count assertion `2 != 1`: QSplitter creates multiple `QSplitterHandle` children (a boundary one at the sidebar edge plus others); selection must target the one whose geometry abuts `sidebar.geometry().right()`.
+2–9. Four `hasFrame()` subtests and four proxy-chain assertions in `test_writing_search_and_list_surfaces_reveal_kvantum_window_material` / `test_line_edit_proxy_suppresses_only_the_forced_kvantum_panel`: the scoped stylesheet on `main_splitter` (the currently committed hover approach) wraps the subtree style — `field.style()` becomes a bare `QCommonStyle`, Kvantum re-polish re-enables line-edit frames.
 
-### Uncertainties and limits
+## Blocker: splitter hover-only mechanism (evidenced, not yet implemented)
 
-- **No pixel comparison has been run in this shift.** Whether the rim is measurable at full resolution, whether card interiors show any pane-wide fill, whether broad wallpaper-derived patches persist/improve/worsen, and whether sidebar/editor controls remain visually intact are all open until someone inspects or measures these images. A screenshot is evidence, not owner visual approval.
-- Supplementary raw-framebuffer grabs (in-process `QWidget::grab` of each version at 2560x1383 with identical settled geometry) exist **outside this repository** at `/home/reason/Temporary/QwenProjects/rn-rim-ab-20261019/staging/raw/raw-a.png` and `raw-b.png`, with geometry logs in the same directory's `probe-a.log` / `probe-b.log`. Both probes reported window size `[2048,1106]`, blur active without error, kitty-equivalent material, sidebar width 300, and one visible writing card at logical `(718,30)` size `920x1044` in both versions. These raw files are not committed here; they are referenced for the next reviewer's convenience only.
-- The compositor screenshot path captures what Hyprland displayed on Workspace 10 (window plus top workspace label strip); wallpaper is present behind nothing because the window filled the entire workspace area, so A-vs-B pixel differences should be confined to renderer changes if the desktop background was static between captures (it was not independently verified).
+The coordinator-prescribed scoped QSS on `main_splitter` cannot work on this stack for the reasons above. Additional evidenced facts so the next engineer does not re-derive them:
 
-## Previously reported tests (not rerun this shift)
+- A `QSplitterHandle` child paints itself opaque with its own palette (isolated render = `(28,33,33,255)` window color); setting Base/Window/AlternateBase/Button roles transparent for all groups makes it paint nothing. No autoFill flag is involved.
+- Any non-empty stylesheet on `main_splitter` corrupts every descendant's style chain; stylesheets scoped to the handle widget itself do NOT self-match `QSplitter::handle`.
+- Subclassing `QSplitterHandle`/overriding `createHandle()` segfaults in this PySide6 build — avoid.
+- The splitter does call `style()->drawControl(CE_Splitter, opt, painter, widget)` per handle through the SPLITTER's style (interceptable by a narrowly scoped QProxyStyle on `main_splitter`, mirroring the existing `IntegratedLineEditStyle` pattern); the enum member is `QStyle.ControlElement.CE_Splitter`. Observed: `widget` arg is the splitter itself, `opt.rect` is handle-local `(0,0,w,h)`, painter transform dx/dy = 0 during offscreen render (no per-handle translation), and no `State_Hovered` was set in unhovered renders. Per-handle identity/positioning inside `drawControl` therefore needs a small verification before the hover-grip paint is trusted; drag hit target and width persistence must be re-verified with the same synthetic-drag test already in place (press at `sidebar.right() + handle.width()/2`, move +40 px).
 
-From the rim implementation checkpoint: focused material tests **10/10 PASS**; complete unittest suite **237/237 OK** under explicitly restored `HOME`/`XDG_CONFIG_HOME`. Qualification preserved from that record: the full-suite command was piped through `... | tail -4`, so its standalone process exit code was never independently established (the recorded unittest output says OK). No tests were executed in this shift; no new code or tests were added.
+## ONE next action
 
-## Remaining next action
-
-1. Review and compare `reasonnotes-before.png` vs `reasonnotes-after.png` at original resolution (full-window diff plus close-ups around the writing-card boundary); optionally use the referenced raw grabs for compositor-independent isolation of the rim.
-2. Obtain owner visual judgment on whether the rim improves depth without unwanted background artifacts. Then decide: keep, tune, or revert the rim; only after that do physical Android acceptance and separately authorized production cutover remain as final product gates.
-
-## Prohibited-state confirmation
-
-No production installation, no real notes or Android synchronization activity, no global Hyprland/Kitty/qt6ct/Kvantum modification, no writes in Forge's workspace, no default renderer change, no change to the proven `QColor(28,33,33,209)` sheet. The branch has not been merged into `main`.
+Replace the splitter QSS in `main_window.py` with: (a) transparent Base/Window-family palette on each real boundary `QSplitterHandle` child, and (b) a small `QProxyStyle` installed only on `main_splitter` that suppresses `CE_Splitter` art normally and paints the hover grip when its handle is hovered — then rerun the four suites in the isolated qt6ct/LiquidGlass environment until 33/33 pass, keeping the existing drag/persistence assertions as the hit-target proof. Afterward only the owner's Workspace 10 screenshot review (established Hyprland Lua dispatcher + `grim -o DP-2` into `docs/evidence/editor-ui-cleanup/`) remains for this mission, then physical Android acceptance and separately authorized cutover.

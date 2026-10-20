@@ -10,6 +10,7 @@ from PySide6.QtGui import (
     QColor,
     QKeySequence,
     QPainter,
+    QPalette,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -82,6 +83,15 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.main_splitter.setObjectName("mainSplitter")
         self.main_splitter.setChildrenCollapsible(False)
+        # The sidebar resize handle stays out of sight until the cursor
+        # reaches it. A scoped stylesheet tints only the hover presentation;
+        # the default hit target, width, and persisted size are untouched.
+        grip = self.palette().color(QPalette.ColorRole.Text)
+        hover_color = f"rgba({grip.red()}, {grip.green()}, {grip.blue()}, 110)"
+        self.main_splitter.setStyleSheet(
+            "QSplitter::handle:horizontal { background-color: transparent; }"
+            f"QSplitter::handle:horizontal:hover {{ background-color: {hover_color}; }}"
+        )
         self.main_splitter.addWidget(self.sidebar)
         self.main_splitter.addWidget(self.page_stack)
         self.main_splitter.setStretchFactor(0, 0)
@@ -154,9 +164,10 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.notes_heading.setText(tr("notes_section").upper())
         self.sidebar.search_field.setPlaceholderText(tr("search_notes"))
         self.sidebar.search_field.setAccessibleName(tr("search_notes"))
-        self.editor.title_editor.setPlaceholderText(tr("untitled"))
+        self.editor.title_editor.setPlaceholderText(tr("title_placeholder"))
         self.editor.title_editor.setAccessibleName(tr("note_title"))
-        self.editor.body_editor.setPlaceholderText(tr("start_writing"))
+        # An empty note shows the solid writing surface only: no placeholder.
+        self.editor.body_editor.setPlaceholderText("")
         self.settings_page.retranslate()
         self._refresh_status()
 
@@ -284,26 +295,19 @@ class ReasonNotesMainWindow(QMainWindow):
                 break
 
     def _refresh_status(self) -> None:
+        # Autosave and synchronization events still flow from the controller;
+        # their presentation no longer occupies the editor header. The
+        # persistent Local/Phone pair remains in the sidebar status area.
         presenter = self.controller.presenter
         tr = self.translator.text
-        state_key = presenter.save_state.casefold()
-        text = tr(state_key)
+        text = tr(presenter.save_state.casefold())
         if presenter.save_error:
             text += f": {presenter.save_error}"
-        self.editor.save_status.setText(f"{tr('local')}: {text}")
         self.sidebar.local_status.setText(f"{tr('local')}: {text}")
-        sync = presenter.sync_state
-        sync = tr(sync.casefold())
+        sync = tr(presenter.sync_state.casefold())
         if presenter.sync_message:
             sync += f": {presenter.sync_message}"
         self.sidebar.sync_status.setText(f"{tr('phone')}: {sync}")
-        active = presenter.active_note_id
-        delivery = (
-            tr("no_note_selected")
-            if active is None
-            else self.controller._delivery_status_by_note.get(active, "Local")
-        )
-        self.editor.delivery_status.setText(f"{tr('phone')}: {delivery}")
 
     def refresh_from_controller(self) -> None:
         self.sidebar.settings_button.setChecked(False)

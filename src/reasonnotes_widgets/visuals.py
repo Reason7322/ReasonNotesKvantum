@@ -72,6 +72,33 @@ def integrate_scroll_surface(view: QAbstractScrollArea) -> None:
     viewport.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
 
 
+def integrate_solid_surface(view: QAbstractScrollArea, color: QColor) -> None:
+    """Make a writing viewport one uniform opaque sheet of ``color``.
+
+    Unlike :func:`integrate_scroll_surface` this keeps an opaque Base brush so
+    Qt fills the editable region with exactly that color. No gradient and no
+    wallpaper transparency remain inside the surface; the glass material stays
+    on the window and card around it.
+    """
+
+    opaque = QColor(color)
+    if not opaque.isValid() or opaque.alpha() != 255:
+        raise ValueError("solid writing surfaces require an opaque color")
+    view.setFrameShape(QFrame.Shape.NoFrame)
+    for target in (view, view.viewport()):
+        palette = target.palette()
+        for group in (
+            QPalette.ColorGroup.Active,
+            QPalette.ColorGroup.Inactive,
+            QPalette.ColorGroup.Disabled,
+        ):
+            palette.setColor(group, QPalette.ColorRole.Base, opaque)
+            palette.setColor(
+                group, QPalette.ColorRole.AlternateBase, opaque
+            )
+        target.setPalette(palette)
+
+
 def configure_action_button(button: QToolButton) -> None:
     """Use compact system tool-button chrome instead of opaque command slabs."""
 
