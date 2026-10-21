@@ -105,6 +105,75 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(calls[0]), 1)
 
+    def test_redesigned_drawer_keeps_scope_summary_status_and_action_connected(self):
+        """Catch a return to the disconnected footer and empty all-notes body."""
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            repository = Repository.open(
+                base / "repo", local_device="linux", target_device="android"
+            )
+            service = NoteService(repository, origin_device="linux")
+            service.create_note("Reference note\n\nVisible preview")
+            pool = CapturingPool()
+            controller = WidgetsController(
+                NotePresenter(
+                    service,
+                    lambda _selection: SyncReport((), (), (), (), (), (), (), ()),
+                ),
+                thread_pool=pool,
+            )
+            settings = QSettings(str(base / "ui.ini"), QSettings.IniFormat)
+            window = ReasonNotesMainWindow(controller, settings=settings)
+            self.addCleanup(window.close)
+            window.resize(1280, 860)
+            window.show()
+            window.open_sync_panel()
+            QCoreApplication.processEvents()
+            panel = window.sync_panel
+
+            self.assertTrue(hasattr(panel, "heading"))
+            self.assertEqual(panel.heading.text(), "Synchronize notes")
+            self.assertTrue(panel.close_button.isVisible())
+            self.assertEqual(panel.close_button.text(), "×")
+            self.assertEqual(
+                panel.close_button.toolButtonStyle(),
+                Qt.ToolButtonStyle.ToolButtonTextOnly,
+            )
+            self.assertTrue(panel.all_button.isChecked())
+            self.assertTrue(panel.all_summary_card.isVisible())
+            self.assertFalse(panel.selection_section.isVisible())
+            self.assertTrue(panel.action_card.isVisible())
+            self.assertEqual(panel.start_button.text(), "Sync all notes")
+            self.assertTrue(hasattr(panel.start_button, "is_primary"))
+            self.assertTrue(panel.start_button.is_primary)
+            self.assertLessEqual(
+                panel.action_card.geometry().top()
+                - panel.all_summary_card.geometry().bottom(),
+                24,
+            )
+
+            panel.selected_button.click()
+            QCoreApplication.processEvents()
+            self.assertFalse(panel.all_summary_card.isVisible())
+            self.assertTrue(panel.selection_section.isVisible())
+            self.assertEqual(panel.start_button.text(), "Sync selected (0)")
+            self.assertFalse(panel.start_button.isEnabled())
+            self.assertGreaterEqual(panel.note_list.itemDelegate().sizeHint(None, None).height(), 72)
+
+            controller.select_all_sync_notes()
+            QCoreApplication.processEvents()
+            self.assertEqual(panel.start_button.text(), "Sync selected (1)")
+            self.assertTrue(panel.start_button.isEnabled())
+
+            panel.start_button.click()
+            QCoreApplication.processEvents()
+            self.assertIn("Running", panel.status_label.text())
+            self.assertFalse(panel.start_button.isEnabled())
+            pool.run_next()
+            self.assertIn("Completed", panel.status_label.text())
+
 
 if __name__ == "__main__":
     unittest.main()

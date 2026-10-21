@@ -3,10 +3,12 @@
 ## Current milestone
 
 Integrated release candidate on `forge/reasonnotes-completion`, based on
-Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. After owner review,
-the splitter is now visually blank in every interaction state and the title
-rule is removed. Owner visual acceptance, physical Android interoperability,
-and authorization for production replacement remain pending.
+Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. The sidebar
+boundary/highlight corrections remain, and the rejected Sync UI has been
+rebuilt as a focused right-side drawer with connected scope, inclusion,
+status, and action hierarchy. Owner visual acceptance of the Sync redesign,
+physical Android interoperability, and authorization for production
+replacement remain pending.
 
 ## Implemented
 
@@ -31,10 +33,14 @@ and authorization for production replacement remain pending.
 - A current exact candidate was built and launched only under `/tmp`; any
   pre-existing user candidate installation was left unchanged and production
   remains selected.
+- The Sync drawer keeps the existing all/selected semantics and asynchronous
+  controller calls, while adding explicit scope controls, dense selectable
+  note cards, contextual transfer/receipt wording, live status, and a
+  prominent mode-aware action.
 
 ## Validation state
 
-- Complete automated suite: 243 tests passed in an isolated offscreen run;
+- Complete automated suite: 247 tests passed in an isolated offscreen run;
   localhost purge-relay tests were run with socket access enabled.
 - Native helper: compiled successfully from the system Wayland protocol as
   part of a temporary immutable release.
@@ -54,11 +60,17 @@ and authorization for production replacement remain pending.
 - Android/device mutation was not performed; protocol and KDE Connect behavior
   are covered by imported regression/integration tests. Owner device acceptance
   remains pending.
+- The redesigned All-notes and Selected-notes states were rendered by the
+  actual native Wayland source candidate on Workspace 10 with
+  `qt6ct-style -> Kvantum`, active compositor blur, Kitty-equivalent
+  material, and disposable synthetic data. Exact drawer surfaces are recorded
+  in `docs/evidence/sync-redesign-2026-10-21/`.
 
 See `docs/UI_CORRECTIONS_VALIDATION_2026-10-21.md`,
 `docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md`, and
-`docs/ANDROID_PHYSICAL_ACCEPTANCE.md` for current hashes, captures, and the
-remaining controlled device sequence.
+`docs/SYNC_REDRAW_VALIDATION_2026-10-21.md` for current hashes and captures.
+`docs/ANDROID_PHYSICAL_ACCEPTANCE.md` retains the later controlled device
+sequence.
 
 ## Production state
 
@@ -68,11 +80,11 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. The two requested UI corrections are implemented and
-validated. The next action now requires Reason: visually accept or reject the
-updated Kitty-equivalent evidence. Per the owner's sequence, Android testing
-waits until that review; production migration/cutover follows only after
-visual and device acceptance and separate authorization.
+Forge owns the branch. The Sync redesign is implemented and validated but is
+not visually accepted. The next action requires Reason to inspect and accept
+or reject the new All-notes and Selected-notes evidence. Per the owner's
+sequence, Android testing waits until that review; production migration/cutover
+follows only after visual and device acceptance and separate authorization.
 Do not modify `main`, the installed candidate, production launcher/data, or the
 phone without the applicable explicit authorization.
 
