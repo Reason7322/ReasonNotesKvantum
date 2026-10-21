@@ -287,6 +287,15 @@ class NotePresenterTests(unittest.TestCase):
         self.assertEqual("Error", self.presenter.sync_state)
         self.assertIn("device unavailable", self.presenter.sync_message)
 
+    def test_sync_running_message_covers_transfer_and_receipt_wait(self):
+        self.assertTrue(self.presenter.prepare_sync(None))
+
+        self.assertEqual("Running", self.presenter.sync_state)
+        self.assertEqual(
+            "Requesting transfer and waiting for phone import confirmation",
+            self.presenter.sync_message,
+        )
+
     def test_autosave_detects_conflict_imported_after_local_write(self):
         note_id = self.service.create_note("Base")
         base = self.repository.graph().heads(note_id)[0]

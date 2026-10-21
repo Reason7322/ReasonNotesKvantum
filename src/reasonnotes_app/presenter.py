@@ -416,7 +416,9 @@ class NotePresenter:
         if not self.save_active():
             return False
         self.sync_state = "Running"
-        self.sync_message = "Scanning incoming data before transfer requests"
+        self.sync_message = (
+            "Requesting transfer and waiting for phone import confirmation"
+        )
         return True
 
     def execute_sync(
