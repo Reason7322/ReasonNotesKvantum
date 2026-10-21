@@ -45,8 +45,8 @@ Exact drawer-surface captures:
 | All notes | `docs/evidence/sync-redesign-2026-10-21/all-notes-drawer.png` | `3caf735d8e10eb3b279d03ec0e7af04394e8442ef1b307e8fc1f0e6218dbba6b` |
 | Selected notes | `docs/evidence/sync-redesign-2026-10-21/selected-notes-drawer.png` | `4f343e8ace00113fd8fd3dd87d389f17b8d2b80f429a531d5c5f291f96582c78` |
 
-These captures establish rendering and runtime provenance. They do not
-substitute for owner visual acceptance.
+These captures establish rendering and runtime provenance. Reason visually
+accepted the redesigned Sync drawer on 2026-10-21.
 
 ## Boundaries
 

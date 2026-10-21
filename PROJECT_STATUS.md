@@ -6,9 +6,9 @@ Integrated release candidate on `forge/reasonnotes-completion`, based on
 Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. The sidebar
 boundary/highlight corrections remain, and the rejected Sync UI has been
 rebuilt as a focused right-side drawer with connected scope, inclusion,
-status, and action hierarchy. Owner visual acceptance of the Sync redesign,
-physical Android interoperability, and authorization for production
-replacement remain pending.
+status, and action hierarchy. The owner visually accepted the Sync redesign
+on 2026-10-21. Physical Android interoperability and authorization for
+production replacement remain pending.
 
 ## Implemented
 
@@ -65,6 +65,7 @@ replacement remain pending.
   `qt6ct-style -> Kvantum`, active compositor blur, Kitty-equivalent
   material, and disposable synthetic data. Exact drawer surfaces are recorded
   in `docs/evidence/sync-redesign-2026-10-21/`.
+- Reason visually accepted the redesigned Sync drawer on 2026-10-21.
 
 See `docs/UI_CORRECTIONS_VALIDATION_2026-10-21.md`,
 `docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md`, and
@@ -80,11 +81,11 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. The Sync redesign is implemented and validated but is
-not visually accepted. The next action requires Reason to inspect and accept
-or reject the new All-notes and Selected-notes evidence. Per the owner's
-sequence, Android testing waits until that review; production migration/cutover
-follows only after visual and device acceptance and separate authorization.
+Forge owns the branch. The Sync redesign is implemented, validated, and
+visually accepted. Android testing and production work remain stopped per the
+owner's instruction; wait for explicit direction before beginning either.
+Production migration/cutover still requires physical device acceptance and
+separate authorization.
 Do not modify `main`, the installed candidate, production launcher/data, or the
 phone without the applicable explicit authorization.
 
