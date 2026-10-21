@@ -78,15 +78,6 @@ class SidebarActionButton(QToolButton):
             painter.drawRoundedRect(bounds, 7, 7)
             text_role = palette.ColorRole.HighlightedText
         else:
-            if pressed or self.isChecked():
-                painter.setBrush(tinted(palette.highlight().color(), 58))
-            elif hovered:
-                painter.setBrush(tinted(palette.light().color(), 30))
-            else:
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.setPen(Qt.PenStyle.NoPen)
-            if painter.brush().style() != Qt.BrushStyle.NoBrush:
-                painter.drawRoundedRect(bounds, 7, 7)
             text_role = palette.ColorRole.ButtonText
 
         if self.hasFocus():
@@ -170,6 +161,13 @@ class NoteItemDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index) -> None:
         native_option = QStyleOptionViewItem(option)
         self.initStyleOption(native_option, index)
+        # Selection remains represented by the model/view state and the
+        # semibold title established above. Do not ask the native style to
+        # paint a row-sized hover/selection container behind the content.
+        native_option.state &= ~(
+            QStyle.StateFlag.State_Selected
+            | QStyle.StateFlag.State_MouseOver
+        )
         style = option.widget.style() if option.widget is not None else self.parent().style()
         style.drawControl(
             QStyle.ControlElement.CE_ItemViewItem,

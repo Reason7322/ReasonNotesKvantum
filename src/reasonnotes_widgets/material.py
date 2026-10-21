@@ -28,7 +28,7 @@ def tinted(color: QColor, alpha: int, *, brighten: int = 0) -> QColor:
 
 
 class NavigationRail(QWidget):
-    """Small translucent tint and a thin edge, not an opaque sidebar slab."""
+    """Small translucent tint without a painted boundary edge."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -53,9 +53,6 @@ class NavigationRail(QWidget):
             gradient.setColorAt(0.55, tinted(surface, 90))
             gradient.setColorAt(1.0, tinted(surface, 114))
             painter.fillRect(event.rect(), gradient)
-        separator = tinted(palette.text().color(), 28)
-        painter.setPen(QPen(separator, 1))
-        painter.drawLine(self.width() - 1, 18, self.width() - 1, self.height() - 18)
         painter.end()
 
 

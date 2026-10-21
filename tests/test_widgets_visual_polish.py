@@ -3,8 +3,9 @@ from tempfile import TemporaryDirectory
 import os
 import unittest
 
-from PySide6.QtCore import QCoreApplication, QSettings, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPalette
+from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPalette
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QStyle,
     QStyleOptionFrame,
+    QStyleOptionViewItem,
     QToolButton,
     QWidget,
 )
@@ -194,6 +196,76 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertEqual(indices, sorted(indices))
         self.assertEqual(len(indices), len(set(indices)))
 
+    def test_sidebar_boundary_has_no_painted_separator(self):
+        sidebar = self.window.sidebar
+        sidebar.set_material_fill_enabled(False)
+        image = QImage(
+            sidebar.size(), QImage.Format.Format_ARGB32_Premultiplied
+        )
+        image.fill(Qt.GlobalColor.transparent)
+        sidebar.render(image)
+
+        for y in range(20, sidebar.height() - 20, 23):
+            with self.subTest(y=y):
+                self.assertEqual(
+                    image.pixelColor(sidebar.width() - 1, y),
+                    image.pixelColor(sidebar.width() - 2, y),
+                    "sidebar rail painted a visible boundary separator",
+                )
+
+    def test_secondary_sidebar_actions_never_paint_highlight_containers(self):
+        sidebar = self.window.sidebar
+
+        def render_button(button):
+            image = QImage(
+                button.size(), QImage.Format.Format_ARGB32_Premultiplied
+            )
+            image.fill(Qt.GlobalColor.transparent)
+            button.render(image)
+            return image
+
+        for button in (
+            sidebar.save_button,
+            sidebar.sync_button,
+            sidebar.delete_button,
+            sidebar.settings_button,
+        ):
+            with self.subTest(button=button.objectName() or button.text()):
+                QTest.mouseMove(
+                    self.window, QPoint(self.window.width() - 20, 20)
+                )
+                QCoreApplication.processEvents()
+                resting = render_button(button)
+                QTest.mouseMove(
+                    button, QPoint(button.width() - 8, button.height() // 2)
+                )
+                QCoreApplication.processEvents()
+                self.assertTrue(button.underMouse())
+                hovered = render_button(button)
+                sample = QPoint(button.width() - 8, button.height() // 2)
+                self.assertEqual(
+                    hovered.pixelColor(sample),
+                    resting.pixelColor(sample),
+                    "secondary action painted a hover background",
+                )
+
+        sidebar.settings_button.setChecked(False)
+        unchecked = render_button(sidebar.settings_button)
+        sidebar.settings_button.setChecked(True)
+        QTest.mouseMove(self.window, QPoint(self.window.width() - 20, 20))
+        QCoreApplication.processEvents()
+        self.assertTrue(sidebar.settings_button.isChecked())
+        checked = render_button(sidebar.settings_button)
+        sample = QPoint(
+            sidebar.settings_button.width() - 8,
+            sidebar.settings_button.height() // 2,
+        )
+        self.assertEqual(
+            checked.pixelColor(sample),
+            unchecked.pixelColor(sample),
+            "checked Settings painted a selected background",
+        )
+
     def test_note_rows_restore_icons_and_comfortable_full_row_navigation(self):
         sidebar = self.window.sidebar
         delegate = sidebar.list_view.itemDelegate()
@@ -203,6 +275,48 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertGreaterEqual(delegate.sizeHint(None, None).height(), 56)
         self.assertEqual(sidebar.list_view.iconSize().width(), 22)
         self.assertTrue(sidebar.list_view.hasMouseTracking())
+
+    def test_note_rows_preserve_selection_without_hover_or_selected_fill(self):
+        sidebar = self.window.sidebar
+        self.window.controller.create_note()
+        self.window.refresh_from_controller()
+        view = sidebar.list_view
+        index = view.model().index(0, 0)
+        self.assertTrue(index.isValid())
+        view.clearSelection()
+        QTest.mouseMove(self.window, QPoint(self.window.width() - 20, 20))
+        QCoreApplication.processEvents()
+        row = view.visualRect(index)
+        sample = QPoint(row.right() - 8, row.center().y())
+        resting = QImage(
+            view.viewport().size(), QImage.Format.Format_ARGB32_Premultiplied
+        )
+        resting.fill(Qt.GlobalColor.transparent)
+        view.viewport().render(resting)
+
+        view.setCurrentIndex(index)
+        QCoreApplication.processEvents()
+        self.assertTrue(view.selectionModel().isSelected(index))
+
+        QTest.mouseMove(view.viewport(), row.center())
+        QCoreApplication.processEvents()
+        self.assertTrue(view.viewport().underMouse())
+        highlighted = QImage(
+            view.viewport().size(), QImage.Format.Format_ARGB32_Premultiplied
+        )
+        highlighted.fill(Qt.GlobalColor.transparent)
+        view.viewport().render(highlighted)
+        self.assertEqual(
+            highlighted.pixelColor(sample),
+            resting.pixelColor(sample),
+            "selected or hovered note row painted a filled rectangle",
+        )
+
+        option = QStyleOptionViewItem()
+        option.initFrom(view)
+        option.state |= QStyle.StateFlag.State_Selected
+        view.itemDelegate().initStyleOption(option, index)
+        self.assertEqual(option.font.weight(), QFont.Weight.DemiBold)
 
     def test_editor_title_body_hierarchy_without_header_status_or_rule(self):
         editor = self.window.editor
