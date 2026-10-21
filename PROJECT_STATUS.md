@@ -3,9 +3,10 @@
 ## Current milestone
 
 Integrated release candidate on `forge/reasonnotes-completion`, based on
-Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. Owner visual
-acceptance, physical Android interoperability, and authorization for
-production replacement remain pending.
+Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. After owner review,
+the splitter is now visually blank in every interaction state and the title
+rule is removed. Owner visual acceptance, physical Android interoperability,
+and authorization for production replacement remain pending.
 
 ## Implemented
 
@@ -41,10 +42,11 @@ production replacement remain pending.
   Kvantum, compositor blur active with no helper error, explicit
   Kitty-equivalent material, clean shutdown, and disposable `/tmp` data and
   configuration copies.
-- Four full-resolution Workspace 10 captures were inspected: empty editor,
-  selected Unicode note, Settings, and splitter hover. They preserve Qwen's
-  approved UI refinements but are evidence for—not a substitute for—owner
-  visual acceptance.
+- The narrow correction package was launched again on Workspace 10. A selected
+  Unicode note and hovered splitter were inspected at full resolution; an
+  80×620 divider-region comparison found zero changed pixels between rest and
+  hover. The dedicated title rule is absent. This remains evidence for—not a
+  substitute for—owner visual acceptance.
 - The packaged launcher reopened a byte-for-byte temporary copy of the current
   production-format repository: 187 immutable revisions, 6 live notes, and 16
   purge fences; the immutable-history hash was unchanged.
@@ -53,7 +55,8 @@ production replacement remain pending.
   are covered by imported regression/integration tests. Owner device acceptance
   remains pending.
 
-See `docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md` and
+See `docs/UI_CORRECTIONS_VALIDATION_2026-10-21.md`,
+`docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md`, and
 `docs/ANDROID_PHYSICAL_ACCEPTANCE.md` for current hashes, captures, and the
 remaining controlled device sequence.
 
@@ -65,10 +68,11 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. All remaining owner-independent readiness work is green.
-The next actions now require Reason: visually accept or reject the explicit
-Kitty-equivalent candidate, then authorize the documented disposable physical
-Android sequence. Production migration/cutover follows only after both pass.
+Forge owns the branch. The two requested UI corrections are implemented and
+validated. The next action now requires Reason: visually accept or reject the
+updated Kitty-equivalent evidence. Per the owner's sequence, Android testing
+waits until that review; production migration/cutover follows only after
+visual and device acceptance and separate authorization.
 Do not modify `main`, the installed candidate, production launcher/data, or the
 phone without the applicable explicit authorization.
 
@@ -395,3 +399,27 @@ launcher and data hashes remained stable.
 still requires Reason's visual acceptance and renderer-default decision,
 physical Android interoperability using the disposable fixture, and separately
 authorized production migration/cutover/rollback verification.
+
+## Forge narrow UI correction — 2026-10-21
+
+Starting from verified Forge checkpoint
+`eea23049762fb54ddd53c5f2479473bf7344308b`, only the two owner-requested UI
+changes were made. The real sidebar splitter handle and its drag/persistence
+behavior remain, but its scoped style now paints no `CE_Splitter` artwork at
+rest or on hover. The editor no longer constructs or inserts `TitleRule`, so
+there is no dedicated horizontal separator below the title. Fonts, Settings,
+backend behavior, and material composition were not changed.
+
+The two focused regressions pass, the four affected Widgets suites pass 34/34,
+and the complete isolated suite passes 243/243. A SHA-named package was built
+only under `/tmp` and ran on native Wayland with `qt6ct-style -> Kvantum`, blur
+active, no helper error, Kitty-equivalent material, and clean shutdown. The
+rest/hover divider crops have zero differing pixels, and the title-rule crop
+shows the requested removal. See
+`docs/UI_CORRECTIONS_VALIDATION_2026-10-21.md` and
+`docs/evidence/ui-corrections-2026-10-21/`.
+
+Nothing was deployed. Production, the installed candidate, Android, KDE
+Connect state, and global desktop/theme configuration remain untouched.
+**ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Android testing and
+production cutover remain explicitly unauthorized at this checkpoint.

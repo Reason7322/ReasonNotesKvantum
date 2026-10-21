@@ -148,3 +148,17 @@ data. The installed candidate and production remained unchanged.
 See `RELEASE_CANDIDATE_VALIDATION_2026-10-21.md` for artifact hashes and
 full-resolution captures, and `ANDROID_PHYSICAL_ACCEPTANCE.md` for the
 remaining owner-authorized device sequence.
+
+## Owner-requested UI corrections — 2026-10-21
+
+The subsequent bounded pass makes the sidebar splitter visually blank in all
+states while retaining its real drag target and persisted width, and removes
+the dedicated rule below the title. The complete isolated suite remains
+243/243 green. The exact temporary package ran on native Wayland with
+`qt6ct-style`, active blur, no helper error, Kitty-equivalent material, and a
+clean exit. Rest/hover divider crops had zero differing pixels.
+
+See `UI_CORRECTIONS_VALIDATION_2026-10-21.md` for the code identity, test
+evidence, production-isolation hashes, and full-resolution captures. Owner
+visual acceptance remains pending; Android testing and production cutover were
+not performed.
