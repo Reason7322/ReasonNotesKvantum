@@ -2,9 +2,10 @@
 
 ## Current milestone
 
-UI-parity engineering candidate implemented on `forge/qtwidgets-rewrite`;
-owner visual acceptance and authorization for production replacement remain
-pending.
+Integrated release candidate on `forge/reasonnotes-completion`, based on
+Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. Owner visual
+acceptance, physical Android interoperability, and authorization for
+production replacement remain pending.
 
 ## Implemented
 
@@ -23,25 +24,38 @@ pending.
   application-scoped candidate settings.
 - Versioned candidate packaging, immutable releases, candidate-only activation,
   and documented rollback. No production cutover has occurred.
-- The reviewed candidate is installed at candidate-only paths with launcher
-  `~/.local/bin/reasonnotes-kvantum-candidate`; production remains selected.
+- Deterministic offline physical-Android acceptance fixture with production
+  path refusal, fixed Unicode/conflict/deletion notes, and zero transport
+  attempts before the owner-authorized test.
+- A current exact candidate was built and launched only under `/tmp`; any
+  pre-existing user candidate installation was left unchanged and production
+  remains selected.
 
 ## Validation state
 
-- Complete automated suite: 226 tests passed in an isolated offscreen run;
+- Complete automated suite: 243 tests passed in an isolated offscreen run;
   localhost purge-relay tests were run with socket access enabled.
-- Native helper: compiled successfully from the system Wayland protocol.
+- Native helper: compiled successfully from the system Wayland protocol as
+  part of a temporary immutable release.
 - Actual Hyprland session: Qt platform `wayland`, style `qt6ct-style` over
-  Kvantum, compositor blur active with no helper error, using disposable
-  `/tmp` data and configuration copies.
-- Composited screenshot inspected after correcting the responsive writing
-  column. It is evidence of the observed candidate, not owner visual approval
-  or a claim of identity with Dolphin.
+  Kvantum, compositor blur active with no helper error, explicit
+  Kitty-equivalent material, clean shutdown, and disposable `/tmp` data and
+  configuration copies.
+- Four full-resolution Workspace 10 captures were inspected: empty editor,
+  selected Unicode note, Settings, and splitter hover. They preserve Qwen's
+  approved UI refinements but are evidence for—not a substitute for—owner
+  visual acceptance.
+- The packaged launcher reopened a byte-for-byte temporary copy of the current
+  production-format repository: 187 immutable revisions, 6 live notes, and 16
+  purge fences; the immutable-history hash was unchanged.
+- Candidate-only rollback between two temporary immutable releases passed.
 - Android/device mutation was not performed; protocol and KDE Connect behavior
   are covered by imported regression/integration tests. Owner device acceptance
   remains pending.
 
-See `docs/VALIDATION.md` for commands, hashes, and separated evidence classes.
+See `docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md` and
+`docs/ANDROID_PHYSICAL_ACCEPTANCE.md` for current hashes, captures, and the
+remaining controlled device sequence.
 
 ## Production state
 
@@ -51,11 +65,12 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. The whole-branch review's six Important findings were
-fixed through interaction-level RED/GREEN tests and the full suite is green.
-The next action is owner visual/device acceptance through the candidate
-launcher. Do not modify `main` or the production launcher without explicit
-owner authorization.
+Forge owns the branch. All remaining owner-independent readiness work is green.
+The next actions now require Reason: visually accept or reject the explicit
+Kitty-equivalent candidate, then authorize the documented disposable physical
+Android sequence. Production migration/cutover follows only after both pass.
+Do not modify `main`, the installed candidate, production launcher/data, or the
+phone without the applicable explicit authorization.
 
 ## ChatGPT-owned visual correction (2026-10-18)
 
@@ -346,3 +361,37 @@ Test evidence (this shift): isolated offscreen/qt6ct recipe, four selected metho
 Defect found and fixed during verification: constructing a QProxyStyle subclass with an actual QStyle *instance* base (instead of by style name, as `visuals.integrate_line_edit` does) segfaulted this PySide6/Python 3.14 build at interpreter exit (exit 139 after all tests OK; baseline c8fe33c control exited 0). Switching the base to resolve via `style().objectName()` — mirroring `integrate_line_edit` exactly (name-based base, `setParent(owner)`, retained attribute) — restored clean termination. Four tests plus construction probes then exit 0.
 
 Outstanding: owner's Workspace 10 screenshot review of the combined Mission 03+05+06 state, physical Android validation, and separately authorized production cutover. **PRODUCT INCOMPLETE.** No deployment this shift; no production or live configuration change, no Android activity.
+
+## Forge integrated completion-readiness checkpoint — 2026-10-21
+
+Forge received Qwen's clean checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`
+into `forge/reasonnotes-completion` and preserved all Mission 03/05/06 UI work.
+The integrated suite passes 243/243 with localhost access for the isolated
+foreground-purge tests.
+
+A new offline-only Android acceptance utility creates deterministic Unicode,
+conflict, and deletion notes under an explicit disposable root. It refuses
+production and non-empty targets and records pending delivery intent with zero
+attempts; it never contacts KDE Connect or Android. The remaining physical
+sequence is documented in `docs/ANDROID_PHYSICAL_ACCEPTANCE.md`.
+
+The exact Forge source was compiled and installed under `/tmp` as an immutable
+candidate. Packaged `--check-launch`, two-release rollback, and existing-format
+compatibility on a byte-for-byte temporary production-data copy all passed.
+The copied immutable history was unchanged after candidate startup.
+
+On actual Hyprland Workspace 10, the temporary package reported native
+Wayland, `qt6ct-style -> kvantum`, blur active, no helper error, explicit
+Kitty-equivalent material, and clean exit. Full-resolution captures of the
+empty editor, selected Unicode note, Settings, and splitter hover are committed
+under `docs/evidence/release-candidate-2026-10-21/` and were inspected at
+original resolution. Workspace 1 was restored and Workspace 10 left empty.
+
+No installed candidate, production launcher/release/data, Android state,
+KDE Connect state, or global desktop/theme configuration changed. Production
+launcher and data hashes remained stable.
+
+**ENGINEERING CANDIDATE READY — FINAL ACCEPTANCE PENDING.** Product completion
+still requires Reason's visual acceptance and renderer-default decision,
+physical Android interoperability using the disposable fixture, and separately
+authorized production migration/cutover/rollback verification.

@@ -135,3 +135,16 @@ The exact installed candidate was also probed after packaging and reported
   notes. No device mutation was attempted during engineering validation.
 - Production installation, live-data migration, launcher switch, or rollback
   rehearsal. These remain explicitly gated by owner approval.
+
+## Integrated release-candidate refresh — 2026-10-21
+
+The Qwen Mission 03/05/06 UI checkpoint was integrated on
+`forge/reasonnotes-completion`. The complete isolated suite now passes 243/243.
+An exact temporary immutable release passed packaged launch, native helper,
+two-release rollback, native Workspace 10 runtime, and existing-format
+compatibility against a byte-for-byte temporary copy of current production
+data. The installed candidate and production remained unchanged.
+
+See `RELEASE_CANDIDATE_VALIDATION_2026-10-21.md` for artifact hashes and
+full-resolution captures, and `ANDROID_PHYSICAL_ACCEPTANCE.md` for the
+remaining owner-authorized device sequence.

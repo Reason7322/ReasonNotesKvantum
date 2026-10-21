@@ -40,12 +40,12 @@
 - Consumes: `resolve_launch_paths(...)`, `Repository.open(...)`, and `NoteService.create_note(...)`.
 - Produces: `prepare_fixture(workspace: Path) -> dict`, a JSON manifest, isolated repository/inbox/received paths, and exact human-run acceptance steps.
 
-- [ ] **Step 1: Write failing tests for production-path refusal, non-empty-target refusal, deterministic manifest structure, Unicode/history reopening, and absence of transport activity.**
-- [ ] **Step 2: Run `python3 -m unittest tests.test_android_acceptance_prep -v`; expect failure because the preparation utility does not exist.**
-- [ ] **Step 3: Implement the minimal offline fixture generator using existing path guards and `NoteService`; make the CLI require an explicit workspace.**
-- [ ] **Step 4: Run `python3 -m unittest tests.test_android_acceptance_prep -v`; expect all tests to pass.**
-- [ ] **Step 5: Run the utility once under `/tmp`, reopen all seeded notes, and record the generated manifest and next physical checks in the documentation.**
-- [ ] **Step 6: Commit the utility, tests, and acceptance documentation.**
+- [x] **Step 1: Write failing tests for production-path refusal, non-empty-target refusal, deterministic manifest structure, Unicode/history reopening, and absence of transport activity.**
+- [x] **Step 2: Run `python3 -m unittest tests.test_android_acceptance_prep -v`; expect failure because the preparation utility does not exist.**
+- [x] **Step 3: Implement the minimal offline fixture generator using existing path guards and `NoteService`; make the CLI require an explicit workspace.**
+- [x] **Step 4: Run `python3 -m unittest tests.test_android_acceptance_prep -v`; expect all tests to pass.**
+- [x] **Step 5: Run the utility once under `/tmp`, reopen all seeded notes, and record the generated manifest and next physical checks in the documentation.**
+- [x] **Step 6: Commit the utility, tests, and acceptance documentation.**
 
 ### Task 2: Exact isolated candidate package
 
@@ -56,11 +56,11 @@
 - Consumes: current Forge HEAD, `scripts/install-candidate.py`, and the Task 1 fixture.
 - Produces: an immutable release under a temporary home, compiled Wayland helper, candidate-only launcher/desktop entry, hashes, and launch-check evidence.
 
-- [ ] **Step 1: Install current HEAD with `scripts/install-candidate.py` into a new `/tmp` home using explicit install, launcher, and desktop paths.**
-- [ ] **Step 2: Verify the release contains the current source, native helper, desktop entry, and no production paths or bundled Kvantum theme.**
-- [ ] **Step 3: Run the packaged launcher `--check-launch` with isolated HOME/XDG roots and verify production markers and paths remain unchanged.**
-- [ ] **Step 4: Exercise candidate rollback between two temporary immutable releases and verify both releases remain intact.**
-- [ ] **Step 5: Record exact artifact hashes and results without installing to the user's candidate or production paths.**
+- [x] **Step 1: Install current HEAD with `scripts/install-candidate.py` into a new `/tmp` home using explicit install, launcher, and desktop paths.**
+- [x] **Step 2: Verify the release contains the current source, native helper, desktop entry, and no production paths or bundled Kvantum theme.**
+- [x] **Step 3: Run the packaged launcher `--check-launch` with isolated HOME/XDG roots and verify production markers and paths remain unchanged.**
+- [x] **Step 4: Exercise candidate rollback between two temporary immutable releases and verify both releases remain intact.**
+- [x] **Step 5: Record exact artifact hashes and results without installing to the user's candidate or production paths.**
 
 ### Task 3: Native Wayland current-candidate validation
 
@@ -72,11 +72,11 @@
 - Consumes: Task 1 fixture and Task 2 packaged launcher.
 - Produces: actual current-source and packaged-runtime evidence for the Qwen Mission 03/05/06 UI state.
 
-- [ ] **Step 1: Confirm Workspace 10 is empty without moving or closing user windows.**
-- [ ] **Step 2: Launch the packaged candidate on native Wayland with the Task 1 data, `--kitty-window-material`, `--no-auto-receive`, and a bounded runtime probe.**
-- [ ] **Step 3: Capture full-resolution editor and Settings views, including the splitter at rest and on hover where practical; inspect the images at full resolution.**
-- [ ] **Step 4: Verify runtime style/platform/blur/material output, clean shutdown, and unchanged production launcher/data hashes.**
-- [ ] **Step 5: Record observed UI strengths, visible weaknesses, and the exact owner visual decision still required.**
+- [x] **Step 1: Confirm Workspace 10 is empty without moving or closing user windows.**
+- [x] **Step 2: Launch the packaged candidate on native Wayland with the Task 1 data, `--kitty-window-material`, `--no-auto-receive`, and a bounded runtime probe.**
+- [x] **Step 3: Capture full-resolution editor and Settings views, including the splitter at rest and on hover where practical; inspect the images at full resolution.**
+- [x] **Step 4: Verify runtime style/platform/blur/material output, clean shutdown, and unchanged production launcher/data hashes.**
+- [x] **Step 5: Record observed UI strengths, visible weaknesses, and the exact owner visual decision still required.**
 
 ### Task 4: Completion checkpoint and remaining owner gates
 
@@ -88,7 +88,7 @@
 - Consumes: Tasks 1-3 evidence and the 240-test integrated baseline.
 - Produces: a durable Forge checkpoint stating the exact validated candidate and the smallest remaining owner-authorized actions.
 
-- [ ] **Step 1: Run affected fixture tests, installer tests, and the full isolated suite with localhost permission; expect all tests to pass.**
-- [ ] **Step 2: Run `git diff --check`, inspect status, and distinguish implemented/tested/built/launched/deployed states.**
-- [ ] **Step 3: Update status/handoff with the unchanged product goal, current evidence, physical Android test request, visual decision, and cutover boundary.**
-- [ ] **Step 4: Commit and push the exact Forge branch to `handoff` and `github`; verify both full remote SHAs equal local HEAD.**
+- [x] **Step 1: Run affected fixture tests, installer tests, and the full isolated suite with localhost permission; expect all tests to pass.**
+- [x] **Step 2: Run `git diff --check`, inspect status, and distinguish implemented/tested/built/launched/deployed states.**
+- [x] **Step 3: Update status/handoff with the unchanged product goal, current evidence, physical Android test request, visual decision, and cutover boundary.**
+- [x] **Step 4: Commit and push the exact Forge branch to `handoff` and `github`; verify both full remote SHAs equal local HEAD.**
