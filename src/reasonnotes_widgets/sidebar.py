@@ -2,10 +2,21 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QFont, QIcon, QLinearGradient, QPainter, QPen
+from PySide6.QtCore import QPointF, QSize, Qt
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QIcon,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+    QPolygonF,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -36,24 +47,119 @@ def _theme_icon(widget: QWidget, names: tuple[str, ...], fallback) -> QIcon:
     return widget.style().standardIcon(fallback)
 
 
+def _draw_line_glyph(name: str, size: int, color: QColor) -> QPixmap:
+    """Render one crisp, palette-owned sidebar glyph."""
+
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.scale(size / 24.0, size / 24.0)
+    pen = QPen(color, 1.9)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+
+    if name == "add":
+        painter.drawLine(QPointF(12, 5), QPointF(12, 19))
+        painter.drawLine(QPointF(5, 12), QPointF(19, 12))
+    elif name == "save":
+        outline = QPainterPath()
+        outline.moveTo(5, 4)
+        outline.lineTo(17, 4)
+        outline.lineTo(20, 7)
+        outline.lineTo(20, 20)
+        outline.lineTo(4, 20)
+        outline.lineTo(4, 4)
+        outline.closeSubpath()
+        painter.drawPath(outline)
+        painter.drawRect(8, 4, 8, 6)
+        painter.drawLine(QPointF(8, 16), QPointF(16, 16))
+    elif name == "sync":
+        upper = QPainterPath(QPointF(5, 10))
+        upper.cubicTo(QPointF(7, 5), QPointF(15, 4), QPointF(19, 8))
+        lower = QPainterPath(QPointF(19, 14))
+        lower.cubicTo(QPointF(17, 19), QPointF(9, 20), QPointF(5, 16))
+        painter.drawPath(upper)
+        painter.drawPath(lower)
+        painter.drawPolyline(
+            QPolygonF((QPointF(15.2, 8), QPointF(19, 8), QPointF(18.4, 4.4)))
+        )
+        painter.drawPolyline(
+            QPolygonF((QPointF(8.8, 16), QPointF(5, 16), QPointF(5.6, 19.6)))
+        )
+    elif name == "settings":
+        painter.drawEllipse(QPointF(12, 12), 3.2, 3.2)
+        painter.drawEllipse(QPointF(12, 12), 7.1, 7.1)
+        for step in range(8):
+            angle = step * math.pi / 4
+            inner = QPointF(12 + math.cos(angle) * 7.2,
+                            12 + math.sin(angle) * 7.2)
+            outer = QPointF(12 + math.cos(angle) * 9.3,
+                            12 + math.sin(angle) * 9.3)
+            painter.drawLine(inner, outer)
+    elif name == "note":
+        painter.drawRoundedRect(7, 3, 12, 16, 1.8, 1.8)
+        painter.drawRoundedRect(4, 6, 12, 15, 1.8, 1.8)
+        painter.drawLine(QPointF(7, 11), QPointF(13, 11))
+        painter.drawLine(QPointF(7, 15), QPointF(12, 15))
+        painter.drawLine(QPointF(7, 18), QPointF(10, 18))
+
+    painter.end()
+    return pixmap
+
+
+def _line_icon(name: str, color: QColor) -> QIcon:
+    """Create normal, hover, and disabled pixmaps without theme-icon drift."""
+
+    icon = QIcon()
+    disabled = QColor(color)
+    disabled.setAlpha(168)
+    variants = (
+        (QIcon.Mode.Normal, QColor(color)),
+        (QIcon.Mode.Active, QColor(color).lighter(118)),
+        (QIcon.Mode.Disabled, disabled),
+    )
+    for size in (24, 48):
+        for mode, variant in variants:
+            icon.addPixmap(
+                _draw_line_glyph(name, size, variant), mode, QIcon.State.Off
+            )
+    return icon
+
+
 class SidebarActionButton(QToolButton):
     """Full-row action retaining native behavior and original alignment."""
 
-    def __init__(self, *, primary: bool = False, parent=None):
+    def __init__(
+        self,
+        *,
+        primary: bool = False,
+        prominent: bool = False,
+        accented: bool = False,
+        parent=None,
+    ):
         super().__init__(parent)
         self.is_primary = primary
+        self.is_prominent = primary or prominent
+        self.is_accented = accented
         self.setAutoRaise(not primary)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.setIconSize(QSize(24, 24))
-        self.setMinimumHeight(50 if primary else 42)
+        self.setMinimumHeight(50 if self.is_prominent else 42)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
+        if prominent:
+            font = self.font()
+            font.setWeight(QFont.Weight.DemiBold)
+            self.setFont(font)
 
     def sizeHint(self) -> QSize:
         width = 12 + self.iconSize().width() + 12
         width += self.fontMetrics().horizontalAdvance(self.text()) + 16
-        return QSize(max(150, width), 50 if self.is_primary else 42)
+        return QSize(max(150, width), 50 if self.is_prominent else 42)
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
@@ -78,7 +184,11 @@ class SidebarActionButton(QToolButton):
             painter.drawRoundedRect(bounds, 7, 7)
             text_role = palette.ColorRole.HighlightedText
         else:
-            text_role = palette.ColorRole.ButtonText
+            text_role = (
+                palette.ColorRole.Highlight
+                if self.is_accented
+                else palette.ColorRole.ButtonText
+            )
 
         if self.hasFocus():
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -117,11 +227,7 @@ class NoteItemDelegate(QStyledItemDelegate):
 
     def __init__(self, view: QListView):
         super().__init__(view)
-        self.note_icon = _theme_icon(
-            view,
-            ("accessories-text-editor", "document-edit", "x-office-document"),
-            QStyle.StandardPixmap.SP_FileIcon,
-        )
+        self.note_icon = _line_icon("note", view.palette().highlight().color())
         self.conflict_icon = _theme_icon(
             view,
             ("emblem-important", "dialog-warning"),
@@ -214,26 +320,35 @@ class NotesSidebar(NavigationRail):
         layout.addLayout(brand_row)
         layout.addSpacing(16)
 
-        self.new_button = SidebarActionButton(primary=True, parent=self)
+        self.new_button = SidebarActionButton(
+            prominent=True,
+            accented=True,
+            parent=self,
+        )
         self.save_button = SidebarActionButton(parent=self)
         self.sync_button = SidebarActionButton(parent=self)
         self.delete_button = SidebarActionButton(parent=self)
         self.settings_button = SidebarActionButton(parent=self)
         self.settings_button.setCheckable(True)
-        button_icons = (
-            (self.new_button, ("list-add", "document-new"), QStyle.StandardPixmap.SP_FileIcon),
-            (self.save_button, ("document-save",), QStyle.StandardPixmap.SP_DialogSaveButton),
-            (self.sync_button, ("view-refresh",), QStyle.StandardPixmap.SP_BrowserReload),
-            (self.delete_button, ("edit-delete",), QStyle.StandardPixmap.SP_TrashIcon),
-            (self.settings_button, ("settings-configure", "preferences-system"), QStyle.StandardPixmap.SP_FileDialogDetailedView),
+        action_color = self.palette().buttonText().color()
+        accent_color = self.palette().highlight().color()
+        self.new_button.setIcon(_line_icon("add", accent_color))
+        self.save_button.setIcon(_line_icon("save", action_color))
+        self.sync_button.setIcon(_line_icon("sync", action_color))
+        self.settings_button.setIcon(_line_icon("settings", action_color))
+        self.delete_button.setIcon(
+            _theme_icon(
+                self,
+                ("edit-delete",),
+                QStyle.StandardPixmap.SP_TrashIcon,
+            )
         )
-        for button, names, fallback in button_icons:
-            button.setIcon(_theme_icon(self, names, fallback))
 
         layout.addWidget(self.new_button)
         layout.addSpacing(4)
         layout.addWidget(self.save_button)
         layout.addWidget(self.sync_button)
+        layout.addWidget(self.settings_button)
         layout.addWidget(self.delete_button)
         layout.addSpacing(8)
 
@@ -281,7 +396,6 @@ class NotesSidebar(NavigationRail):
         layout.addWidget(self.list_view, 1)
 
         layout.addSpacing(4)
-        layout.addWidget(self.settings_button)
 
         self.status_area = QWidget(self)
         self.status_area.setObjectName("sidebarStatus")

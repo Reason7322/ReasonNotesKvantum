@@ -7,8 +7,11 @@ Qwen checkpoint `9374dce9d75b3c87002b3debe50a6eaf071bae62`. The sidebar
 boundary/highlight corrections remain, and the rejected Sync UI has been
 rebuilt as a focused right-side drawer with connected scope, inclusion,
 status, and action hierarchy. The owner visually accepted the Sync redesign
-on 2026-10-21. Physical Android interoperability and authorization for
-production replacement remain pending.
+on 2026-10-21. The left sidebar now has a fill-free New Note action, visible
+palette-owned Save/Sync/Settings icons, Settings before the unchanged Delete
+action, and a ReasonNotes stacked-page note glyph. Sidebar visual acceptance,
+physical Android interoperability, and authorization for production
+replacement remain pending.
 
 ## Implemented
 
@@ -37,10 +40,15 @@ production replacement remain pending.
   controller calls, while adding explicit scope controls, dense selectable
   note cards, contextual transfer/receipt wording, live status, and a
   prominent mode-aware action.
+- The sidebar keeps its established note-list geometry and behavior while
+  integrating New Note into the rail, making the Save/Sync/Settings glyphs
+  deterministic and legible, moving Settings directly above Delete, and
+  replacing the generic ordinary-note document icon with a branded stacked
+  note glyph.
 
 ## Validation state
 
-- Complete automated suite: 247 tests passed in an isolated offscreen run;
+- Complete automated suite: 250 tests passed in an isolated offscreen run;
   localhost purge-relay tests were run with socket access enabled.
 - Native helper: compiled successfully from the system Wayland protocol as
   part of a temporary immutable release.
@@ -66,10 +74,17 @@ production replacement remain pending.
   material, and disposable synthetic data. Exact drawer surfaces are recorded
   in `docs/evidence/sync-redesign-2026-10-21/`.
 - Reason visually accepted the redesigned Sync drawer on 2026-10-21.
+- The refined sidebar was rendered in the actual native Wayland source
+  candidate on Workspace 10 with `qt6ct-style -> Kvantum`, active compositor
+  blur, Kitty-equivalent material, disposable synthetic notes, and the YAMIS
+  icon theme exposed read-only. Exact captures are recorded in
+  `docs/evidence/sidebar-refinement-2026-10-21/`; owner acceptance is pending.
 
 See `docs/UI_CORRECTIONS_VALIDATION_2026-10-21.md`,
 `docs/RELEASE_CANDIDATE_VALIDATION_2026-10-21.md`, and
-`docs/SYNC_REDRAW_VALIDATION_2026-10-21.md` for current hashes and captures.
+`docs/SYNC_REDRAW_VALIDATION_2026-10-21.md`, and
+`docs/SIDEBAR_REFINEMENT_VALIDATION_2026-10-21.md` for current hashes and
+captures.
 `docs/ANDROID_PHYSICAL_ACCEPTANCE.md` retains the later controlled device
 sequence.
 
@@ -81,11 +96,12 @@ candidate rejects production data paths.
 
 ## Current owner and next action
 
-Forge owns the branch. The Sync redesign is implemented, validated, and
-visually accepted. Android testing and production work remain stopped per the
-owner's instruction; wait for explicit direction before beginning either.
-Production migration/cutover still requires physical device acceptance and
-separate authorization.
+Forge owns the branch. The Sync redesign is visually accepted, and the sidebar
+refinement is implemented and validated in the actual Wayland candidate. The
+next action is owner visual review of the updated sidebar. Android testing and
+production work remain stopped; do not begin either without explicit
+direction. Production migration/cutover still requires physical device
+acceptance and separate authorization.
 Do not modify `main`, the installed candidate, production launcher/data, or the
 phone without the applicable explicit authorization.
 

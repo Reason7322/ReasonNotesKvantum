@@ -150,7 +150,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 painter.end()
                 self.assertEqual(image.pixelColor(image.rect().center()), untouched)
 
-    def test_sidebar_icons_are_system_theme_backed(self):
+    def test_sidebar_icons_are_available(self):
         for button in (
             self.window.sidebar.new_button,
             self.window.sidebar.save_button,
@@ -165,9 +165,10 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         sidebar = self.window.sidebar
         self.assertEqual(sidebar.brand_reason.font().pixelSize(), 27)
         self.assertEqual(sidebar.brand_notes.font().pixelSize(), 27)
-        self.assertTrue(sidebar.new_button.is_primary)
+        self.assertFalse(sidebar.new_button.is_primary)
+        self.assertTrue(sidebar.new_button.is_prominent)
         self.assertGreaterEqual(sidebar.new_button.minimumHeight(), 50)
-        self.assertFalse(sidebar.new_button.autoRaise())
+        self.assertTrue(sidebar.new_button.autoRaise())
 
         secondary = (
             sidebar.save_button,
@@ -187,14 +188,80 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             layout.indexOf(sidebar.new_button),
             layout.indexOf(sidebar.save_button),
             layout.indexOf(sidebar.sync_button),
+            layout.indexOf(sidebar.settings_button),
             layout.indexOf(sidebar.delete_button),
             layout.indexOf(sidebar.search_well),
             layout.indexOf(sidebar.list_view),
-            layout.indexOf(sidebar.settings_button),
             layout.indexOf(sidebar.status_area),
         ]
         self.assertEqual(indices, sorted(indices))
         self.assertEqual(len(indices), len(set(indices)))
+
+    def test_new_note_action_has_no_filled_background(self):
+        sidebar = self.window.sidebar
+
+        def render_button(button):
+            image = QImage(
+                button.size(), QImage.Format.Format_ARGB32_Premultiplied
+            )
+            image.fill(Qt.GlobalColor.transparent)
+            button.render(image)
+            return image
+
+        new_note = render_button(sidebar.new_button)
+        flat_action = render_button(sidebar.save_button)
+
+        new_sample = QPoint(sidebar.new_button.width() - 8,
+                            sidebar.new_button.height() // 2)
+        flat_sample = QPoint(sidebar.save_button.width() - 8,
+                             sidebar.save_button.height() // 2)
+        self.assertEqual(
+            new_note.pixelColor(new_sample),
+            flat_action.pixelColor(flat_sample),
+            "New Note painted a filled button background",
+        )
+
+    def test_save_sync_and_settings_use_deterministic_visible_icons(self):
+        sidebar = self.window.sidebar
+        for button in (
+            sidebar.save_button,
+            sidebar.sync_button,
+            sidebar.settings_button,
+        ):
+            with self.subTest(button=button.text()):
+                self.assertEqual(
+                    button.icon().name(),
+                    "",
+                    "sidebar action still depends on a theme-supplied glyph",
+                )
+                image = button.icon().pixmap(24, 24).toImage()
+                visible_pixels = []
+                for x in range(image.width()):
+                    for y in range(image.height()):
+                        color = image.pixelColor(x, y)
+                        if color.alpha() >= 96 and color.lightness() >= 120:
+                            visible_pixels.append(color)
+                self.assertGreaterEqual(
+                    len(visible_pixels),
+                    16,
+                    "sidebar icon is too dark to read against the rail",
+                )
+
+    def test_normal_note_glyph_uses_the_reasonnotes_accent(self):
+        icon = self.window.sidebar.list_view.itemDelegate().note_icon
+        image = icon.pixmap(22, 22).toImage()
+        accent_pixels = 0
+        for x in range(image.width()):
+            for y in range(image.height()):
+                color = image.pixelColor(x, y)
+                channels = (color.red(), color.green(), color.blue())
+                if color.alpha() >= 96 and max(channels) - min(channels) >= 24:
+                    accent_pixels += 1
+        self.assertGreaterEqual(
+            accent_pixels,
+            12,
+            "normal notes still use an achromatic generic document glyph",
+        )
 
     def test_sidebar_boundary_has_no_painted_separator(self):
         sidebar = self.window.sidebar
