@@ -1,11 +1,15 @@
+from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+import hashlib
 import os
 import subprocess
 import sys
 import unittest
-from uuid import UUID
+from uuid import UUID, uuid4
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from PySide6.QtCore import QCoreApplication, QSettings, Qt
 from PySide6.QtTest import QTest
@@ -13,7 +17,9 @@ from PySide6.QtWidgets import QApplication
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
+from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.repository import Repository
+from reasonnotes_sync.sync import scan_inbox
 from reasonnotes_widgets.bootstrap import create_application
 from reasonnotes_widgets.controller import WidgetsController
 
@@ -122,6 +128,70 @@ class WidgetsLifecycleTests(unittest.TestCase):
 
         self.assertTrue(relay.stopped)
         self.assertFalse(runtime.purge_timer.isActive())
+
+    def test_open_app_imports_android_bundle_when_receive_directory_changes(self):
+        from reasonnotes_widgets.runtime import ApplicationRuntime
+
+        base = Path(self.temporary.name)
+        inbox = base / "inbox"
+        received = base / "received"
+        inbox.mkdir()
+        received.mkdir()
+        self.controller.configure_incoming_scan(
+            lambda: scan_inbox(
+                self.repository,
+                inbox,
+                "linux",
+                received_dir=received,
+            )
+        )
+        runtime = ApplicationRuntime(
+            self.repository,
+            self.controller,
+            incoming_paths=(inbox, received),
+        )
+        self.addCleanup(runtime.stop)
+        runtime.start(auto_receive=True)
+        QCoreApplication.processEvents()
+        self.pool.run_next()
+
+        note_id = uuid4()
+        first = Revision.create(
+            note_id,
+            (),
+            "android",
+            datetime.now(timezone.utc).replace(microsecond=0),
+            False,
+            "# Phone",
+        )
+        latest = Revision.create(
+            note_id,
+            (first.revision_id,),
+            "android",
+            first.modified_utc + timedelta(seconds=1),
+            False,
+            "# Phone note\n\nArrived while the desktop stayed open.",
+        )
+        output = BytesIO()
+        with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
+            for revision in (first, latest):
+                archive.writestr(
+                    f"{revision.revision_id}.md",
+                    revision.serialize(),
+                )
+        bundle = output.getvalue()
+        bundle_name = f"reasonnotes-bundle-{hashlib.sha256(bundle).hexdigest()}.zip"
+        (received / bundle_name).write_bytes(bundle)
+        QTest.qWait(700)
+
+        self.assertEqual(len(self.pool.workers), 1)
+        self.pool.run_next()
+        self.assertTrue(
+            any(
+                row.note_id == str(note_id)
+                for row in self.controller.presenter.notes
+            )
+        )
 
     def test_remote_purge_clears_active_note_on_poll(self):
         from reasonnotes_widgets.runtime import ApplicationRuntime

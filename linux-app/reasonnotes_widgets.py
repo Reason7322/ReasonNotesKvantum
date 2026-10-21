@@ -124,6 +124,7 @@ def main(arguments=None) -> int:
     repository = Repository.open(
         paths.repository, local_device="linux", target_device=options.target_device
     )
+    paths.inbox.mkdir(parents=True, exist_ok=True)
     receive_lock = Lock()
 
     def scan_received():
@@ -164,7 +165,12 @@ def main(arguments=None) -> int:
     )
     prepare_translucent_surface(window, platform_name=application.platformName())
     blur = QWidgetBlurController()
-    runtime = ApplicationRuntime(repository, controller, relay=relay)
+    runtime = ApplicationRuntime(
+        repository,
+        controller,
+        relay=relay,
+        incoming_paths=(paths.inbox, paths.received_dir),
+    )
     application.aboutToQuit.connect(runtime.stop)
     application.aboutToQuit.connect(blur.close)
     if options.check_launch:
