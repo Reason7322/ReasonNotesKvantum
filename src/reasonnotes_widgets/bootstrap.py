@@ -84,7 +84,13 @@ def resolve_launch_paths(
     home: Path | None = None,
 ) -> LaunchPaths:
     """Resolve candidate paths and fail closed on the live production tree."""
-    data_root = candidate_data_directory(environ, home=home).expanduser()
+    values = os.environ if environ is None else environ
+    user_home = (
+        Path(values.get("HOME", str(Path.home())))
+        if home is None
+        else Path(home)
+    ).expanduser()
+    data_root = candidate_data_directory(values, home=user_home).expanduser()
     paths = LaunchPaths(
         data_root=data_root,
         repository=(Path(root).expanduser() if root is not None else data_root / "repository"),
@@ -92,10 +98,10 @@ def resolve_launch_paths(
         received_dir=(
             Path(received_dir).expanduser()
             if received_dir is not None
-            else data_root / "received"
+            else user_home / "Downloads"
         ),
     )
-    protected = protected_production_directories(environ, home=home)
+    protected = protected_production_directories(values, home=user_home)
     for label, path in (
         ("repository", paths.repository),
         ("inbox", paths.inbox),

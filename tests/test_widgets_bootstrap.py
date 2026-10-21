@@ -63,6 +63,7 @@ class WidgetsBootstrapTests(unittest.TestCase):
             xdg / "ReasonNotesKvantum-candidate/repository",
         )
         self.assertEqual(defaults.inbox, xdg / "ReasonNotesKvantum-candidate/inbox")
+        self.assertEqual(defaults.received_dir, base / "home/Downloads")
         self.assertEqual(explicit.repository, explicit_root)
         self.assertEqual(explicit.inbox, explicit_inbox)
         self.assertEqual(explicit.received_dir, received)

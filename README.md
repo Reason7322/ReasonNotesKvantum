@@ -23,7 +23,9 @@ plugin, a C compiler, `wayland-scanner`, and Wayland client development files.
 
 The source entry point defaults to
 `~/.local/share/ReasonNotesKvantum-candidate` and rejects the protected
-production `~/.local/share/ReasonNotes` tree.
+production `~/.local/share/ReasonNotes` tree. Incoming KDE Connect bundles are
+read from `~/Downloads`, matching the established desktop application; use an
+explicit `--received-dir` for isolated fixture runs.
 
 ## Install the isolated candidate
 

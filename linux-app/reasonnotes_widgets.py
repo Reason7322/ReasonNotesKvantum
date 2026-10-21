@@ -44,7 +44,11 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="reasonnotes-kvantum-candidate")
     result.add_argument("--root", type=Path)
     result.add_argument("--inbox", type=Path)
-    result.add_argument("--received-dir", type=Path)
+    result.add_argument(
+        "--received-dir",
+        type=Path,
+        help="KDE Connect received folder (default: ~/Downloads)",
+    )
     result.add_argument("--device-id")
     result.add_argument("--target-device", default="android")
     result.add_argument("--no-auto-receive", action="store_true")
