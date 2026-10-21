@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 import re
+import time
 from uuid import UUID
 
 from .bundle import (
@@ -344,3 +345,135 @@ def sync_linux(
         receipt_requested=tuple(receipt_requested),
         errors=tuple(errors),
     )
+
+
+def sync_linux_confirmed(
+    repository: Repository,
+    inbox: Path,
+    adapter,
+    *,
+    selected_note_ids: Collection[UUID] | None = None,
+    received_dir: Path | None = None,
+    timeout_seconds: float = 120.0,
+    poll_interval_seconds: float = 0.5,
+    monotonic=time.monotonic,
+    sleeper=time.sleep,
+) -> SyncReport:
+    """Request a bounded transfer and wait for durable phone receipts.
+
+    ``sync_linux`` remains the one-shot protocol primitive. This wrapper is
+    intended for the interactive desktop action, where request acceptance is
+    only an intermediate state and success requires the existing receipt path
+    to confirm every revision requested by this invocation.
+    """
+    if timeout_seconds <= 0:
+        raise ValueError("confirmation timeout must be positive")
+    if poll_interval_seconds <= 0:
+        raise ValueError("confirmation poll interval must be positive")
+
+    initial = sync_linux(
+        repository,
+        inbox,
+        adapter,
+        retry_unconfirmed=True,
+        selected_note_ids=selected_note_ids,
+        received_dir=received_dir,
+    )
+    imports = list(initial.imports)
+    confirmations = list(initial.confirmations)
+    conflicts = list(initial.conflicts)
+    errors = list(initial.errors)
+    target_device = repository.target_device
+    assert target_device is not None
+    ledger = DeliveryLedger(repository.root)
+    receipt_store = ReceiptStore(repository.root)
+
+    def unique(values):
+        return tuple(dict.fromkeys(values))
+
+    def report() -> SyncReport:
+        pending = tuple(
+            entry.revision_id
+            for entry in ledger.entries(target_device)
+            if entry.state == DeliveryState.PENDING
+        )
+        receipt_pending = tuple(
+            entry.receipt_id
+            for entry in receipt_store.entries(target_device)
+            if entry.state == DeliveryState.PENDING
+        )
+        return SyncReport(
+            imports=unique(imports),
+            confirmations=unique(confirmations),
+            conflicts=unique(conflicts),
+            pending=pending,
+            requested=initial.requested,
+            receipt_pending=receipt_pending,
+            receipt_requested=initial.receipt_requested,
+            errors=unique(errors),
+        )
+
+    if errors:
+        return report()
+
+    requested = tuple(initial.requested)
+    if not requested:
+        selected = None if selected_note_ids is None else frozenset(selected_note_ids)
+        blocked = []
+        for entry in ledger.entries(target_device):
+            if entry.state == DeliveryState.CONFIRMED:
+                continue
+            revision = repository.revision(entry.revision_id)
+            if revision is not None and (
+                selected is None or revision.note_id in selected
+            ):
+                blocked.append(entry)
+        if blocked:
+            errors.append(
+                "Synchronization needs attention: bounded transfer request "
+                f"limit reached for {len(blocked)} selected revision(s)"
+            )
+        return report()
+
+    deadline = monotonic() + timeout_seconds
+    requested_set = frozenset(requested)
+    while True:
+        scan = scan_inbox(
+            repository,
+            inbox,
+            repository.local_device or "linux",
+            received_dir=received_dir,
+        )
+        imports.extend(scan.imported)
+        confirmations.extend(scan.confirmed)
+        conflicts[:] = scan.conflicts
+        errors.extend(scan.errors)
+
+        confirmed_requested = tuple(
+            revision_id
+            for revision_id in requested
+            if (
+                (entry := ledger.entry(revision_id, target_device)) is not None
+                and entry.state == DeliveryState.CONFIRMED
+            )
+        )
+        confirmations.extend(confirmed_requested)
+        missing = requested_set.difference(confirmed_requested)
+        if not missing or errors:
+            return report()
+        if not adapter.reachable():
+            errors.append(
+                "KDE Connect device disconnected while waiting for phone "
+                f"confirmation: {adapter.device_id}"
+            )
+            return report()
+
+        now = monotonic()
+        if now >= deadline:
+            errors.append(
+                "Timed out waiting for phone import confirmation: "
+                f"{len(confirmed_requested)} of {len(requested)} requested "
+                "revisions confirmed"
+            )
+            return report()
+        sleeper(min(poll_interval_seconds, deadline - now))
