@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
+import subprocess
 import unittest
+from unittest.mock import patch
 
 from reasonnotes_sync.kdeconnect_linux import KdeConnectLinux
 
@@ -69,6 +71,47 @@ class KdeConnectLinuxTests(unittest.TestCase):
         self.assertFalse(request.accepted)
         self.assertFalse(request.completion_observed)
         self.assertIn("unreachable", request.detail)
+
+    def test_default_runner_supplies_a_bounded_command_timeout(self):
+        observed = []
+
+        def completed(arguments, *, env, capture_output, text, check, timeout):
+            observed.append(timeout)
+            return subprocess.CompletedProcess(arguments, 0, "sent\n", "")
+
+        with patch(
+            "reasonnotes_sync.kdeconnect_linux.subprocess.run",
+            side_effect=completed,
+        ):
+            request = KdeConnectLinux(DEVICE_ID).request_transfer(Path("/tmp/note.md"))
+
+        self.assertTrue(request.accepted)
+        self.assertEqual(len(observed), 1)
+        self.assertGreater(observed[0], 0)
+
+    def test_default_runner_converts_timeout_and_launch_failure_to_clear_errors(self):
+        with patch(
+            "reasonnotes_sync.kdeconnect_linux.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(("kdeconnect-cli",), 10),
+        ):
+            timed_out = KdeConnectLinux(DEVICE_ID).request_transfer(
+                Path("/tmp/note.md")
+            )
+            unreachable = KdeConnectLinux(DEVICE_ID).reachable()
+
+        with patch(
+            "reasonnotes_sync.kdeconnect_linux.subprocess.run",
+            side_effect=FileNotFoundError("kdeconnect-cli missing"),
+        ):
+            failed = KdeConnectLinux(DEVICE_ID).request_transfer(
+                Path("/tmp/note.md")
+            )
+
+        self.assertFalse(timed_out.accepted)
+        self.assertIn("timed out", timed_out.detail.casefold())
+        self.assertFalse(unreachable)
+        self.assertFalse(failed.accepted)
+        self.assertIn("failed to start", failed.detail.casefold())
 
     def test_received_paths_decode_only_share_object_file_urls(self):
         adapter = KdeConnectLinux(DEVICE_ID, FakeRunner())

@@ -9,6 +9,9 @@ import subprocess
 from urllib.parse import unquote, urlparse
 
 
+COMMAND_TIMEOUT_SECONDS = 10
+
+
 @dataclass(frozen=True, slots=True)
 class TransferRequest:
     accepted: bool
@@ -17,7 +20,29 @@ class TransferRequest:
 
 
 def _run(arguments, *, env):
-    return subprocess.run(arguments, env=env, capture_output=True, text=True, check=False)
+    try:
+        return subprocess.run(
+            arguments,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            arguments,
+            124,
+            "",
+            f"KDE Connect command timed out after {COMMAND_TIMEOUT_SECONDS} seconds",
+        )
+    except OSError as error:
+        return subprocess.CompletedProcess(
+            arguments,
+            127,
+            "",
+            f"KDE Connect command failed to start: {error}",
+        )
 
 
 class KdeConnectLinux:

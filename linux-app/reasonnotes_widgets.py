@@ -34,7 +34,7 @@ from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.foreground_purge import PORT, PurgeRelay, shared_key
 from reasonnotes_sync.kdeconnect_linux import KdeConnectLinux
 from reasonnotes_sync.receipt_return import return_pending_receipts
-from reasonnotes_sync.sync import scan_inbox, sync_linux
+from reasonnotes_sync.sync import scan_inbox, sync_linux_confirmed
 
 
 DEVICE_ID_PATTERN = re.compile(r"[0-9a-f]{32}")
@@ -87,6 +87,23 @@ def computer_address() -> str:
         return "See this computer's LAN IPv4 address"
 
 
+def run_confirmed_sync(repository, paths, device_id, selection, receive_lock):
+    if device_id is None:
+        raise RuntimeError(
+            "No single reachable KDE Connect device found. Pair the phone "
+            "or launch with --device-id."
+        )
+    with receive_lock:
+        paths.inbox.mkdir(parents=True, exist_ok=True)
+        return sync_linux_confirmed(
+            repository,
+            paths.inbox,
+            KdeConnectLinux(device_id),
+            selected_note_ids=selection,
+            received_dir=paths.received_dir,
+        )
+
+
 def main(arguments=None) -> int:
     options = parser().parse_args(arguments)
     paths = resolve_launch_paths(
@@ -116,17 +133,13 @@ def main(arguments=None) -> int:
             return report
 
     def run_sync(selection):
-        if device_id is None:
-            raise RuntimeError(
-                "No single reachable KDE Connect device found. Pair the phone "
-                "or launch with --device-id."
-            )
-        with receive_lock:
-            paths.inbox.mkdir(parents=True, exist_ok=True)
-            return sync_linux(
-                repository, paths.inbox, KdeConnectLinux(device_id),
-                selected_note_ids=selection, received_dir=paths.received_dir,
-            )
+        return run_confirmed_sync(
+            repository,
+            paths,
+            device_id,
+            selection,
+            receive_lock,
+        )
 
     controller = WidgetsController(
         NotePresenter(NoteService(repository, origin_device="linux"), run_sync)

@@ -1,13 +1,27 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+import importlib.util
 import os
 import subprocess
 import sys
+from threading import Lock
 import unittest
 from unittest.mock import patch
 
 
 class WidgetsBootstrapTests(unittest.TestCase):
+    @staticmethod
+    def candidate_module():
+        project = Path(__file__).resolve().parents[1]
+        path = project / "linux-app/reasonnotes_widgets.py"
+        spec = importlib.util.spec_from_file_location(
+            "reasonnotes_widgets_candidate_entrypoint", path
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
     def test_candidate_default_is_distinct_from_production(self):
         from reasonnotes_widgets.bootstrap import (
             candidate_data_directory,
@@ -149,6 +163,44 @@ class WidgetsBootstrapTests(unittest.TestCase):
         )
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+    def test_candidate_sync_boundary_uses_receipt_confirmed_orchestration(self):
+        module = self.candidate_module()
+        calls = []
+        report = object()
+
+        def confirmed(repository, inbox, adapter, **options):
+            calls.append((repository, inbox, adapter, options))
+            return report
+
+        repository = object()
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            paths = SimpleNamespace(
+                inbox=base / "inbox",
+                received_dir=base / "received",
+            )
+            with patch.object(module, "sync_linux_confirmed", confirmed):
+                result = module.run_confirmed_sync(
+                    repository,
+                    paths,
+                    "52548cf9710c43cab2fa73ed4671aea9",
+                    ("selected-note",),
+                    Lock(),
+                )
+
+            self.assertIs(result, report)
+            self.assertEqual(len(calls), 1)
+            self.assertIs(calls[0][0], repository)
+            self.assertEqual(calls[0][1], paths.inbox)
+            self.assertEqual(
+                calls[0][2].device_id,
+                "52548cf9710c43cab2fa73ed4671aea9",
+            )
+            self.assertEqual(
+                calls[0][3]["selected_note_ids"], ("selected-note",)
+            )
+            self.assertEqual(calls[0][3]["received_dir"], paths.received_dir)
 
 
 if __name__ == "__main__":
