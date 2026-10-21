@@ -44,3 +44,18 @@ style is not, by itself, visual acceptance.
 
 Do not point `--root`, `--inbox`, or `--received-dir` at production paths.
 The process rejects them, but the testing procedure should remain explicit.
+
+## Prepare physical Android acceptance safely
+
+Generate a deterministic offline fixture before any owner-authorized phone
+test:
+
+```sh
+python3 scripts/prepare-android-acceptance.py \
+  /tmp/reasonnotes-android-acceptance-YYYYMMDD
+```
+
+This creates only disposable immutable history and pending delivery intent; it
+does not invoke KDE Connect or access Android. The exact physical sequence,
+evidence requirements, and cleanup are in
+[Physical Android acceptance](ANDROID_PHYSICAL_ACCEPTANCE.md).
