@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QPoint, QSettings, QSignalBlocker, Qt, QTimer
+from PySide6.QtCore import QEvent, QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import (
     QCloseEvent,
     QColor,
@@ -34,13 +34,13 @@ from .sync_panel import SyncPanel
 
 
 # The sidebar/content boundary divider is main_splitter's handle index 1 and
-# is the only visible/painted handle in this layout (isolated offscreen probe
+# is the only interactive handle in this layout (isolated offscreen probe
 # evidence, see handoffs/QWEN_TO_FORGE.md Mission 05/06). The narrow proxy
-# below intercepts CE_Splitter for that handle only: a small grip while it is
-# hovered, nothing at rest. Every other control element and primitive is
+# below intercepts CE_Splitter for that handle only and suppresses all artwork
+# in every interaction state. Every other control element and primitive is
 # delegated to the base style chain (qt6ct -> Kvantum) untouched.
-class _BoundaryGripStyle(QProxyStyle):
-    """Scoped hover-grip override installed on main_splitter only."""
+class _InvisibleBoundaryStyle(QProxyStyle):
+    """Keep the draggable sidebar boundary visually transparent."""
 
     def __init__(self, base_style: QStyle, window: "ReasonNotesMainWindow"):
         super().__init__(base_style)
@@ -50,27 +50,8 @@ class _BoundaryGripStyle(QProxyStyle):
         if (int(element) == int(QStyle.ControlElement.CE_Splitter)
                 and self._window is not None
                 and self._window._splitter_painting_boundary):
-            handle = self._window._boundary_handle
-            if handle is not None:
-                if handle.underMouse():
-                    _paint_splitter_grip(option, painter)
-                return  # boundary handle stays transparent at rest (M05)
+            return
         return super().drawControl(element, option, painter, widget)
-
-
-def _paint_splitter_grip(option: QStyleOption, painter):
-    """Three small centered dots on the idle-cleared divider."""
-    rect = option.rect
-    center_x = rect.x() + rect.width() // 2
-    center_y = rect.y() + rect.height() // 2
-    color = QColor(option.palette.color(QPalette.ColorRole.Text))
-    color.setAlpha(160)
-    painter.save()
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(color)
-    for offset in (-8, 0, 8):
-        painter.drawEllipse(center_x - 2, center_y + offset - 2, 4, 4)
-    painter.restore()
 
 
 class ReasonNotesMainWindow(QMainWindow):
@@ -147,9 +128,6 @@ class ReasonNotesMainWindow(QMainWindow):
                 ):
                     handle_palette.setColor(group, role, transparent)
             boundary_handle.setPalette(handle_palette)
-            # Hover grip (Mission 06): repaint the divider when its hover
-            # state changes under live input.
-            boundary_handle.setMouseTracking(True)
         self._boundary_handle = boundary_handle
         self._splitter_painting_boundary = False
         if boundary_handle is not None:
@@ -158,16 +136,16 @@ class ReasonNotesMainWindow(QMainWindow):
             child = self.main_splitter.handle(index)
             if child is not None and child is not boundary_handle:
                 child.installEventFilter(self)
-        # Narrow CE_Splitter hover-grip override. Mirrors the established
+        # Narrow CE_Splitter suppression override. Mirrors the established
         # IntegratedLineEditStyle pattern (visuals.integrate_line_edit) in all
         # three lifetime details: base resolved by style name (an instance base
         # segfaults this PySide6 build at process exit), parented to the
         # owning widget for deterministic Qt-tree teardown, and retained on
         # the window as well.
-        self._boundary_grip_style = _BoundaryGripStyle(
+        self._boundary_style = _InvisibleBoundaryStyle(
             self.main_splitter.style().objectName(), self)
-        self._boundary_grip_style.setParent(self.main_splitter)
-        self.main_splitter.setStyle(self._boundary_grip_style)
+        self._boundary_style.setParent(self.main_splitter)
+        self.main_splitter.setStyle(self._boundary_style)
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
         self.setCentralWidget(self.main_splitter)
@@ -229,10 +207,6 @@ class ReasonNotesMainWindow(QMainWindow):
             # one so drawControl can identify it per call.
             self._splitter_painting_boundary = (
                 obj is self._boundary_handle)
-        elif (etype in (QEvent.Type.Enter, QEvent.Type.Leave)
-              and obj is self._boundary_handle):
-            # Live hover change: repaint the divider immediately.
-            self._boundary_handle.update()
         return super().eventFilter(obj, event)
 
     def _show_incoming_message(self, message: str) -> None:

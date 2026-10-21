@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from .visuals import integrate_line_edit, integrate_solid_surface
-from .material import GlassCard, TitleRule
+from .material import GlassCard
 
 
 class EditorPage(QWidget):
@@ -49,7 +49,6 @@ class EditorPage(QWidget):
         title_font.setWeight(QFont.Weight.DemiBold)
         self.title_editor.setFont(title_font)
 
-        self.title_rule = TitleRule(self.writing_column)
         self.body_editor = QPlainTextEdit(self.writing_column)
         self.body_editor.setObjectName("bodyEditor")
         self.body_editor.setAccessibleName("Markdown note body")
@@ -63,7 +62,6 @@ class EditorPage(QWidget):
         self.body_editor.setFont(body_font)
 
         column.addWidget(self.title_editor)
-        column.addWidget(self.title_rule)
         column.addWidget(self.body_editor, 1)
         outer.addWidget(self.writing_column, 1)
         outer.addStretch(0)

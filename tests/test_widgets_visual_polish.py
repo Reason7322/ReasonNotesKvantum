@@ -204,7 +204,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertEqual(sidebar.list_view.iconSize().width(), 22)
         self.assertTrue(sidebar.list_view.hasMouseTracking())
 
-    def test_editor_title_rule_body_hierarchy_without_header_status(self):
+    def test_editor_title_body_hierarchy_without_header_status_or_rule(self):
         editor = self.window.editor
         # The top-right Local/Phone block is gone from the writing card; its
         # object names must no longer exist anywhere in the page.
@@ -218,15 +218,11 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertEqual(editor.title_editor.placeholderText(), "Title")
         self.assertEqual(editor.body_editor.placeholderText(), "")
         layout = editor.writing_column.layout()
-        # The rule sits immediately below the title with no spacer between
-        # them, and the writing area follows directly after the rule.
-        self.assertEqual(
-            layout.indexOf(editor.title_rule),
-            layout.indexOf(editor.title_editor) + 1,
-        )
+        self.assertFalse(hasattr(editor, "title_rule"))
+        # The body follows the title directly; no separator widget is present.
         self.assertEqual(
             layout.indexOf(editor.body_editor),
-            layout.indexOf(editor.title_rule) + 1,
+            layout.indexOf(editor.title_editor) + 1,
         )
         editor.set_document(
             "The beginning of a deliberately long title remains visible",

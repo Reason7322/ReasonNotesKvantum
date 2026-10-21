@@ -199,7 +199,7 @@ class WidgetsMainWindowTests(unittest.TestCase):
         QCoreApplication.processEvents()
         self.assertGreaterEqual(window.main_splitter.sizes()[0], before + 30)
 
-    def test_sidebar_splitter_grip_appears_on_hover_and_disappears_on_leave(self):
+    def test_sidebar_splitter_stays_invisible_while_hovered(self):
         window, _ = self.make_window()
         handle = window.main_splitter.handle(1)
         self.assertIsNotNone(handle)
@@ -215,11 +215,12 @@ class WidgetsMainWindowTests(unittest.TestCase):
             handle.render(image)
             return image
 
-        # Pointer enters the real boundary handle: a small grip appears.
+        # Pointer enters the real boundary handle: it remains a draggable hit
+        # target but must never add hover artwork over the window material.
         QTest.mouseMove(window, hover_pos)
         QCoreApplication.processEvents()
         self.assertTrue(handle.underMouse())
-        handle.update()  # mirrors the platform hover-triggered repaint
+        handle.update()
         QCoreApplication.processEvents()
         hovered = render_handle()
         nontransparent = sum(
@@ -228,14 +229,9 @@ class WidgetsMainWindowTests(unittest.TestCase):
             for x in range(hovered.width())
             if hovered.pixelColor(x, y).alpha() > 0
         )
-        self.assertGreater(nontransparent, 0)
-        # The grip is small and centered: near the edges stays transparent.
-        edge_x = handle.width() // 2
-        self.assertEqual(hovered.pixelColor(edge_x, 3).alpha(), 0)
-        self.assertEqual(
-            hovered.pixelColor(edge_x, handle.height() - 4).alpha(), 0)
+        self.assertEqual(nontransparent, 0)
 
-        # Pointer leaves: the divider is completely transparent again.
+        # Pointer leaves: it remains completely transparent.
         QTest.mouseMove(window, away_pos)
         QCoreApplication.processEvents()
         self.assertFalse(handle.underMouse())
