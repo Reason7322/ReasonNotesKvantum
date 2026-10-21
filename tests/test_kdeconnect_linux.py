@@ -72,6 +72,37 @@ class KdeConnectLinuxTests(unittest.TestCase):
         self.assertFalse(request.completion_observed)
         self.assertIn("unreachable", request.detail)
 
+    def test_batch_request_uses_one_share_urls_dbus_call(self):
+        runner = FakeRunner(Result(stdout="()\n"))
+        adapter = KdeConnectLinux(DEVICE_ID, runner)
+        paths = (
+            Path("/tmp/ReasonNotes Exchange/one.receipt.md"),
+            Path("/tmp/ReasonNotes Exchange/two.receipt.md"),
+        )
+
+        request = adapter.request_transfers(paths)
+
+        self.assertEqual(len(runner.calls), 1)
+        self.assertEqual(
+            runner.calls[0][0],
+            (
+                "gdbus",
+                "call",
+                "--session",
+                "--dest",
+                "org.kde.kdeconnect",
+                "--object-path",
+                f"/modules/kdeconnect/devices/{DEVICE_ID}/share",
+                "--method",
+                "org.kde.kdeconnect.device.share.shareUrls",
+                '["file:///tmp/ReasonNotes%20Exchange/one.receipt.md", '
+                '"file:///tmp/ReasonNotes%20Exchange/two.receipt.md"]',
+            ),
+        )
+        self.assertTrue(request.accepted)
+        self.assertFalse(request.completion_observed)
+        self.assertIn("batch", request.detail)
+
     def test_default_runner_supplies_a_bounded_command_timeout(self):
         observed = []
 

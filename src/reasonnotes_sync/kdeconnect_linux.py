@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+import json
 import os
 from pathlib import Path
 import re
@@ -83,6 +84,38 @@ class KdeConnectLinux:
         if result.returncode == 0:
             return TransferRequest(True, False, "KDE Connect transfer request accepted")
         detail = result.stderr.strip() or result.stdout.strip() or "KDE Connect request failed"
+        return TransferRequest(False, False, detail)
+
+    def request_transfers(self, paths: Iterable[Path]) -> TransferRequest:
+        values = tuple(Path(path).resolve().as_uri() for path in paths)
+        if not values:
+            raise ValueError("at least one transfer path is required")
+        result = self.command_runner(
+            (
+                "gdbus",
+                "call",
+                "--session",
+                "--dest",
+                "org.kde.kdeconnect",
+                "--object-path",
+                f"/modules/kdeconnect/devices/{self.device_id}/share",
+                "--method",
+                "org.kde.kdeconnect.device.share.shareUrls",
+                json.dumps(values),
+            ),
+            env=self.environment(),
+        )
+        if result.returncode == 0:
+            return TransferRequest(
+                True,
+                False,
+                f"KDE Connect batch transfer request accepted ({len(values)} files)",
+            )
+        detail = (
+            result.stderr.strip()
+            or result.stdout.strip()
+            or "KDE Connect batch request failed"
+        )
         return TransferRequest(False, False, detail)
 
     def received_paths(self, lines: Iterable[str]) -> Iterator[Path]:

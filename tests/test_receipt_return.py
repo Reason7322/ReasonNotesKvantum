@@ -24,6 +24,16 @@ class FakeAdapter:
         return SimpleNamespace(accepted=self.accepted)
 
 
+class BatchAdapter(FakeAdapter):
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.batches = []
+
+    def request_transfers(self, paths):
+        self.batches.append(tuple(Path(path) for path in paths))
+        return SimpleNamespace(accepted=self.accepted)
+
+
 class ReturnPendingReceiptsTests(unittest.TestCase):
     def setUp(self):
         self.dir = TemporaryDirectory()
@@ -62,6 +72,30 @@ class ReturnPendingReceiptsTests(unittest.TestCase):
         self.assertEqual(count, 0)
         self.assertEqual(len(errors), 1)
         self.assertEqual(len(self.store.eligible("android")), 1)
+
+    def test_receipt_backlog_uses_one_batch_request(self):
+        second = Revision.create(
+            UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            (), "android", self.now, False, "# Second note",
+        )
+        second_receipt = self.store.queue(second, "linux", self.now)
+        adapter = BatchAdapter()
+
+        count, errors = return_pending_receipts(
+            self.repo, adapter, clock=lambda: self.now
+        )
+
+        self.assertEqual((count, errors), (2, ()))
+        self.assertEqual(len(adapter.batches), 1)
+        self.assertEqual(
+            {path.name for path in adapter.batches[0]},
+            {
+                self.receipt.transport_filename(),
+                second_receipt.transport_filename(),
+            },
+        )
+        self.assertEqual(adapter.calls, [])
+        self.assertEqual(len(self.store.eligible("android")), 0)
 
 
 if __name__ == "__main__":

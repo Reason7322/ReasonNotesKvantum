@@ -23,6 +23,23 @@ def return_pending_receipts(repository, adapter, *, clock=None):
     if not adapter.reachable():
         return 0, ("KDE Connect phone is not reachable for receipts",)
     now = clock or (lambda: datetime.now(timezone.utc).replace(microsecond=0))
+    batch_request = getattr(adapter, "request_transfers", None)
+    if callable(batch_request):
+        try:
+            paths = tuple(store.outbox_path(receipt_id) for receipt_id in eligible)
+            result = batch_request(paths)
+            if not result.accepted:
+                return 0, ("Receipt return batch request failed",)
+            observed = now()
+            for receipt_id in eligible:
+                store.record_requested(
+                    receipt_id,
+                    repository.target_device,
+                    observed,
+                )
+            return len(eligible), ()
+        except (OSError, ValueError, RuntimeError):
+            return 0, ("Receipt return batch unavailable",)
     requested = 0
     warnings = []
     for receipt_id in eligible:
