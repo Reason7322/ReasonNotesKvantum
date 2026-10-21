@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListView,
     QPushButton,
+    QProgressBar,
     QSizePolicy,
     QStyle,
     QStyleOptionButton,
@@ -324,6 +325,12 @@ class SyncPanel(QDockWidget):
         self.receipt_notice.setWordWrap(True)
         self.status_label = QLabel(self.action_card)
         self.status_label.setWordWrap(True)
+        self.progress_bar = QProgressBar(self.action_card)
+        self.progress_bar.setObjectName("syncProgress")
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setVisible(False)
         actions = QHBoxLayout()
         actions.setSpacing(10)
         self.cancel_button = QToolButton(self.action_card)
@@ -349,6 +356,7 @@ class SyncPanel(QDockWidget):
         action_layout.addWidget(self.action_context)
         action_layout.addWidget(self.receipt_notice)
         action_layout.addWidget(self.status_label)
+        action_layout.addWidget(self.progress_bar)
         action_layout.addLayout(actions)
 
         layout.addLayout(header)
@@ -464,6 +472,7 @@ class SyncPanel(QDockWidget):
         if presenter.sync_message:
             status += f" — {presenter.sync_message}"
         self.status_label.setText(status)
+        self.progress_bar.setVisible(presenter.sync_state == "Running")
         self.start_button.setEnabled(
             presenter.sync_state != "Running"
             and (not selected_mode or count > 0)

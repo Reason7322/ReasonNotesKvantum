@@ -128,7 +128,10 @@ class WidgetsControllerTests(unittest.TestCase):
 
     def test_async_sync_flushes_draft_and_preserves_saved_content(self):
         note_id = str(self.service.create_note("# Draft\n\nOld"))
-        report = SyncReport((), (), (), (), (), (), (), ())
+        revision_id = "a" * 64
+        report = SyncReport(
+            (), (revision_id,), (), (), (revision_id,), (), (), ()
+        )
         seen = []
 
         def sync_runner(selection):

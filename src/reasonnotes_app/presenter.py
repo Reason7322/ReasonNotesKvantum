@@ -428,8 +428,30 @@ class NotePresenter:
         return self.sync_runner(self._selection(selected_note_ids))
 
     def complete_sync(self, report: SyncReport) -> None:
-        self.sync_state = "Error" if report.errors else "Completed"
+        requested = tuple(report.requested)
+        confirmations = frozenset(report.confirmations)
+        confirmed_requested = tuple(
+            revision_id
+            for revision_id in requested
+            if revision_id in confirmations
+        )
+        if report.errors:
+            self.sync_state = "Error"
+            outcome = "Synchronization failed"
+        elif not requested:
+            self.sync_state = "Idle"
+            outcome = "No pending revisions to synchronize"
+        elif len(confirmed_requested) == len(requested):
+            self.sync_state = "Completed"
+            outcome = f"Phone confirmed {len(requested)} requested revision(s)"
+        else:
+            self.sync_state = "Error"
+            outcome = (
+                "Phone confirmation was not received "
+                f"({len(confirmed_requested)} of {len(requested)} confirmed)"
+            )
         parts = (
+            outcome,
             f"imported {len(report.imports)}",
             f"transfer requested {len(report.requested)}",
             f"confirmed {len(report.confirmations)}",
@@ -471,7 +493,7 @@ class NotePresenter:
             self.fail_sync(error)
             return False
         self.complete_sync(report)
-        return not report.errors
+        return self.sync_state != "Error"
 
     def inspect_conflict(self, note_id: str) -> ConflictView | None:
         parsed = UUID(note_id)

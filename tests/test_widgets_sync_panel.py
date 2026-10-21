@@ -5,7 +5,7 @@ import unittest
 
 from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDockWidget
+from PySide6.QtWidgets import QApplication, QDockWidget, QProgressBar
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
@@ -44,7 +44,10 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             service = NoteService(repository, origin_device="linux")
             service.create_note("# *Markdown title*\n\nLine one\nLine two")
             calls = []
-            report = SyncReport((), (), (), (), (), (), (), ())
+            revision_id = "a" * 64
+            report = SyncReport(
+                (), (revision_id,), (), (), (revision_id,), (), (), ()
+            )
 
             def sync_runner(selection):
                 calls.append(selection)
@@ -66,6 +69,8 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             self.assertTrue(panel.isVisible())
             self.assertTrue(panel.all_button.isChecked())
             self.assertTrue(panel.start_button.isEnabled())
+            self.assertIsInstance(panel.progress_bar, QProgressBar)
+            self.assertFalse(panel.progress_bar.isVisible())
             self.assertEqual(calls, [])
             preview = controller.sync_model.row(0)["preview"]
             self.assertNotIn("#", preview)
@@ -98,10 +103,16 @@ class WidgetsSyncPanelTests(unittest.TestCase):
 
             panel.start_button.click()
             self.assertEqual(controller.presenter.sync_state, "Running")
+            self.assertTrue(panel.progress_bar.isVisible())
+            self.assertEqual(
+                (panel.progress_bar.minimum(), panel.progress_bar.maximum()),
+                (0, 0),
+            )
             self.assertEqual(calls, [])
             pool.run_next()
 
             self.assertEqual(controller.presenter.sync_state, "Completed")
+            self.assertFalse(panel.progress_bar.isVisible())
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(calls[0]), 1)
 
@@ -117,10 +128,13 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             service = NoteService(repository, origin_device="linux")
             service.create_note("Reference note\n\nVisible preview")
             pool = CapturingPool()
+            revision_id = "b" * 64
             controller = WidgetsController(
                 NotePresenter(
                     service,
-                    lambda _selection: SyncReport((), (), (), (), (), (), (), ()),
+                    lambda _selection: SyncReport(
+                        (), (revision_id,), (), (), (revision_id,), (), (), ()
+                    ),
                 ),
                 thread_pool=pool,
             )
@@ -170,9 +184,46 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             panel.start_button.click()
             QCoreApplication.processEvents()
             self.assertIn("Running", panel.status_label.text())
+            self.assertTrue(panel.progress_bar.isVisible())
             self.assertFalse(panel.start_button.isEnabled())
             pool.run_next()
             self.assertIn("Completed", panel.status_label.text())
+            self.assertFalse(panel.progress_bar.isVisible())
+
+    def test_progress_hides_after_worker_failure(self):
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            repository = Repository.open(
+                base / "repo", local_device="linux", target_device="android"
+            )
+            service = NoteService(repository, origin_device="linux")
+            service.create_note("Failure fixture")
+
+            def fail_sync(_selection):
+                raise RuntimeError("phone disconnected")
+
+            pool = CapturingPool()
+            controller = WidgetsController(
+                NotePresenter(service, fail_sync), thread_pool=pool
+            )
+            window = ReasonNotesMainWindow(
+                controller,
+                settings=QSettings(str(base / "ui.ini"), QSettings.IniFormat),
+            )
+            self.addCleanup(window.close)
+            window.show()
+            window.open_sync_panel()
+            panel = window.sync_panel
+
+            panel.start_button.click()
+            self.assertTrue(panel.progress_bar.isVisible())
+            pool.run_next()
+
+            self.assertEqual(controller.presenter.sync_state, "Error")
+            self.assertFalse(panel.progress_bar.isVisible())
+            self.assertIn("phone disconnected", panel.status_label.text())
 
 
 if __name__ == "__main__":

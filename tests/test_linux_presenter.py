@@ -245,8 +245,47 @@ class NotePresenterTests(unittest.TestCase):
             "Android full body " + "A" * 300,
             {candidate.body for candidate in conflict.candidates},
         )
-        self.assertEqual("Completed", self.presenter.sync_state)
+        self.assertEqual("Idle", self.presenter.sync_state)
         self.assertIn("transfer requested 0", self.presenter.sync_message)
+
+    def test_sync_completion_requires_confirmation_for_every_requested_revision(self):
+        revision_a = "a" * 64
+        revision_b = "b" * 64
+
+        self.presenter.complete_sync(empty_report())
+        self.assertEqual("Idle", self.presenter.sync_state)
+        self.assertIn("No pending revisions", self.presenter.sync_message)
+
+        self.presenter.complete_sync(empty_report(requested=(revision_a,)))
+        self.assertEqual("Error", self.presenter.sync_state)
+        self.assertIn(
+            "phone confirmation was not received",
+            self.presenter.sync_message.casefold(),
+        )
+
+        self.presenter.complete_sync(
+            empty_report(
+                requested=(revision_a, revision_b),
+                confirmations=(revision_a,),
+            )
+        )
+        self.assertEqual("Error", self.presenter.sync_state)
+        self.assertIn("1 of 2", self.presenter.sync_message)
+
+        self.presenter.complete_sync(
+            empty_report(
+                requested=(revision_a, revision_b),
+                confirmations=(revision_a, revision_b),
+            )
+        )
+        self.assertEqual("Completed", self.presenter.sync_state)
+        self.assertIn("Phone confirmed 2", self.presenter.sync_message)
+
+        self.presenter.complete_sync(
+            empty_report(errors=("KDE Connect device unavailable",))
+        )
+        self.assertEqual("Error", self.presenter.sync_state)
+        self.assertIn("device unavailable", self.presenter.sync_message)
 
     def test_autosave_detects_conflict_imported_after_local_write(self):
         note_id = self.service.create_note("Base")
