@@ -8,6 +8,7 @@ from uuid import UUID
 from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.receipt import ReceiptStore
 from reasonnotes_sync.receipt_return import return_pending_receipts
+from reasonnotes_sync.transport_bundle import read_transport_bundle
 
 
 class FakeAdapter:
@@ -21,16 +22,6 @@ class FakeAdapter:
 
     def request_transfer(self, path):
         self.calls.append(Path(path))
-        return SimpleNamespace(accepted=self.accepted)
-
-
-class BatchAdapter(FakeAdapter):
-    def __init__(self, **options):
-        super().__init__(**options)
-        self.batches = []
-
-    def request_transfers(self, paths):
-        self.batches.append(tuple(Path(path) for path in paths))
         return SimpleNamespace(accepted=self.accepted)
 
 
@@ -53,8 +44,13 @@ class ReturnPendingReceiptsTests(unittest.TestCase):
         count, errors = return_pending_receipts(
             self.repo, adapter, clock=lambda: self.now)
         self.assertEqual((count, errors), (1, ()))
-        self.assertEqual([p.name for p in adapter.calls],
-                         [self.receipt.transport_filename()])
+        self.assertEqual(len(adapter.calls), 1)
+        carrier = adapter.calls[0]
+        self.assertTrue(carrier.name.startswith("reasonnotes-bundle-v1-"))
+        self.assertEqual(
+            read_transport_bundle(carrier.read_bytes(), carrier.name),
+            ((self.receipt.transport_filename(), self.receipt.serialize()),),
+        )
         self.assertEqual(len(self.store.eligible("android")), 0)
         count, errors = return_pending_receipts(
             self.repo, adapter, clock=lambda: self.now)
@@ -73,28 +69,28 @@ class ReturnPendingReceiptsTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(len(self.store.eligible("android")), 1)
 
-    def test_receipt_backlog_uses_one_batch_request(self):
+    def test_receipt_backlog_uses_one_json_carrier_request(self):
         second = Revision.create(
             UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
             (), "android", self.now, False, "# Second note",
         )
         second_receipt = self.store.queue(second, "linux", self.now)
-        adapter = BatchAdapter()
+        adapter = FakeAdapter()
 
         count, errors = return_pending_receipts(
             self.repo, adapter, clock=lambda: self.now
         )
 
         self.assertEqual((count, errors), (2, ()))
-        self.assertEqual(len(adapter.batches), 1)
+        self.assertEqual(len(adapter.calls), 1)
+        carrier = adapter.calls[0]
         self.assertEqual(
-            {path.name for path in adapter.batches[0]},
+            {name for name, _data in read_transport_bundle(carrier.read_bytes(), carrier.name)},
             {
                 self.receipt.transport_filename(),
                 second_receipt.transport_filename(),
             },
         )
-        self.assertEqual(adapter.calls, [])
         self.assertEqual(len(self.store.eligible("android")), 0)
 
 

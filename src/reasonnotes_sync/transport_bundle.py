@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import os
+from pathlib import Path
 import re
+import tempfile
 
 from .envelope import EnvelopeError, Revision
 from .receipt import ReceiptEnvelope, ReceiptError
@@ -98,6 +101,29 @@ def build_bundle(items) -> tuple[str, bytes]:
         raise TransportBundleError("bundle payload exceeds size limit")
     digest = hashlib.sha256(payload).hexdigest()
     return f"reasonnotes-bundle-v1-{digest}.json", payload
+
+
+def write_bundle(directory: Path, items) -> Path:
+    name, payload = build_bundle(items)
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    if path.is_file() and path.read_bytes() == payload:
+        return path
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{name}.", suffix=".tmp", dir=directory
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        return path
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def read_transport_bundle(data: bytes, name: str) -> tuple[tuple[str, bytes], ...]:

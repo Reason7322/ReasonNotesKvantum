@@ -10,6 +10,7 @@ from reasonnotes_sync.kdeconnect_linux import TransferRequest
 from reasonnotes_sync.receipt import ReceiptEnvelope, ReceiptStore
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.sync import scan_inbox, sync_linux
+from reasonnotes_sync.transport_bundle import read_transport_bundle
 
 
 NOTE_LOCAL = UUID("11111111-6666-4666-8666-111111111111")
@@ -20,10 +21,11 @@ DEVICE_ID = "52548cf9710c43cab2fa73ed4671aea9"
 
 
 class FakeAdapter:
-    def __init__(self, reachable=True, before_request=None):
+    def __init__(self, reachable=True, before_request=None, accepted=True):
         self.device_id = DEVICE_ID
         self.is_reachable = reachable
         self.before_request = before_request
+        self.accepted = accepted
         self.calls = []
 
     def reachable(self):
@@ -34,7 +36,7 @@ class FakeAdapter:
         self.calls.append(("request", Path(path)))
         if self.before_request:
             self.before_request()
-        return TransferRequest(True, False, "request accepted")
+        return TransferRequest(self.accepted, False, "request accepted" if self.accepted else "rejected")
 
 
 class SyncTests(unittest.TestCase):
@@ -85,6 +87,54 @@ class SyncTests(unittest.TestCase):
         imported = next(event for event in events if event.kind == EventKind.REASONNOTES_IMPORTED)
         self.assertTrue(
             (self.root / "history" / str(NOTE_REMOTE) / f"{imported.revision_id}.md").exists()
+        )
+
+    def test_mixed_revision_and_receipt_plan_uses_one_json_carrier(self):
+        local = self.repository.create_revision(NOTE_LOCAL, "local", "linux", T0)
+        remote = Revision.create(NOTE_REMOTE, (), "android", T0, False, "remote")
+        self.write_incoming(remote)
+        adapter = FakeAdapter()
+
+        report = sync_linux(self.repository, self.inbox, adapter)
+
+        requests = [call[1] for call in adapter.calls if isinstance(call, tuple)]
+        self.assertEqual(len(requests), 1)
+        carrier = requests[0]
+        self.assertTrue(carrier.name.startswith("reasonnotes-bundle-v1-"))
+        members = read_transport_bundle(carrier.read_bytes(), carrier.name)
+        self.assertEqual(
+            {name for name, _data in members},
+            {
+                f"{local.revision_id}.md",
+                f"{report.receipt_requested[0]}.receipt.md",
+            },
+        )
+        self.assertEqual(report.requested, (local.revision_id,))
+        self.assertEqual(len(report.receipt_requested), 1)
+
+    def test_rejected_mixed_carrier_advances_neither_delivery_ledger(self):
+        local = self.repository.create_revision(NOTE_LOCAL, "local", "linux", T0)
+        remote = Revision.create(NOTE_REMOTE, (), "android", T0, False, "remote")
+        self.write_incoming(remote)
+
+        adapter = FakeAdapter(accepted=False)
+        report = sync_linux(self.repository, self.inbox, adapter)
+
+        receipt_id = ReceiptStore(self.root).eligible("android")[0]
+        self.assertEqual(report.requested, ())
+        self.assertEqual(report.receipt_requested, ())
+        self.assertTrue(report.errors)
+        self.assertEqual(
+            len([call for call in adapter.calls if isinstance(call, tuple)]),
+            1,
+        )
+        self.assertEqual(
+            DeliveryLedger(self.root).entry(local.revision_id, "android").attempts,
+            0,
+        )
+        self.assertEqual(
+            ReceiptStore(self.root).entry(receipt_id, "android").attempts,
+            0,
         )
 
     def test_unreachable_target_records_no_request_and_leaves_pending(self):

@@ -18,6 +18,7 @@ from .delivery import DeliveryLedger, DeliveryState
 from .envelope import Revision
 from .receipt import ReceiptEnvelope, ReceiptError, ReceiptStore
 from .repository import Repository
+from .transport_bundle import BundleItem, TransportBundleError, write_bundle
 
 
 _FORMAT_MARKER = b"---\nreasonnotes-format: 1\n"
@@ -292,6 +293,7 @@ def sync_linux(
     if (eligible or eligible_receipts) and not adapter.reachable():
         errors.append(f"KDE Connect device unavailable: {adapter.device_id}")
     elif eligible or eligible_receipts:
+        items = []
         for revision_id in eligible:
             revision = repository.revision(revision_id)
             assert revision is not None
@@ -300,31 +302,41 @@ def sync_linux(
                 / str(revision.note_id)
                 / f"{revision.revision_id}.md"
             )
-            result = adapter.request_transfer(path)
-            if not result.accepted:
-                errors.append(f"{revision_id}: {result.detail}")
-                continue
-            observed = datetime.now(timezone.utc).replace(microsecond=0)
-            ledger.record_requested(
-                revision_id,
-                target_device,
-                observed,
-                observer_device=local_device,
-            )
-            requested.append(revision_id)
+            items.append(BundleItem("revision", revision_id, path.read_bytes()))
         for receipt_id in eligible_receipts:
             try:
                 path = receipt_store.outbox_path(receipt_id)
             except ReceiptError as error:
                 errors.append(f"receipt {receipt_id}: {error}")
                 continue
-            result = adapter.request_transfer(path)
-            if not result.accepted:
-                errors.append(f"receipt {receipt_id}: {result.detail}")
-                continue
-            observed = datetime.now(timezone.utc).replace(microsecond=0)
-            receipt_store.record_requested(receipt_id, target_device, observed)
-            receipt_requested.append(receipt_id)
+            items.append(BundleItem("receipt", receipt_id, path.read_bytes()))
+        if items:
+            try:
+                path = write_bundle(
+                    repository.root / "transport" / "outbox", items
+                )
+                result = adapter.request_transfer(path)
+            except (OSError, ValueError, RuntimeError, TransportBundleError) as error:
+                errors.append(f"transport bundle unavailable: {error}")
+            else:
+                if not result.accepted:
+                    errors.append(f"transport bundle: {result.detail}")
+                else:
+                    observed = datetime.now(timezone.utc).replace(microsecond=0)
+                    for item in items:
+                        if item.kind == "revision":
+                            ledger.record_requested(
+                                item.identity,
+                                target_device,
+                                observed,
+                                observer_device=local_device,
+                            )
+                            requested.append(item.identity)
+                        else:
+                            receipt_store.record_requested(
+                                item.identity, target_device, observed
+                            )
+                            receipt_requested.append(item.identity)
     pending = tuple(
         entry.revision_id
         for entry in ledger.entries(target_device)
