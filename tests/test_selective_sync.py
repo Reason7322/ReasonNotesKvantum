@@ -11,6 +11,7 @@ from reasonnotes_sync.kdeconnect_linux import TransferRequest
 from reasonnotes_sync.receipt import ReceiptStore
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.sync import sync_linux
+from reasonnotes_sync.transport_bundle import read_transport_bundle
 
 
 NOTE_A = UUID("11111111-aaaa-4aaa-8aaa-111111111111")
@@ -68,9 +69,11 @@ class SelectiveSyncTests(unittest.TestCase):
             DeliveryLedger(self.root).entry(note_b.revision_id, "android").state,
             DeliveryState.PENDING,
         )
+        self.assertEqual(len(adapter.paths), 1)
+        carrier = adapter.paths[0]
         self.assertEqual(
-            {path.parent.name for path in adapter.paths},
-            {str(NOTE_A)},
+            {name for name, _data in read_transport_bundle(carrier.read_bytes(), carrier.name)},
+            {f"{first_a.revision_id}.md", f"{second_a.revision_id}.md"},
         )
 
     def test_none_selection_preserves_ordinary_all_note_behavior(self) -> None:
@@ -203,9 +206,11 @@ class SelectiveSyncTests(unittest.TestCase):
             DeliveryState.PENDING,
         )
         receipt_id = report.receipt_requested[0]
+        self.assertEqual(len(adapter.paths), 1)
+        carrier = adapter.paths[0]
         self.assertEqual(
-            adapter.paths,
-            [ReceiptStore(self.root).outbox_path(receipt_id)],
+            {name for name, _data in read_transport_bundle(carrier.read_bytes(), carrier.name)},
+            {f"{receipt_id}.receipt.md"},
         )
 
     def test_explicit_force_retry_remains_independent_of_ordinary_selection(self) -> None:

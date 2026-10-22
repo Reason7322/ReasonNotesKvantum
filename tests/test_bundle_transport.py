@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID
 import hashlib
+import json
 import unittest
 from unittest.mock import patch
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -15,6 +16,7 @@ from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.receipt import ReceiptEnvelope
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.sync import scan_inbox
+from reasonnotes_sync.transport_bundle import BundleItem, build_bundle
 
 
 NOTE = UUID("a2222222-1111-4111-8111-111111111111")
@@ -69,6 +71,55 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(len(result.receipts_queued), 1)
         self.assertEqual(result.errors, ())
         self.assertEqual(incoming.read_bytes(), data)
+
+    def test_receipt_and_revision_import_from_one_json_transport_bundle(self):
+        local = self.repository.create_revision(NOTE, "linux text", "linux", WHEN)
+        from reasonnotes_sync.delivery import DeliveryLedger
+        ledger = DeliveryLedger(self.repository.root)
+        ledger.record_requested(local.revision_id, "android", WHEN)
+        ack = ReceiptEnvelope.create(
+            NOTE, local.revision_id, "android", "linux", WHEN
+        )
+        remote = Revision.create(OTHER, (), "android", WHEN, False, "# Android\n")
+        name, data = build_bundle((
+            BundleItem("revision", remote.revision_id, remote.serialize()),
+            BundleItem("receipt", ack.receipt_id, ack.serialize()),
+        ))
+        incoming = self.downloads / name
+        incoming.write_bytes(data)
+
+        result = scan_inbox(
+            self.repository, self.inbox, "linux", received_dir=self.downloads
+        )
+
+        self.assertEqual(result.imported, (remote.revision_id,))
+        self.assertEqual(result.confirmed, (local.revision_id,))
+        self.assertEqual(len(result.receipts_queued), 1)
+        self.assertEqual(result.errors, ())
+        self.assertEqual(incoming.read_bytes(), data)
+
+    def test_invalid_json_member_rejects_complete_bundle_before_mutation(self):
+        first = Revision.create(NOTE, (), "android", WHEN, False, "# First")
+        second = Revision.create(OTHER, (), "android", WHEN, False, "# Second")
+        _name, data = build_bundle((
+            BundleItem("revision", first.revision_id, first.serialize()),
+            BundleItem("revision", second.revision_id, second.serialize()),
+        ))
+        value = json.loads(data)
+        value["items"][1]["envelope"] = "not a revision"
+        invalid = json.dumps(
+            value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode("utf-8")
+        name = f"reasonnotes-bundle-v1-{hashlib.sha256(invalid).hexdigest()}.json"
+        (self.downloads / name).write_bytes(invalid)
+
+        report = scan_inbox(
+            self.repository, self.inbox, "linux", received_dir=self.downloads
+        )
+
+        self.assertEqual(report.imported, ())
+        self.assertEqual(self.repository.revisions(), ())
+        self.assertTrue(any("envelope" in error for error in report.errors))
 
     def test_duplicate_carrier_filename_imports_while_untouched(self):
         revisions = [

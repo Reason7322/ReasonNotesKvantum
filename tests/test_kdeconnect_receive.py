@@ -9,6 +9,7 @@ from uuid import UUID
 from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.sync import scan_inbox, sync_linux
+from reasonnotes_sync.transport_bundle import BundleItem, build_bundle
 
 
 NOTE = UUID("88888888-1111-4111-8111-111111111111")
@@ -53,6 +54,24 @@ class ReceiveDirectoryTests(unittest.TestCase):
 
         self.assertEqual(result.imported, (revision.revision_id,))
         self.assertEqual(received.read_bytes(), revision.serialize())
+
+    def test_json_bundle_collision_suffix_imports_and_unrelated_json_is_ignored(self):
+        revision = Revision.create(NOTE, (), "android", T0, False, "# JSON")
+        name, payload = build_bundle((
+            BundleItem("revision", revision.revision_id, revision.serialize()),
+        ))
+        collision = self.downloads / name.replace(".json", " (1).json")
+        collision.write_bytes(payload)
+        unrelated = self.downloads / "user-data.json"
+        unrelated.write_text('{"private":true}')
+
+        result = scan_inbox(
+            self.repository, self.inbox, "linux", received_dir=self.downloads
+        )
+
+        self.assertEqual(result.imported, (revision.revision_id,))
+        self.assertEqual(result.errors, ())
+        self.assertEqual(unrelated.read_text(), '{"private":true}')
 
     def test_sync_entrypoint_scans_additional_received_folder_first(self):
         revision = Revision.create(NOTE, (), "android", T0, False, "# Sync path")

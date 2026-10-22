@@ -16,7 +16,9 @@ from .receipt import ReceiptEnvelope, ReceiptError
 
 FORMAT = "reasonnotes-transport-bundle"
 VERSION = 1
-NAME = re.compile(r"reasonnotes-bundle-v1-([0-9a-f]{64})\.json")
+NAME = re.compile(
+    r"reasonnotes-bundle-v1-([0-9a-f]{64})(?: \(([1-9][0-9]*)\))?\.json"
+)
 IDENTITY = re.compile(r"[0-9a-f]{64}")
 MAX_ITEMS = 256
 MAX_ENVELOPE_BYTES = 16 * 1024 * 1024

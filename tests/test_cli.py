@@ -11,6 +11,7 @@ from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.kdeconnect_linux import TransferRequest
 from reasonnotes_sync.receipt import ReceiptEnvelope, ReceiptStore
 from reasonnotes_sync.repository import Repository
+from reasonnotes_sync.transport_bundle import read_transport_bundle
 
 
 NOTE_ID = UUID("dddddddd-4444-4444-8444-dddddddddddd")
@@ -266,7 +267,15 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         self.assertIn(f"receipt-transfer-requested={receipt_id}", output.getvalue())
-        self.assertEqual(adapter.paths, [ReceiptStore(self.root).outbox_path(receipt_id)])
+        self.assertEqual(len(adapter.paths), 1)
+        carrier = adapter.paths[0]
+        self.assertEqual(
+            read_transport_bundle(carrier.read_bytes(), carrier.name),
+            ((
+                f"{receipt_id}.receipt.md",
+                ReceiptStore(self.root).outbox_path(receipt_id).read_bytes(),
+            ),),
+        )
         outbox = self.run_cli("outbox", "--target-device", "android")
         self.assertIn(
             f"receipt={receipt_id} revision={remote.revision_id} "

@@ -18,7 +18,14 @@ from .delivery import DeliveryLedger, DeliveryState
 from .envelope import Revision
 from .receipt import ReceiptEnvelope, ReceiptError, ReceiptStore
 from .repository import Repository
-from .transport_bundle import BundleItem, TransportBundleError, write_bundle
+from .transport_bundle import (
+    BundleItem,
+    MAX_PAYLOAD_BYTES,
+    TransportBundleError,
+    is_transport_bundle_name,
+    read_transport_bundle,
+    write_bundle,
+)
 
 
 _FORMAT_MARKER = b"---\nreasonnotes-format: 1\n"
@@ -53,6 +60,9 @@ def _incoming_files(directory: Path, *, downloads: bool):
                     continue
         elif path.suffix.lower() == ".zip":
             if not is_bundle_name(name):
+                continue
+        elif path.suffix.lower() == ".json":
+            if not is_transport_bundle_name(name):
                 continue
         elif not (not path.suffix and _extensionless_kde_name(name)):
             continue
@@ -144,10 +154,17 @@ def scan_inbox(
         try:
             if path.suffix.lower() == ".zip" and path.stat().st_size > MAX_ARCHIVE_BYTES:
                 raise BundleError("bundle exceeds archive size limit")
+            if path.suffix.lower() == ".json" and path.stat().st_size > MAX_PAYLOAD_BYTES:
+                raise TransportBundleError("bundle payload exceeds size limit")
             data = path.read_bytes()
-            members = read_bundle(data, path.name) if is_bundle_name(path.name) else ((path.name, data),)
+            if is_bundle_name(path.name):
+                members = read_bundle(data, path.name)
+            elif is_transport_bundle_name(path.name):
+                members = read_transport_bundle(data, path.name)
+            else:
+                members = ((path.name, data),)
             incoming.extend((f"{path}!{name}", name, item) for name, item in members)
-        except (OSError, BundleError) as error:
+        except (OSError, BundleError, TransportBundleError) as error:
             errors.append(f"{path}: {error}")
 
     for source, source_name, data in incoming:
