@@ -164,6 +164,95 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             with self.subTest(button=button.text()):
                 self.assertFalse(button.icon().isNull())
 
+    def test_sidebar_alignment_grid_at_supported_widths(self):
+        sidebar = self.window.sidebar
+        buttons = (
+            sidebar.new_button,
+            sidebar.save_button,
+            sidebar.sync_button,
+            sidebar.settings_button,
+            sidebar.delete_button,
+        )
+        original_minimum = sidebar.minimumWidth()
+        original_maximum = sidebar.maximumWidth()
+        self.addCleanup(sidebar.setMinimumWidth, original_minimum)
+        self.addCleanup(sidebar.setMaximumWidth, original_maximum)
+
+        for width in (250, 300, 520):
+            with self.subTest(width=width):
+                sidebar.setFixedWidth(width)
+                sidebar.resize(width, sidebar.height())
+                sidebar.layout().activate()
+                QCoreApplication.processEvents()
+
+                brand_center = sidebar.brand_icon.mapTo(
+                    sidebar, sidebar.brand_icon.rect().center()
+                ).x()
+                brand_text_x = sidebar.brand_reason.mapTo(sidebar, QPoint()).x()
+                search_center = sidebar.search_icon.mapTo(
+                    sidebar, sidebar.search_icon.rect().center()
+                ).x()
+                search_text_x = sidebar.search_field.mapTo(sidebar, QPoint()).x()
+
+                self.assertLessEqual(abs(brand_center - search_center), 1)
+                self.assertEqual(search_text_x, brand_text_x)
+                for button in buttons:
+                    icon_center = button.mapTo(
+                        sidebar, button.icon_rect().center()
+                    ).x()
+                    text_x = button.mapTo(sidebar, button.text_rect().topLeft()).x()
+                    self.assertLessEqual(abs(icon_center - brand_center), 1)
+                    self.assertEqual(text_x, brand_text_x)
+
+                outer_x = sidebar.notes_heading.mapTo(sidebar, QPoint()).x()
+                self.assertEqual(sidebar.list_view.mapTo(sidebar, QPoint()).x(), outer_x)
+                self.assertEqual(sidebar.status_area.mapTo(sidebar, QPoint()).x(), outer_x)
+
+    def test_sidebar_search_native_frame_is_edge_only(self):
+        well = self.window.sidebar.search_well
+        untouched = QColor(17, 23, 31)
+        image = QImage(180, 46, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(untouched)
+        painter = QPainter(image)
+        well.draw_native_frame(painter, image.rect())
+        painter.end()
+
+        self.assertEqual(image.pixelColor(image.rect().center()), untouched)
+        border_width = 6
+        changed_border_pixels = 0
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if (
+                    x < border_width
+                    or x >= image.width() - border_width
+                    or y < border_width
+                    or y >= image.height() - border_width
+                ) and image.pixelColor(x, y) != untouched:
+                    changed_border_pixels += 1
+        self.assertGreater(changed_border_pixels, 0)
+
+    def test_sidebar_search_preserves_native_editing_and_clear_behavior(self):
+        field = self.window.sidebar.search_field
+        changes = []
+        field.textChanged.connect(changes.append)
+
+        field.setFocus()
+        QTest.keyClicks(field, "alignment probe")
+        self.assertTrue(field.hasFocus())
+        self.assertEqual(field.text(), "alignment probe")
+        self.assertIn("alignment probe", changes)
+        self.assertTrue(field.isClearButtonEnabled())
+        self.assertEqual(field.accessibleName(), "Search notes")
+        self.assertEqual(field.styleSheet(), "")
+        self.assertEqual(
+            field.palette().brush(QPalette.ColorRole.Base).style(),
+            Qt.BrushStyle.NoBrush,
+        )
+
+        field.clear()
+        self.assertEqual(field.text(), "")
+        self.assertEqual(changes[-1], "")
+
     def test_sidebar_restores_the_original_single_column_action_hierarchy(self):
         sidebar = self.window.sidebar
         self.assertEqual(sidebar.brand_reason.font().pixelSize(), 27)
@@ -458,7 +547,9 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         # page/card/rail add separation rather than a solid background.
         self.assertEqual(self.window.editor.writing_column.__class__.__name__, "GlassCard")
         self.assertEqual(self.window.sidebar.__class__.__name__, "NotesSidebar")
-        self.assertEqual(self.window.sidebar.search_well.__class__.__name__, "SearchWell")
+        from reasonnotes_widgets.material import SearchWell
+
+        self.assertIsInstance(self.window.sidebar.search_well, SearchWell)
 
     def test_window_material_has_no_repeated_quantized_bands(self):
         from reasonnotes_widgets.wayland_blur import prepare_translucent_surface

@@ -1,5 +1,44 @@
 # ReasonNotesKvantum - Project Status
 
+## Sidebar alignment and native search-frame candidate — 2026-10-23
+
+The owner-approved LiquidGlass sidebar remains the material baseline. This
+bounded refinement places the brand, action icons, search icon, action/search
+text, notes section, list, and footer on one sidebar-local alignment grid at
+the supported 250 px, 300 px, and 520 px widths. The search icon is now a
+separate fixed column, so Qt's internal leading-action spacing cannot move the
+placeholder away from the action-label column.
+
+The active qt6ct/Kvantum style owns the Search notes edge. Kvantum's
+`PE_FrameLineEdit` primitive is a no-op in the tested chain, so the sidebar
+clips the native `PE_PanelLineEdit` painting to the style-reported frame width.
+The center remains unpainted and the integrated `QLineEdit` retains `NoBrush`;
+there is no independently filled rectangle, stylesheet, literal color, or
+application-chosen opacity in the new path. The accepted `material.py` remains
+byte-identical at SHA-256
+`755d6e3a0644a2b988cde0c13bde49db3cdf12f5c1e52946eb9026086007d64c`.
+
+Focused offscreen verification passed 29/29 across
+`tests.test_widgets_visual_polish` and `tests.test_widgets_main_window`,
+including supported-width geometry, frame-edge/untouched-center pixels,
+typing, clearing, focus, Ctrl+F, accessibility, native style-chain behavior,
+autosave, splitter resizing, and existing material regressions. No full suite
+was repeated because storage, synchronization, editor, and other subsystems
+were not changed.
+
+No interactive application was launched. For a separately authorized visual
+review, use this exact worktree source only after `verify-candidate-isolation.py`
+passes with persistent HOME/XDG, repository, inbox, and received roots beneath
+`/home/reason/Temporary/ReasonNotes-Sidebar-Alignment-Review/`; then launch
+`linux-app/reasonnotes_widgets.py` with those same explicit roots,
+`QT_QPA_PLATFORM=wayland`, `QT_QPA_PLATFORMTHEME=qt6ct`, and
+`--no-auto-receive`. Do not use `scripts/preview-dolphin-style.zsh`, whose
+legacy implementation deliberately stages under prohibited `/tmp`.
+
+**VISUAL ACCEPTANCE PENDING:** actual Wayland appearance must be judged by
+Reason. Remaining product work includes further interface acceptance and
+reliable bidirectional Android synchronization; neither was performed here.
+
 ## Owner-approved LiquidGlass sidebar preserved — 2026-10-23
 
 Reason visually accepted the LiquidGlass sidebar shown in the real Wayland

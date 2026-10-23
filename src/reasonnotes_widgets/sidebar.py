@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QSize, Qt
+from PySide6.QtCore import QEvent, QPointF, QRect, QSize, Qt
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -16,6 +16,7 @@ from PySide6.QtGui import (
     QPen,
     QPixmap,
     QPolygonF,
+    QRegion,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -26,6 +27,7 @@ from PySide6.QtWidgets import (
     QListView,
     QSizePolicy,
     QStyle,
+    QStyleOptionFrame,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QToolButton,
@@ -35,6 +37,13 @@ from PySide6.QtWidgets import (
 
 from .material import NavigationRail, SearchWell, tinted
 from .visuals import integrate_line_edit, integrate_scroll_surface
+
+
+SIDEBAR_OUTER_MARGIN = 24
+SIDEBAR_ICON_COLUMN_WIDTH = 38
+SIDEBAR_ICON_SIZE = 24
+SIDEBAR_ICON_INSET = (SIDEBAR_ICON_COLUMN_WIDTH - SIDEBAR_ICON_SIZE) // 2
+SIDEBAR_TEXT_COLUMN = 48
 
 
 def _theme_icon(widget: QWidget, names: tuple[str, ...], fallback) -> QIcon:
@@ -157,9 +166,23 @@ class SidebarActionButton(QToolButton):
             self.setFont(font)
 
     def sizeHint(self) -> QSize:
-        width = 12 + self.iconSize().width() + 12
+        width = SIDEBAR_TEXT_COLUMN
         width += self.fontMetrics().horizontalAdvance(self.text()) + 16
         return QSize(max(150, width), 50 if self.is_prominent else 42)
+
+    def icon_rect(self, *, pressed: bool | None = None) -> QRect:
+        shift = int(self.isDown() if pressed is None else pressed)
+        rect = QRect(
+            SIDEBAR_ICON_INSET + shift,
+            (self.height() - self.iconSize().height()) // 2 + shift,
+            self.iconSize().width(),
+            self.iconSize().height(),
+        )
+        return rect
+
+    def text_rect(self, *, pressed: bool | None = None) -> QRect:
+        shift = int(self.isDown() if pressed is None else pressed)
+        return self.rect().adjusted(SIDEBAR_TEXT_COLUMN + shift, 0, -12, 0)
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
@@ -195,20 +218,14 @@ class SidebarActionButton(QToolButton):
             painter.setPen(QPen(tinted(palette.highlight().color(), 210), 1.5))
             painter.drawRoundedRect(bounds.adjusted(1, 1, -1, -1), 7, 7)
 
-        shift = 1 if pressed else 0
-        icon_rect = self.rect().adjusted(12 + shift, 0, 0, 0)
-        icon_rect.setWidth(self.iconSize().width())
-        icon_rect.setHeight(self.iconSize().height())
-        icon_rect.moveTop((self.height() - icon_rect.height()) // 2 + shift)
+        icon_rect = self.icon_rect(pressed=pressed)
         mode = QIcon.Mode.Disabled if not enabled else (
             QIcon.Mode.Active if hovered else QIcon.Mode.Normal
         )
         state = QIcon.State.On if self.isChecked() else QIcon.State.Off
         self.icon().paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter, mode, state)
 
-        text_rect = self.rect().adjusted(
-            12 + self.iconSize().width() + 12 + shift, 0, -12, 0
-        )
+        text_rect = self.text_rect(pressed=pressed)
         painter.setOpacity(1.0 if enabled else 0.46)
         self.style().drawItemText(
             painter,
@@ -219,6 +236,59 @@ class SidebarActionButton(QToolButton):
             self.text(),
             text_role,
         )
+        painter.end()
+
+
+class SidebarSearchWell(SearchWell):
+    """Kvantum-owned line-edit edge with no independent interior fill."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._focus_source: QLineEdit | None = None
+        self.setMouseTracking(True)
+
+    def set_focus_source(self, field: QLineEdit) -> None:
+        self._focus_source = field
+        field.installEventFilter(self)
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self._focus_source and event.type() in (
+            QEvent.Type.FocusIn,
+            QEvent.Type.FocusOut,
+            QEvent.Type.Enter,
+            QEvent.Type.Leave,
+        ):
+            self.update()
+        return super().eventFilter(watched, event)
+
+    def draw_native_frame(self, painter: QPainter, rect: QRect) -> None:
+        option = QStyleOptionFrame()
+        option.initFrom(self)
+        option.rect = rect
+        option.lineWidth = self.style().pixelMetric(
+            QStyle.PixelMetric.PM_DefaultFrameWidth, option, self
+        )
+        if self._focus_source is not None and self._focus_source.hasFocus():
+            option.state |= QStyle.StateFlag.State_HasFocus
+        frame_width = max(option.lineWidth, 1)
+        frame_region = QRegion(rect).subtracted(
+            QRegion(
+                rect.adjusted(frame_width, frame_width, -frame_width, -frame_width)
+            )
+        )
+        painter.save()
+        painter.setClipRegion(frame_region)
+        self.style().drawPrimitive(
+            QStyle.PrimitiveElement.PE_PanelLineEdit,
+            option,
+            painter,
+            self,
+        )
+        painter.restore()
+
+    def paintEvent(self, _event) -> None:
+        painter = QPainter(self)
+        self.draw_native_frame(painter, self.rect())
         painter.end()
 
 
@@ -290,14 +360,19 @@ class NotesSidebar(NavigationRail):
         self.setMinimumWidth(250)
         self.setMaximumWidth(520)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 18)
+        layout.setContentsMargins(
+            SIDEBAR_OUTER_MARGIN,
+            SIDEBAR_OUTER_MARGIN,
+            SIDEBAR_OUTER_MARGIN,
+            18,
+        )
         layout.setSpacing(8)
 
         brand_row = QHBoxLayout()
         brand_row.setSpacing(10)
         self.brand_icon = QLabel(self)
         self.brand_icon.setObjectName("brandIcon")
-        self.brand_icon.setFixedSize(38, 38)
+        self.brand_icon.setFixedSize(SIDEBAR_ICON_COLUMN_WIDTH, 38)
         self.brand_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         brand_text = QHBoxLayout()
         brand_text.setSpacing(0)
@@ -352,21 +427,34 @@ class NotesSidebar(NavigationRail):
         layout.addWidget(self.delete_button)
         layout.addSpacing(8)
 
-        self.search_field = QLineEdit(self)
+        self.search_well = SidebarSearchWell(self)
+        self.search_well.setObjectName("searchWell")
+        self.search_well.setMinimumHeight(46)
+        search_layout = QHBoxLayout(self.search_well)
+        search_layout.setContentsMargins(0, 5, 0, 5)
+        search_layout.setSpacing(SIDEBAR_TEXT_COLUMN - SIDEBAR_ICON_COLUMN_WIDTH)
+        self.search_icon = QLabel(self.search_well)
+        self.search_icon.setObjectName("noteSearchIcon")
+        self.search_icon.setFixedSize(
+            SIDEBAR_ICON_COLUMN_WIDTH, SIDEBAR_ICON_COLUMN_WIDTH
+        )
+        self.search_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.search_icon.setPixmap(
+            _theme_icon(
+                self,
+                ("edit-find",),
+                QStyle.StandardPixmap.SP_FileDialogContentsView,
+            ).pixmap(18, 18)
+        )
+        search_layout.addWidget(self.search_icon)
+
+        self.search_field = QLineEdit(self.search_well)
         self.search_field.setObjectName("noteSearch")
         self.search_field.setPlaceholderText("Search notes")
         self.search_field.setClearButtonEnabled(True)
         self.search_field.setAccessibleName("Search notes")
-        self.search_field.addAction(
-            _theme_icon(self, ("edit-find",), QStyle.StandardPixmap.SP_FileDialogContentsView),
-            QLineEdit.ActionPosition.LeadingPosition,
-        )
         integrate_line_edit(self.search_field)
-        self.search_well = SearchWell(self)
-        self.search_well.setObjectName("searchWell")
-        self.search_well.setMinimumHeight(46)
-        search_layout = QVBoxLayout(self.search_well)
-        search_layout.setContentsMargins(10, 5, 10, 5)
+        self.search_well.set_focus_source(self.search_field)
         search_layout.addWidget(self.search_field)
         layout.addWidget(self.search_well)
 
