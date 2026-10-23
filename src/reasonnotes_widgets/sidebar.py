@@ -267,8 +267,14 @@ class SidebarSearchWell(SearchWell):
         option.lineWidth = self.style().pixelMetric(
             QStyle.PixelMetric.PM_DefaultFrameWidth, option, self
         )
-        if self._focus_source is not None and self._focus_source.hasFocus():
+        input_enabled = (
+            self.isEnabled()
+            and (self._focus_source is None or self._focus_source.isEnabled())
+        )
+        if input_enabled:
             option.state |= QStyle.StateFlag.State_HasFocus
+        else:
+            option.state &= ~QStyle.StateFlag.State_Enabled
         self.style().drawPrimitive(
             QStyle.PrimitiveElement.PE_PanelLineEdit,
             option,

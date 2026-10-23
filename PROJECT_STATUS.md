@@ -1,5 +1,29 @@
 # ReasonNotesKvantum - Project Status
 
+## Final Search notes focused-appearance correction — 2026-10-23
+
+Reason identified the exact desired appearance as the complete native
+Kvantum line edit while it has keyboard focus. The enabled Search notes
+surround now requests that same focused paint state permanently, whether or
+not the child input owns keyboard focus. This changes painting only: the
+`QLineEdit` is not programmatically focused, and cursor, typing, shortcut, and
+keyboard-focus behavior remain native.
+
+The complete translucent `PE_PanelLineEdit` surface from checkpoint
+`68da75f632f0e659c582106ec2b445ef99d155b6` is preserved. Disabled controls
+retain the native disabled state without the forced focus flag. No color,
+opacity, shader, stylesheet, layout, icon, dimension, sidebar material, or
+global Kvantum setting changed.
+
+Focused image tests prove enabled resting and actually focused surrounds are
+identical, resting painting does not grant input focus, and disabled rendering
+matches the native disabled panel. Search interaction, alignment, and existing
+material regressions remain covered. No interactive launch or deployment was
+performed; final Wayland visual acceptance belongs to Reason.
+
+**PRODUCT INCOMPLETE:** Android synchronization and any further UI work remain
+separately authorized milestones.
+
 ## Search notes restored as a native search bar — 2026-10-23
 
 Reason rejected the `b317b703f66d18a0bb0896041ae607deb3307d8a`

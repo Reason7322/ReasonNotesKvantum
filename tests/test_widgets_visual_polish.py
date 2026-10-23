@@ -220,7 +220,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         self.assertGreater(center_alpha, 0)
         self.assertLess(center_alpha, 255)
 
-    def test_sidebar_search_surface_uses_native_normal_and_focus_states(self):
+    def test_sidebar_search_surface_stays_focused_without_faking_input_focus(self):
         well = self.window.sidebar.search_well
         field = self.window.sidebar.search_field
         field.clearFocus()
@@ -251,11 +251,10 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         painter = QPainter(resting)
         well.draw_native_surface(painter, resting.rect())
         painter.end()
-        normal = render_native()
         expected_focused = render_native(QStyle.StateFlag.State_HasFocus)
 
-        self.assertEqual(resting, normal)
-        self.assertNotEqual(resting, expected_focused)
+        self.assertFalse(field.hasFocus())
+        self.assertEqual(resting, expected_focused)
 
         field.setFocus()
         QCoreApplication.processEvents()
@@ -266,6 +265,20 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         painter.end()
         self.assertTrue(field.hasFocus())
         self.assertEqual(focused, expected_focused)
+
+        field.clearFocus()
+        well.setEnabled(False)
+        self.addCleanup(well.setEnabled, True)
+        QCoreApplication.processEvents()
+        disabled = QImage(180, 46, QImage.Format.Format_ARGB32_Premultiplied)
+        disabled.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(disabled)
+        well.draw_native_surface(painter, disabled.rect())
+        painter.end()
+        expected_disabled = render_native()
+        self.assertFalse(field.isEnabled())
+        self.assertFalse(field.hasFocus())
+        self.assertEqual(disabled, expected_disabled)
 
     def test_sidebar_search_preserves_native_editing_and_clear_behavior(self):
         field = self.window.sidebar.search_field
