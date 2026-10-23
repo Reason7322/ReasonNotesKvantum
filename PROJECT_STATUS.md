@@ -1,5 +1,27 @@
 # ReasonNotesKvantum - Project Status
 
+## Dolphin-native material candidate — 2026-10-23
+
+The default Widgets rendering now delegates the window, sidebar, cards,
+search, editor, list surfaces, and sidebar divider to the active Qt/Kvantum
+style. The fixed `#2C3539` editor fill, transparent palette overrides, and
+custom splitter paint suppression are absent from the new default path; no
+replacement hardcoded surface colors or opacity were introduced.
+
+Focused material, editing/layout, bootstrap, and candidate-isolation coverage
+passes 58 tests. The staged offscreen probe reports
+`qt6ct-style -> kvantum` and `native-kvantum`. An immutable candidate from
+source `95923d8dc66d73b63eda94bd7ffc970ce1a53b1d` is staged at
+`/home/reason/Temporary/ReasonNotes-Dolphin-Native-Candidate/`; archive SHA-256
+is `32c798b5a7a087e9f10bd50a434c9f439abf7984ee0000a480e2a03617073bd6`.
+
+The installed candidate, production executable/data, personal notes, Android,
+and global theme configuration remain unchanged. A real Wayland launch was not
+performed. Visual acceptance requires Reason's separately authorized matched
+Dolphin comparison. Android synchronization and durable-confirmation
+acceptance remain unfinished. See
+`docs/DOLPHIN_NATIVE_MATERIAL_VALIDATION_2026-10-23.md`.
+
 ## Current milestone
 
 Integrated release candidate on `forge/reasonnotes-completion`, based on
