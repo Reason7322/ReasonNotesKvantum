@@ -69,11 +69,18 @@ class NavigationRail(_NativeStyleSurface, QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:
-        painter = QPainter(self)
         if self._native_style_enabled:
-            self._paint_native_style_surface(painter)
+            # Replace, rather than overlay, the parent's window material in
+            # the navigation rail. The active Kvantum Base brush carries its
+            # own theme-defined transparency; no application color or alpha.
+            painter = QPainter(self)
+            painter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_Source
+            )
+            painter.fillRect(event.rect(), self.palette().base())
             painter.end()
             return
+        painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         palette = self.palette()
         if self._material_fill_enabled:
@@ -103,11 +110,11 @@ class GlassCard(_NativeStyleSurface, QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:
-        painter = QPainter(self)
         if self._native_style_enabled:
-            self._paint_native_style_surface(painter)
-            painter.end()
+            # The parent already carries the native material: no card-sized
+            # extra PE_Widget layer and no custom gradient/fixed color.
             return
+        painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         bounds = self.rect().adjusted(1, 1, -2, -2)
         palette = self.palette()
@@ -155,11 +162,10 @@ class SearchWell(_NativeStyleSurface, QWidget):
         self._initialize_native_style_surface()
 
     def paintEvent(self, event) -> None:
-        painter = QPainter(self)
         if self._native_style_enabled:
-            self._paint_native_style_surface(painter)
-            painter.end()
+            # This is a layout surround, not another independent window.
             return
+        painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect().adjusted(1, 1, -2, -2)
         color = self.palette().base().color()

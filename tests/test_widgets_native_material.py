@@ -136,7 +136,7 @@ class NativeWindowMaterialTests(unittest.TestCase):
         self.assertGreater(len(surfaces), 4)
         self.assertTrue(all(surface.native_style_enabled for surface in surfaces))
 
-    def test_native_material_widgets_render_the_active_style_primitive(self):
+    def test_native_material_children_do_not_stack_widget_primitives(self):
         from reasonnotes_widgets.material import GlassCard, NavigationRail, SearchWell
 
         class PrimitiveRecordingStyle(QProxyStyle):
@@ -151,6 +151,18 @@ class NativeWindowMaterialTests(unittest.TestCase):
 
         for widget_type in (NavigationRail, GlassCard, SearchWell):
             with self.subTest(widget_type=widget_type.__name__):
+                baseline = widget_type()
+                self.addCleanup(baseline.close)
+                baseline.resize(240, 120)
+                baseline_style = PrimitiveRecordingStyle(
+                    baseline.style().objectName()
+                )
+                baseline_style.setParent(baseline)
+                baseline.setStyle(baseline_style)
+                baseline.show()
+                QCoreApplication.processEvents()
+                self._render_widget_image(baseline, 240, 120)
+
                 widget = widget_type()
                 self.addCleanup(widget.close)
                 widget.resize(240, 120)
@@ -162,7 +174,26 @@ class NativeWindowMaterialTests(unittest.TestCase):
                 QCoreApplication.processEvents()
 
                 self._render_widget_image(widget, 240, 120)
-                self.assertGreater(recording_style.widget_primitive_calls, 0)
+                self.assertEqual(
+                    recording_style.widget_primitive_calls,
+                    baseline_style.widget_primitive_calls,
+                )
+
+    def test_native_navigation_rail_uses_the_theme_base_brush(self):
+        from reasonnotes_widgets.material import NavigationRail
+
+        rail = NavigationRail()
+        self.addCleanup(rail.close)
+        rail.resize(240, 120)
+        rail.set_native_style_enabled(True)
+        rail.show()
+        QCoreApplication.processEvents()
+
+        image = self._render_widget_image(rail, 240, 120)
+        self.assertEqual(
+            image.pixelColor(QPoint(120, 60)),
+            rail.palette().base().color(),
+        )
 
     def test_application_style_chain_contains_kvantum_leaf(self):
         from reasonnotes_widgets.bootstrap import style_chain_names

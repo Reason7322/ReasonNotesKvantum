@@ -1,5 +1,37 @@
 # ReasonNotesKvantum - Project Status
 
+## Owner-approved LiquidGlass sidebar preserved — 2026-10-23
+
+Reason visually accepted the LiquidGlass sidebar shown in the real Wayland
+screenshots `/home/reason/Pictures/2026-10-23-111154_hyprshot.png` and
+`/home/reason/Pictures/2026-10-23-111159_hyprshot.png`. This acceptance is
+limited to the sidebar appearance; it is not acceptance of the remaining UI,
+installation, release, or Android synchronization.
+
+The accepted implementation was recovered read-only from
+`/home/reason/Temporary/ReasonNotes-UI-Correction/preview-95923d8/`, based on
+source `95923d8dc66d73b63eda94bd7ffc970ce1a53b1d` with
+`reasonnotes_kvantum_hybrid_surface_v1.patch` followed by
+`reasonnotes_sidebar_liquidglass_v1.patch`. The authoritative preview and
+`Accepted/` recovery references remain unchanged.
+
+The three integrated source files match the accepted manifest byte-for-byte:
+
+- `material.py`: `755d6e3a0644a2b988cde0c13bde49db3cdf12f5c1e52946eb9026086007d64c`
+- `visuals.py`: `97b7775b446c06d84d62da5161c47b495d1a25ac277f3a75183880583c045472`
+- `editor_page.py`: `89ca32a9e04fed078827200cd6b6dca18a3a459bc623155547645feeb7238798`
+
+The accepted rail uses the active Kvantum `Base` brush with source
+composition, while native cards/search surrounds avoid stacked `PE_Widget`
+panels and large edit/list base fills use `NoBrush`. No fixed color or invented
+opacity was added. Focused material, visual-polish, and main-window tests pass
+40/40. No interactive launch, installation, personal-data change, Android
+operation, synchronization, or global theme change was performed.
+
+**PRODUCT INCOMPLETE:** further interface refinement and reliable bidirectional
+Android synchronization remain unfinished and are outside this preservation
+milestone.
+
 ## Dolphin-native material candidate — 2026-10-23
 
 The default Widgets rendering now delegates the window, sidebar, cards,

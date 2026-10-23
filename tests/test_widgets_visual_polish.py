@@ -4,16 +4,16 @@ import os
 import unittest
 
 from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
-from PySide6.QtGui import QFont, QImage, QPalette
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPalette
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QLabel,
     QProxyStyle,
-    QPlainTextEdit,
     QSizePolicy,
     QStyle,
+    QStyleOptionFrame,
     QStyleOptionViewItem,
     QToolButton,
     QWidget,
@@ -70,7 +70,7 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         names = [item.objectName().casefold() for item in chain if item is not None]
         self.assertEqual(names[-1], "kvantum", names)
 
-    def test_writing_search_and_list_surfaces_keep_native_style_palettes(self):
+    def test_writing_search_and_list_surfaces_omit_large_native_base_fills(self):
         line_edits = (
             self.window.sidebar.search_field,
             self.window.editor.title_editor,
@@ -80,28 +80,33 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         )
         for field in line_edits:
             with self.subTest(field=field.objectName()):
-                self.assertTrue(field.hasFrame())
-                self.assertEqual(field.palette().resolveMask(), 0)
+                self.assertFalse(field.hasFrame())
+                self.assertEqual(
+                    field.palette().brush(QPalette.ColorRole.Base).style(),
+                    Qt.BrushStyle.NoBrush,
+                )
                 self.assertEqual(field.styleSheet(), "")
 
-        text_views = ()
+        text_views = (self.window.editor.body_editor,)
         item_views = (
             self.window.sidebar.list_view,
             self.window.sync_panel.note_list,
         )
         for view in (*text_views, *item_views):
             with self.subTest(view=view.objectName()):
-                self.assertEqual(view.palette().resolveMask(), 0)
-                self.assertEqual(view.viewport().palette().resolveMask(), 0)
+                self.assertEqual(view.frameShape(), QFrame.Shape.NoFrame)
+                self.assertEqual(
+                    view.palette().brush(QPalette.ColorRole.Base).style(),
+                    Qt.BrushStyle.NoBrush,
+                )
+                self.assertEqual(
+                    view.viewport().palette().brush(QPalette.ColorRole.Base).style(),
+                    Qt.BrushStyle.NoBrush,
+                )
                 self.assertEqual(view.styleSheet(), "")
 
-    def test_note_body_uses_unmodified_native_palette_for_every_state(self):
+    def test_note_body_omits_base_brush_for_every_palette_state(self):
         body = self.window.editor.body_editor
-        native_peer = QPlainTextEdit()
-        self.addCleanup(native_peer.close)
-        native_peer.show()
-        QCoreApplication.processEvents()
-        native_palette = native_peer.palette()
         for group in (
             QPalette.ColorGroup.Active,
             QPalette.ColorGroup.Inactive,
@@ -109,17 +114,18 @@ class WidgetsVisualPolishTests(unittest.TestCase):
         ):
             with self.subTest(group=group):
                 self.assertEqual(
-                    body.palette().brush(group, QPalette.ColorRole.Base),
-                    native_palette.brush(group, QPalette.ColorRole.Base),
+                    body.palette().brush(group, QPalette.ColorRole.Base).style(),
+                    Qt.BrushStyle.NoBrush,
                 )
                 self.assertEqual(
-                    body.palette().brush(group, QPalette.ColorRole.AlternateBase),
-                    native_palette.brush(
+                    body.palette().brush(
                         group, QPalette.ColorRole.AlternateBase
-                    ),
+                    ).style(),
+                    Qt.BrushStyle.NoBrush,
                 )
+        self.assertEqual(body.frameShape(), QFrame.Shape.NoFrame)
 
-    def test_line_edits_inherit_the_active_kvantum_style(self):
+    def test_line_edit_proxy_suppresses_only_the_forced_kvantum_panel(self):
         fields = (
             self.window.sidebar.search_field,
             self.window.editor.title_editor,
@@ -127,10 +133,25 @@ class WidgetsVisualPolishTests(unittest.TestCase):
             self.window.settings_page.purge_key,
             self.window.sync_panel.search_field,
         )
+        untouched = QColor(17, 23, 31)
         for field in fields:
             with self.subTest(field=field.objectName()):
+                self.assertIsInstance(field.style(), QProxyStyle)
                 self.assert_kvantum_style_chain(field.style())
-                self.assertIs(field.style(), self.qt.style())
+                image = QImage(40, 24, QImage.Format.Format_ARGB32_Premultiplied)
+                image.fill(untouched)
+                option = QStyleOptionFrame()
+                option.initFrom(field)
+                option.rect = image.rect()
+                painter = QPainter(image)
+                field.style().drawPrimitive(
+                    QStyle.PrimitiveElement.PE_PanelLineEdit,
+                    option,
+                    painter,
+                    field,
+                )
+                painter.end()
+                self.assertEqual(image.pixelColor(image.rect().center()), untouched)
 
     def test_sidebar_icons_are_available(self):
         for button in (

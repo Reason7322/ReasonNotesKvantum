@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .visuals import integrate_line_edit
+from .visuals import integrate_line_edit, integrate_scroll_surface
 from .material import GlassCard
 
 
@@ -53,6 +53,7 @@ class EditorPage(QWidget):
         self.body_editor.setObjectName("bodyEditor")
         self.body_editor.setAccessibleName("Markdown note body")
         self.body_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
+        integrate_scroll_surface(self.body_editor)
         self.body_editor.document().setDocumentMargin(6)
         body_font = QFont(self.body_editor.font())
         body_font.setPixelSize(18)
