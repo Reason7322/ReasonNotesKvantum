@@ -1,5 +1,30 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-23 JSON v1 Fedora candidate checkpoint
+
+- Original goal: reliable bidirectional synchronization with visible progress,
+  explicit failures, and success only after durable import confirmation.
+- Authorized milestone: package the JSON-compatible desktop checkpoint in
+  isolation, prove Android JSON v1/receipt compatibility offline, document the
+  future isolated launch, and stop before launching or synchronization.
+- Source: `forge/reasonnotes-completion` at
+  `88def77e2bfe3c6b2b92897b5d134395a761ffd3`; no UI/protocol source change.
+- Focused tests: `tests.test_transport_bundle tests.test_bundle_transport`,
+  20/20 passed, including the exact Android-matching canonical Unicode fixture,
+  full-carrier validation, revision+receipt import, duplicates, and confirmation.
+- Artifact: `/home/reason/Temporary/ReasonNotes-JSON-v1-Candidates/desktop/ReasonNotes-Fedora-JSON-v1-88def77.tar.gz`,
+  SHA-256 `41961dbb0945d2a0294374f92386650d3ec7342e6397db8aa3c2c4082953194e`.
+- Isolation/launch: exact candidate-only HOME/XDG/repository/inbox/received
+  command is in `docs/JSON_V1_CANDIDATE_PREPARATION_2026-10-23.md`; it was not
+  executed. Confirm the dated Android KDE Connect device ID at the physical gate.
+- Production, Android, KDE Connect configuration, and shared theme state were
+  untouched.
+- Remaining acceptance: separately authorized physical bidirectional JSON v1
+  sync and durable confirmation, then separately authorized production cutover.
+- One potential next action: owner-authorized physical candidate test; not
+  authorized by this checkpoint.
+
+
 No ownership transfer is currently requested. This is the compact continuation
 point if another engineering shift becomes necessary.
 

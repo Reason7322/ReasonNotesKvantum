@@ -105,6 +105,30 @@ acceptance and separate authorization.
 Do not modify `main`, the installed candidate, production launcher/data, or the
 phone without the applicable explicit authorization.
 
+## JSON v1 physical-test candidate preparation — 2026-10-23
+
+The exact JSON-compatible source checkpoint
+`88def77e2bfe3c6b2b92897b5d134395a761ffd3` was packaged into an isolated,
+persistent candidate root under
+`/home/reason/Temporary/ReasonNotes-JSON-v1-Candidates/desktop/`. No UI or
+protocol source change was needed. Focused canonical JSON/receipt/import tests
+passed 20/20, including byte-for-byte parity with Android's Unicode JSON v1
+fixture and pre-mutation validation of complete carriers.
+
+The native helper built successfully. The release archive is
+`ReasonNotes-Fedora-JSON-v1-88def77.tar.gz`, SHA-256
+`41961dbb0945d2a0294374f92386650d3ec7342e6397db8aa3c2c4082953194e`.
+Candidate-only HOME, XDG configuration/data/cache, repository, inbox, and
+received-directory roots are prepared, and the exact future launch command is
+documented in `docs/JSON_V1_CANDIDATE_PREPARATION_2026-10-23.md`.
+
+The application was not launched. Production executables, launcher,
+configuration, notes/history/sync state, KDE Connect configuration, Android,
+and shared desktop theme state were not changed. Remaining product acceptance
+is the separately authorized physical bidirectional JSON v1 synchronization
+and durable receipt confirmation, followed by separately authorized production
+cutover.
+
 ## ChatGPT-owned visual correction (2026-10-18)
 
 Owner rejected the post-4665147 wallpaper-portal appearance. Separate branch
