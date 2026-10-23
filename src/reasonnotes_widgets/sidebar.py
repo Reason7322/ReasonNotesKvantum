@@ -268,8 +268,10 @@ class SidebarSearchWell(SearchWell):
         option.lineWidth = self.style().pixelMetric(
             QStyle.PixelMetric.PM_DefaultFrameWidth, option, self
         )
-        if self._focus_source is not None and self._focus_source.hasFocus():
-            option.state |= QStyle.StateFlag.State_HasFocus
+        # LiquidGlass provides its legible line-edit edge through the native
+        # focused artwork. Keep that theme-owned edge visible at rest while
+        # clipping away the panel interior below.
+        option.state |= QStyle.StateFlag.State_HasFocus
         frame_width = max(option.lineWidth, 1)
         frame_region = QRegion(rect).subtracted(
             QRegion(

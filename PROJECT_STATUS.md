@@ -1,5 +1,32 @@
 # ReasonNotesKvantum - Project Status
 
+## Brighter native Search notes frame — 2026-10-23
+
+Reason's real-Wayland review accepted the sidebar and alignment from
+`cf71e08449d96e85d74011f90dd6a799fb309d80` but found the resting Search
+notes frame too dim. The frame-only path now requests LiquidGlass/Kvantum's
+native focused line-edit artwork at rest. A read-only style probe established
+that normal, hover, and sunken states are identical in the active theme, while
+the focused artwork raises mean painted-edge brightness from approximately 57
+to 86 with unchanged geometry.
+
+The existing style-reported frame-width clip is unchanged, so the native panel
+interior remains excluded and the search center remains unpainted. No color,
+opacity, fill, stylesheet, shader, layout value, or global theme setting was
+added or changed. The approved sidebar material and alignment grid are
+unchanged.
+
+Focused verification covers the brighter resting edge against independent
+native normal/focused references, untouched center pixels, search typing and
+clearing, focus and Ctrl+F, accessibility, supported sidebar widths, and the
+existing visual/material regressions. No interactive application was launched.
+Use the persistent isolated review procedure already recorded in the next
+milestone section, after its isolation verifier passes; actual Wayland visual
+acceptance remains Reason's decision.
+
+**PRODUCT INCOMPLETE:** further separately authorized UI refinement and
+reliable bidirectional Android synchronization remain pending.
+
 ## Sidebar alignment and native search-frame candidate — 2026-10-23
 
 The owner-approved LiquidGlass sidebar remains the material baseline. This

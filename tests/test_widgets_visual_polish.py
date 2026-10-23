@@ -4,7 +4,7 @@ import os
 import unittest
 
 from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPalette
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPalette, QRegion
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
@@ -230,6 +230,66 @@ class WidgetsVisualPolishTests(unittest.TestCase):
                 ) and image.pixelColor(x, y) != untouched:
                     changed_border_pixels += 1
         self.assertGreater(changed_border_pixels, 0)
+
+    def test_sidebar_search_resting_frame_uses_brighter_native_focus_edge(self):
+        well = self.window.sidebar.search_well
+        field = self.window.sidebar.search_field
+        field.clearFocus()
+        untouched = QColor(17, 23, 31)
+
+        def render_native(extra_state=QStyle.StateFlag.State_None):
+            image = QImage(180, 46, QImage.Format.Format_ARGB32_Premultiplied)
+            image.fill(untouched)
+            option = QStyleOptionFrame()
+            option.initFrom(well)
+            option.rect = image.rect()
+            option.lineWidth = well.style().pixelMetric(
+                QStyle.PixelMetric.PM_DefaultFrameWidth, option, well
+            )
+            option.state |= extra_state
+            frame_width = max(option.lineWidth, 1)
+            frame_region = QRegion(option.rect).subtracted(
+                QRegion(
+                    option.rect.adjusted(
+                        frame_width,
+                        frame_width,
+                        -frame_width,
+                        -frame_width,
+                    )
+                )
+            )
+            painter = QPainter(image)
+            painter.setClipRegion(frame_region)
+            well.style().drawPrimitive(
+                QStyle.PrimitiveElement.PE_PanelLineEdit,
+                option,
+                painter,
+                well,
+            )
+            painter.end()
+            return image
+
+        resting = QImage(180, 46, QImage.Format.Format_ARGB32_Premultiplied)
+        resting.fill(untouched)
+        painter = QPainter(resting)
+        well.draw_native_frame(painter, resting.rect())
+        painter.end()
+        normal = render_native()
+        focused = render_native(QStyle.StateFlag.State_HasFocus)
+
+        self.assertEqual(resting.pixelColor(resting.rect().center()), untouched)
+        normal_brightness = sum(
+            normal.pixelColor(x, y).lightness()
+            for y in range(normal.height())
+            for x in range(normal.width())
+        )
+        resting_brightness = sum(
+            resting.pixelColor(x, y).lightness()
+            for y in range(resting.height())
+            for x in range(resting.width())
+        )
+        self.assertGreater(resting_brightness, normal_brightness)
+        self.assertEqual(resting, focused)
 
     def test_sidebar_search_preserves_native_editing_and_clear_behavior(self):
         field = self.window.sidebar.search_field
