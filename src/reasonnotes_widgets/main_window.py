@@ -4,20 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QSettings, QSignalBlocker, Qt, QTimer
+from PySide6.QtCore import QSettings, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import (
     QCloseEvent,
     QColor,
     QKeySequence,
     QPainter,
-    QPalette,
     QShortcut,
 )
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QMessageBox,
-    QProxyStyle,
     QSplitter,
     QStackedWidget,
     QStyle,
@@ -31,27 +29,6 @@ from .material import GlassCard, SearchWell
 from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
 from .sync_panel import SyncPanel
-
-
-# The sidebar/content boundary divider is main_splitter's handle index 1 and
-# is the only interactive handle in this layout (isolated offscreen probe
-# evidence, see handoffs/QWEN_TO_FORGE.md Mission 05/06). The narrow proxy
-# below intercepts CE_Splitter for that handle only and suppresses all artwork
-# in every interaction state. Every other control element and primitive is
-# delegated to the base style chain (qt6ct -> Kvantum) untouched.
-class _InvisibleBoundaryStyle(QProxyStyle):
-    """Keep the draggable sidebar boundary visually transparent."""
-
-    def __init__(self, base_style: QStyle, window: "ReasonNotesMainWindow"):
-        super().__init__(base_style)
-        self._window = window
-
-    def drawControl(self, element, option, painter=None, widget=None):
-        if (int(element) == int(QStyle.ControlElement.CE_Splitter)
-                and self._window is not None
-                and self._window._splitter_painting_boundary):
-            return
-        return super().drawControl(element, option, painter, widget)
 
 
 class ReasonNotesMainWindow(QMainWindow):
@@ -105,45 +82,6 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter.setChildrenCollapsible(False)
         self.main_splitter.addWidget(self.sidebar)
         self.main_splitter.addWidget(self.page_stack)
-        # The sidebar/content boundary handle stays fully draggable but must
-        # paint nothing over the window material at rest. Clear only its idle
-        # palette roles: any stylesheet on this splitter corrupts Kvantum
-        # style integration for every descendant widget.
-        boundary_handle = self.main_splitter.handle(1)
-        if boundary_handle is not None:
-            transparent = QColor(Qt.GlobalColor.transparent)
-            handle_palette = boundary_handle.palette()
-            for group in (
-                QPalette.ColorGroup.Active,
-                QPalette.ColorGroup.Inactive,
-                QPalette.ColorGroup.Disabled,
-            ):
-                for role in (
-                    QPalette.ColorRole.Base,
-                    QPalette.ColorRole.Window,
-                    QPalette.ColorRole.AlternateBase,
-                    QPalette.ColorRole.Button,
-                ):
-                    handle_palette.setColor(group, role, transparent)
-            boundary_handle.setPalette(handle_palette)
-        self._boundary_handle = boundary_handle
-        self._splitter_painting_boundary = False
-        if boundary_handle is not None:
-            boundary_handle.installEventFilter(self)
-        for index in range(self.main_splitter.count() + 1):
-            child = self.main_splitter.handle(index)
-            if child is not None and child is not boundary_handle:
-                child.installEventFilter(self)
-        # Narrow CE_Splitter suppression override. Mirrors the established
-        # IntegratedLineEditStyle pattern (visuals.integrate_line_edit) in all
-        # three lifetime details: base resolved by style name (an instance base
-        # segfaults this PySide6 build at process exit), parented to the
-        # owning widget for deterministic Qt-tree teardown, and retained on
-        # the window as well.
-        self._boundary_style = _InvisibleBoundaryStyle(
-            self.main_splitter.style().objectName(), self)
-        self._boundary_style.setParent(self.main_splitter)
-        self.main_splitter.setStyle(self._boundary_style)
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
         self.setCentralWidget(self.main_splitter)
@@ -201,15 +139,6 @@ class ReasonNotesMainWindow(QMainWindow):
         ]
         self.retranslate()
         self.refresh_from_controller()
-
-    def eventFilter(self, obj, event):
-        etype = event.type()
-        if etype == QEvent.Type.Paint:
-            # A splitter handle's paint dispatch is starting; remember which
-            # one so drawControl can identify it per call.
-            self._splitter_painting_boundary = (
-                obj is self._boundary_handle)
-        return super().eventFilter(obj, event)
 
     def _show_incoming_message(self, message: str) -> None:
         persistent = message in ("Checking incoming notes…", "Refresh queued…")

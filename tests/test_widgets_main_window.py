@@ -161,7 +161,7 @@ class WidgetsMainWindowTests(unittest.TestCase):
         self.assertGreaterEqual(second.main_splitter.sizes()[0], 365)
         self.assertLessEqual(second.main_splitter.sizes()[0], 379)
 
-    def test_sidebar_splitter_handle_is_transparent_at_rest_and_still_resizable(self):
+    def test_sidebar_splitter_handle_is_native_and_still_resizable(self):
         window, _ = self.make_window()
 
         # The boundary handle between sidebar widget 0 and page-stack widget 1.
@@ -169,19 +169,8 @@ class WidgetsMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(handle)
         self.assertGreater(handle.width(), 0)
         self.assertGreater(handle.height(), 0)
-
-        # Transparent at rest: the unhovered boundary handle paints nothing
-        # over the window material.
-        image = QImage(
-            handle.size(), QImage.Format.Format_ARGB32_Premultiplied
-        )
-        image.fill(Qt.GlobalColor.transparent)
-        handle.render(image)
-        for x in range(1, image.width() - 1):
-            with self.subTest(x=x):
-                self.assertEqual(
-                    image.pixelColor(x, image.height() // 2).alpha(), 0
-                )
+        self.assertEqual(handle.palette().resolveMask(), 0)
+        self.assertIs(handle.style(), window.main_splitter.style())
 
         # The default hit target stays draggable: synthetic drag events are
         # delivered directly to the boundary handle in handle-local
@@ -199,7 +188,7 @@ class WidgetsMainWindowTests(unittest.TestCase):
         QCoreApplication.processEvents()
         self.assertGreaterEqual(window.main_splitter.sizes()[0], before + 30)
 
-    def test_sidebar_splitter_stays_invisible_while_hovered(self):
+    def test_sidebar_splitter_stays_style_owned_while_hovered(self):
         window, _ = self.make_window()
         handle = window.main_splitter.handle(1)
         self.assertIsNotNone(handle)
@@ -207,44 +196,16 @@ class WidgetsMainWindowTests(unittest.TestCase):
         hover_pos = handle.mapTo(window, QPoint(handle.width() // 2, 300))
         away_pos = window.main_splitter.mapTo(window, QPoint(100, 300))
 
-        def render_handle():
-            image = QImage(
-                handle.size(), QImage.Format.Format_ARGB32_Premultiplied
-            )
-            image.fill(Qt.GlobalColor.transparent)
-            handle.render(image)
-            return image
-
-        # Pointer enters the real boundary handle: it remains a draggable hit
-        # target but must never add hover artwork over the window material.
         QTest.mouseMove(window, hover_pos)
         QCoreApplication.processEvents()
         self.assertTrue(handle.underMouse())
-        handle.update()
-        QCoreApplication.processEvents()
-        hovered = render_handle()
-        nontransparent = sum(
-            1
-            for y in range(hovered.height())
-            for x in range(hovered.width())
-            if hovered.pixelColor(x, y).alpha() > 0
-        )
-        self.assertEqual(nontransparent, 0)
+        self.assertEqual(handle.palette().resolveMask(), 0)
+        self.assertIs(handle.style(), window.main_splitter.style())
 
-        # Pointer leaves: it remains completely transparent.
         QTest.mouseMove(window, away_pos)
         QCoreApplication.processEvents()
         self.assertFalse(handle.underMouse())
-        handle.update()
-        QCoreApplication.processEvents()
-        left = render_handle()
-        leftover = sum(
-            1
-            for y in range(left.height())
-            for x in range(left.width())
-            if left.pixelColor(x, y).alpha() > 0
-        )
-        self.assertEqual(leftover, 0)
+        self.assertEqual(handle.palette().resolveMask(), 0)
 
 
 if __name__ == "__main__":

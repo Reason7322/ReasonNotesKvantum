@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSignalBlocker, Signal, Qt
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .visuals import integrate_line_edit, integrate_solid_surface
+from .visuals import integrate_line_edit
 from .material import GlassCard
 
 
@@ -53,9 +53,6 @@ class EditorPage(QWidget):
         self.body_editor.setObjectName("bodyEditor")
         self.body_editor.setAccessibleName("Markdown note body")
         self.body_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-        # The editable writing region is one uniform opaque sheet. The glass
-        # material and approved rim stay on the window and card around it.
-        integrate_solid_surface(self.body_editor, QColor(0x2C, 0x35, 0x39))
         self.body_editor.document().setDocumentMargin(6)
         body_font = QFont(self.body_editor.font())
         body_font.setPixelSize(18)
