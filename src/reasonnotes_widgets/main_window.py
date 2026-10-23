@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 from .editor_page import EditorPage
 from .conflict_page import ConflictPage
 from .i18n import Translator
-from .material import GlassCard
+from .material import GlassCard, SearchWell
 from .settings_page import SettingsPage
 from .sidebar import NotesSidebar
 from .sync_panel import SyncPanel
@@ -78,10 +78,8 @@ class ReasonNotesMainWindow(QMainWindow):
         self._confirm_delete = confirm_delete or self._confirm_delete_dialog
         if kitty_window_material:
             self.window_material_mode = "kitty-equivalent"
-        elif native_window_material:
-            self.window_material_mode = "native-kvantum"
         else:
-            self.window_material_mode = "reasonnotes-custom"
+            self.window_material_mode = "native-kvantum"
         self.setObjectName("reasonNotesMainWindow")
         self.setWindowTitle("ReasonNotes")
         self.setMinimumSize(820, 560)
@@ -153,7 +151,11 @@ class ReasonNotesMainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.sync_panel)
         self.sync_panel.hide()
 
-        if self.window_material_mode == "kitty-equivalent":
+        if self.window_material_mode == "native-kvantum":
+            self.sidebar.set_native_style_enabled(True)
+            for surface in (*self.findChildren(GlassCard), *self.findChildren(SearchWell)):
+                surface.set_native_style_enabled(True)
+        elif self.window_material_mode == "kitty-equivalent":
             # The measured Kitty-equivalent sheet is already the complete
             # window material. Keep local outlines and controls, but avoid
             # compositing pane-sized fills over that calibrated base.

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication
-from PySide6.QtWidgets import QApplication, QProxyStyle, QStyleFactory
+from PySide6.QtWidgets import QApplication, QStyleFactory
 
 
 APP_ID = "org.reasonnotes.ReasonNotesKvantum"
@@ -114,8 +114,37 @@ def resolve_launch_paths(
     return paths
 
 
+def style_chain_names(style) -> tuple[str, ...]:
+    """Return the active style wrapper chain, including its leaf style."""
+    names: list[str] = []
+    seen: set[int] = set()
+    current = style
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        names.append(current.objectName().casefold())
+        base_style = getattr(current, "baseStyle", None)
+        current = base_style() if callable(base_style) else None
+    return tuple(names)
+
+
+def ensure_kvantum_style(application) -> None:
+    """Preserve a qt6ct wrapper over Kvantum, or install Kvantum explicitly."""
+    if "kvantum" in style_chain_names(application.style()):
+        return
+    kvantum = QStyleFactory.create("kvantum")
+    if kvantum is None:
+        available = ", ".join(QStyleFactory.keys())
+        raise RuntimeError(
+            "The installed Qt 6 Kvantum style is required "
+            f"(available styles: {available or 'none'})."
+        )
+    application.setStyle(kvantum)
+    if "kvantum" not in style_chain_names(application.style()):
+        raise RuntimeError("Qt rejected the installed Kvantum style")
+
+
 def create_application(argv: Sequence[str] | None = None) -> QApplication:
-    """Create the Widgets process and install the system Kvantum QStyle."""
+    """Create the Widgets process and retain the system Kvantum style chain."""
     QCoreApplication.setOrganizationName("ReasonNotes")
     QCoreApplication.setOrganizationDomain("reasonnotes.local")
     QCoreApplication.setApplicationName("ReasonNotesKvantum")
@@ -128,19 +157,5 @@ def create_application(argv: Sequence[str] | None = None) -> QApplication:
     # its base style. Preserve that chain so the system font, icon theme and
     # palette remain authoritative. Environments without qt6ct retain the
     # original strict Kvantum fallback.
-    style = application.style()
-    base = style.baseStyle() if isinstance(style, QProxyStyle) else style
-    if base is None or base.objectName().casefold() != "kvantum":
-        kvantum = QStyleFactory.create("kvantum")
-        if kvantum is None:
-            available = ", ".join(QStyleFactory.keys())
-            raise RuntimeError(
-                "The installed Qt 6 Kvantum style is required "
-                f"(available styles: {available or 'none'})."
-            )
-        application.setStyle(kvantum)
-        style = application.style()
-        base = style.baseStyle() if isinstance(style, QProxyStyle) else style
-    if base is None or base.objectName().casefold() != "kvantum":
-        raise RuntimeError("Qt rejected the installed Kvantum style")
+    ensure_kvantum_style(application)
     return application

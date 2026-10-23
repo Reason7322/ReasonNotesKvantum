@@ -4,10 +4,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import os
 import unittest
+from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
 from PySide6.QtGui import QColor, QImage, QPainter
-from PySide6.QtWidgets import QApplication, QStyle, QStyleOption
+from PySide6.QtWidgets import QApplication, QProxyStyle, QStyle, QStyleOption
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
@@ -118,16 +119,84 @@ class NativeWindowMaterialTests(unittest.TestCase):
         self.assertFalse(window.settings_page.language_card.material_fill_enabled)
         self.assertFalse(window.settings_page.pairing_card.material_fill_enabled)
 
-    def test_default_renderer_keeps_existing_pane_materials(self):
+    def test_default_renderer_delegates_all_large_surfaces_to_native_style(self):
         from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+        from reasonnotes_widgets.material import GlassCard, NavigationRail, SearchWell
 
         window = ReasonNotesMainWindow(self.controller, settings=self.settings)
         self.addCleanup(window.close)
 
-        self.assertEqual(window.window_material_mode, "reasonnotes-custom")
-        self.assertTrue(window.sidebar.material_fill_enabled)
-        self.assertTrue(window.editor.writing_column.material_fill_enabled)
-        self.assertTrue(window.settings_page.language_card.material_fill_enabled)
+        self.assertEqual(window.window_material_mode, "native-kvantum")
+        surfaces = [
+            window.sidebar,
+            *window.findChildren(GlassCard),
+            *window.findChildren(SearchWell),
+        ]
+        self.assertIsInstance(window.sidebar, NavigationRail)
+        self.assertGreater(len(surfaces), 4)
+        self.assertTrue(all(surface.native_style_enabled for surface in surfaces))
+
+    def test_native_material_widgets_render_the_active_style_primitive(self):
+        from reasonnotes_widgets.material import GlassCard, NavigationRail, SearchWell
+
+        class PrimitiveRecordingStyle(QProxyStyle):
+            def __init__(self, base_style):
+                super().__init__(base_style)
+                self.widget_primitive_calls = 0
+
+            def drawPrimitive(self, element, option, painter=None, widget=None):
+                if element == QStyle.PrimitiveElement.PE_Widget:
+                    self.widget_primitive_calls += 1
+                return super().drawPrimitive(element, option, painter, widget)
+
+        for widget_type in (NavigationRail, GlassCard, SearchWell):
+            with self.subTest(widget_type=widget_type.__name__):
+                widget = widget_type()
+                self.addCleanup(widget.close)
+                widget.resize(240, 120)
+                widget.set_native_style_enabled(True)
+                recording_style = PrimitiveRecordingStyle(widget.style().objectName())
+                recording_style.setParent(widget)
+                widget.setStyle(recording_style)
+                widget.show()
+                QCoreApplication.processEvents()
+
+                self._render_widget_image(widget, 240, 120)
+                self.assertGreater(recording_style.widget_primitive_calls, 0)
+
+    def test_application_style_chain_contains_kvantum_leaf(self):
+        from reasonnotes_widgets.bootstrap import style_chain_names
+
+        names = style_chain_names(self.qt.style())
+        self.assertIn("kvantum", names)
+        if names[0] == "qt6ct-style":
+            self.assertEqual(names[-1], "kvantum")
+
+    def test_missing_kvantum_fails_without_installing_a_fallback_palette(self):
+        from reasonnotes_widgets.bootstrap import ensure_kvantum_style
+
+        class FakeStyle:
+            def objectName(self):
+                return "fusion"
+
+        class FakeApplication:
+            def __init__(self):
+                self.palette_was_set = False
+
+            def style(self):
+                return FakeStyle()
+
+            def setStyle(self, _style):
+                raise AssertionError("No style is available to install")
+
+            def setPalette(self, _palette):
+                self.palette_was_set = True
+
+        application = FakeApplication()
+        with patch("reasonnotes_widgets.bootstrap.QStyleFactory.create", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "Kvantum style is required"):
+                ensure_kvantum_style(application)
+        self.assertFalse(application.palette_was_set)
 
     def test_disabled_card_keeps_rim_while_navigation_rail_is_fully_clear(self):
         from reasonnotes_widgets.material import GlassCard, NavigationRail
@@ -269,6 +338,9 @@ class NativeWindowMaterialTests(unittest.TestCase):
         options = candidate_parser.parse_args(["--kitty-window-material"])
         self.assertTrue(options.kitty_window_material)
         self.assertFalse(options.native_window_material)
+        defaults = candidate_parser.parse_args([])
+        self.assertFalse(defaults.kitty_window_material)
+        self.assertFalse(defaults.native_window_material)
         with self.assertRaises(SystemExit):
             candidate_parser.parse_args(
                 ["--native-window-material", "--kitty-window-material"]

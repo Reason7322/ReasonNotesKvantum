@@ -15,7 +15,32 @@ from PySide6.QtGui import (
     QPainterPath,
     QPen,
 )
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QStyle, QStyleOption, QWidget
+
+
+class _NativeStyleSurface:
+    """Let the active Qt style own this widget's complete surface."""
+
+    def _initialize_native_style_surface(self) -> None:
+        self._native_style_enabled = False
+
+    @property
+    def native_style_enabled(self) -> bool:
+        return self._native_style_enabled
+
+    def set_native_style_enabled(self, enabled: bool) -> None:
+        self._native_style_enabled = bool(enabled)
+        self.update()
+
+    def _paint_native_style_surface(self, painter: QPainter) -> None:
+        option = QStyleOption()
+        option.initFrom(self)
+        self.style().drawPrimitive(
+            QStyle.PrimitiveElement.PE_Widget,
+            option,
+            painter,
+            self,
+        )
 
 
 def tinted(color: QColor, alpha: int, *, brighten: int = 0) -> QColor:
@@ -27,11 +52,12 @@ def tinted(color: QColor, alpha: int, *, brighten: int = 0) -> QColor:
     return result
 
 
-class NavigationRail(QWidget):
+class NavigationRail(_NativeStyleSurface, QWidget):
     """Small translucent tint without a painted boundary edge."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._initialize_native_style_surface()
         self._material_fill_enabled = True
 
     @property
@@ -44,6 +70,10 @@ class NavigationRail(QWidget):
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
+        if self._native_style_enabled:
+            self._paint_native_style_surface(painter)
+            painter.end()
+            return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         palette = self.palette()
         if self._material_fill_enabled:
@@ -56,11 +86,12 @@ class NavigationRail(QWidget):
         painter.end()
 
 
-class GlassCard(QWidget):
+class GlassCard(_NativeStyleSurface, QWidget):
     """A quiet frosted writing/settings surface with a themed outline."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._initialize_native_style_surface()
         self._material_fill_enabled = True
 
     @property
@@ -73,6 +104,10 @@ class GlassCard(QWidget):
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
+        if self._native_style_enabled:
+            self._paint_native_style_surface(painter)
+            painter.end()
+            return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         bounds = self.rect().adjusted(1, 1, -2, -2)
         palette = self.palette()
@@ -112,11 +147,19 @@ class GlassCard(QWidget):
         painter.end()
 
 
-class SearchWell(QWidget):
+class SearchWell(_NativeStyleSurface, QWidget):
     """A small, native-theme-tinted search surround, never a black slab."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._initialize_native_style_surface()
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
+        if self._native_style_enabled:
+            self._paint_native_style_surface(painter)
+            painter.end()
+            return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect().adjusted(1, 1, -2, -2)
         color = self.palette().base().color()
