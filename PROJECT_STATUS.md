@@ -1,5 +1,46 @@
 # ReasonNotesKvantum - Project Status
 
+## Safe Fedora to Android synchronization preparation — 2026-10-23
+
+The approved Widgets branch still contains the Android-compatible JSON v1
+transport and durable receipt orchestration: source descends from
+`88def77e2bfe3c6b2b92897b5d134395a761ffd3`, with no later changes under the
+sync package or Widgets launcher. Existing 20/20 Android parity evidence is
+reused; physical synchronization remains unproven.
+
+Launch isolation is strengthened so substituted HOME/XDG roots cannot hide the
+login account's canonical production repository from the in-process guard.
+The external verifier remains mandatory for resolved aliases, broad parents,
+inherited environment roots, and conflicting processes. A fresh persistent
+fixture is prepared at
+`/home/reason/Temporary/ReasonNotes-JSON-v1-Roundtrip-2026-10-23-Final/`, with
+manifest SHA-256
+`51dcf6f9c77f7580ad14ce14b2ac90378f870a94ca8d8b02ac82e46d66bc2ba8`
+and `transport_activity: false`.
+
+Focused JSON v1, receipt, sync, fixture, bootstrap, and isolation verification
+passes 66/66 using a persistent project test TMPDIR. The final one-note fixture
+starts with one pending delivery, zero attempts, and zero carriers.
+
+The earlier explicitly isolated runtime wrote only its isolated root at
+08:17–08:19; production and installed-candidate trees changed later in
+separate time windows. Exact process/command provenance was not preserved, so
+the later writes are not assigned an unsupported cause. See
+`docs/PHYSICAL_SYNC_PREPARATION_2026-10-23.md` for the evidence, safety gate,
+exact launch command, and one-note round-trip procedure.
+
+KDE Connect currently identifies available peer
+`52548cf9710c43cab2fa73ed4671aea9` (`POCO X6 5G`). The intended Android APK,
+package, and signing identity match the existing JSON v1 candidate evidence,
+but ADB currently has no attached device, so the live installed APK cannot be
+cryptographically re-read. No reinstall is authorized or needed for this
+preparation.
+
+No application was launched, no KDE Connect transfer was requested, and no
+phone or production data was changed. **PRODUCT INCOMPLETE:** physical
+bidirectional sync, durable confirmation, conflict/deletion behavior, restart
+persistence, and production cutover remain separately authorized acceptance.
+
 ## Final Search notes focused-appearance correction — 2026-10-23
 
 Reason identified the exact desired appearance as the complete native

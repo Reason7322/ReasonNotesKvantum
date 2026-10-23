@@ -11,7 +11,8 @@ From the exact candidate source checkout:
 
 ```sh
 python3 scripts/prepare-android-acceptance.py \
-  /tmp/reasonnotes-android-acceptance-YYYYMMDD
+  --first-roundtrip-only \
+  /home/reason/Temporary/ReasonNotes-JSON-v1-Roundtrip-YYYYMMDD/fixture
 ```
 
 The target must be new or empty. The utility refuses any path within
@@ -25,6 +26,12 @@ notes:
 
 The generated `android-acceptance-manifest.json` is the authoritative list of
 paths, note IDs, and original body hashes. Keep it with the test evidence.
+
+For the first physical round trip, use `--first-roundtrip-only`; its fresh note
+identity avoids stale purge fences from prior experiments. Do not prepare or
+send the conflict/deletion fixtures until that bounded round trip receives
+durable confirmation. The exact current procedure is in
+`docs/PHYSICAL_SYNC_PREPARATION_2026-10-23.md`.
 
 ## Owner-authorized physical sequence
 
@@ -79,7 +86,7 @@ the physical phone without touching production notes.
 ## Cleanup and rollback
 
 Close the test candidate, remove only the three identified fixture notes from
-the Android test app after evidence is saved, and retain or delete the
-`/tmp/reasonnotes-android-acceptance-*` directory as an ordinary disposable
-fixture. No production rollback is necessary because this procedure does not
-change the installed production application, launcher, or repository.
+the Android test app after evidence is saved, and retain the persistent
+`/home/reason/Temporary/ReasonNotes-JSON-v1-Roundtrip-*` evidence until Reason
+authorizes cleanup. No production rollback is necessary because this procedure
+does not change the installed production application, launcher, or repository.

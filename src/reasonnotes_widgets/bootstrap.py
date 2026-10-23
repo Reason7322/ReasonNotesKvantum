@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import pwd
 
 from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QApplication, QStyleFactory
@@ -52,7 +53,10 @@ def production_data_directory(
 
 
 def protected_production_directories(
-    environ: Mapping[str, str] | None = None, *, home: Path | None = None
+    environ: Mapping[str, str] | None = None,
+    *,
+    home: Path | None = None,
+    account_home: Path | None = None,
 ) -> tuple[Path, ...]:
     values = os.environ if environ is None else environ
     user_home = (
@@ -60,9 +64,15 @@ def protected_production_directories(
         if home is None
         else Path(home)
     )
+    login_home = (
+        Path(account_home)
+        if account_home is not None
+        else Path(pwd.getpwuid(os.getuid()).pw_dir)
+    )
     roots = {
         user_home.expanduser() / ".local/share" / PRODUCTION_NAME,
         production_data_directory(values, home=user_home),
+        login_home.expanduser() / ".local/share" / PRODUCTION_NAME,
     }
     return tuple(sorted(roots, key=str))
 
@@ -101,7 +111,14 @@ def resolve_launch_paths(
             else user_home / "Downloads"
         ),
     )
-    protected = protected_production_directories(values, home=user_home)
+    login_home = Path(home) if home is not None else Path(
+        pwd.getpwuid(os.getuid()).pw_dir
+    )
+    protected = protected_production_directories(
+        values,
+        home=user_home,
+        account_home=login_home,
+    )
     for label, path in (
         ("repository", paths.repository),
         ("inbox", paths.inbox),

@@ -25,6 +25,31 @@ def _load_script():
 
 
 class AndroidAcceptancePreparationTests(unittest.TestCase):
+    def test_first_roundtrip_fixture_contains_one_fresh_pending_note(self):
+        module = _load_script()
+        self.assertTrue(hasattr(module, "FIRST_ROUNDTRIP_SEEDS"))
+        with TemporaryDirectory() as folder:
+            workspace = Path(folder) / "fixture"
+            manifest = module.prepare_fixture(
+                workspace,
+                home=Path(folder) / "home",
+                seeds=module.FIRST_ROUNDTRIP_SEEDS,
+            )
+
+            self.assertEqual(len(manifest["notes"]), 1)
+            note = manifest["notes"][0]
+            self.assertEqual(note["role"], "first-roundtrip")
+            self.assertEqual(note["note_id"], "12da1570-821e-5365-b9d1-abc49e22e590")
+            repository = Repository.open(
+                Path(manifest["paths"]["repository"]),
+                local_device="linux",
+                target_device="android",
+            )
+            entries = DeliveryLedger(repository.root).entries("android")
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0].state, DeliveryState.PENDING)
+            self.assertEqual(entries[0].attempts, 0)
+
     def test_production_target_is_rejected_before_it_is_created(self):
         module = _load_script()
         with TemporaryDirectory() as folder:

@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import importlib.util
 import os
+import pwd
 import subprocess
 import sys
 from threading import Lock
@@ -109,6 +110,22 @@ class WidgetsBootstrapTests(unittest.TestCase):
                     root=canonical / "repository",
                     environ=environment,
                     home=home,
+                )
+
+    def test_isolated_home_cannot_hide_login_account_production_repository(self):
+        from reasonnotes_widgets.bootstrap import UnsafeProductionPath, resolve_launch_paths
+
+        account_home = Path(pwd.getpwuid(os.getuid()).pw_dir)
+        with TemporaryDirectory() as folder:
+            isolated = Path(folder)
+            environment = {
+                "HOME": str(isolated / "home"),
+                "XDG_DATA_HOME": str(isolated / "data"),
+            }
+            with self.assertRaises(UnsafeProductionPath):
+                resolve_launch_paths(
+                    root=account_home / ".local/share/ReasonNotes/repository",
+                    environ=environment,
                 )
 
     def test_qapplication_uses_installed_kvantum_style_and_distinct_identity(self):

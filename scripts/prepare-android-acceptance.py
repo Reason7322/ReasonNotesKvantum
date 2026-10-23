@@ -45,9 +45,22 @@ SEEDS = (
         "# Delete after round trip\n\nDelete this note from Linux after Android confirms receipt.\n",
     ),
 )
+FIRST_ROUNDTRIP_SEEDS = (
+    (
+        "first-roundtrip",
+        UUID("12da1570-821e-5365-b9d1-abc49e22e590"),
+        "# Fedora Android first round trip\n\n"
+        "Zażółć gęślą jaźń — edit this disposable note on Android ✓\n",
+    ),
+)
 
 
-def prepare_fixture(workspace: Path, *, home: Path | None = None) -> dict:
+def prepare_fixture(
+    workspace: Path,
+    *,
+    home: Path | None = None,
+    seeds=SEEDS,
+) -> dict:
     """Create a new isolated fixture and return its persisted manifest.
 
     The production-path check happens before any directory is created.  An
@@ -69,7 +82,7 @@ def prepare_fixture(workspace: Path, *, home: Path | None = None) -> dict:
     paths.inbox.mkdir()
     paths.received_dir.mkdir()
 
-    identifiers = iter(seed[1] for seed in SEEDS)
+    identifiers = iter(seed[1] for seed in seeds)
     repository = Repository.open(
         paths.repository,
         local_device="linux",
@@ -83,7 +96,7 @@ def prepare_fixture(workspace: Path, *, home: Path | None = None) -> dict:
     )
 
     notes = []
-    for role, expected_id, body in SEEDS:
+    for role, expected_id, body in seeds:
         note_id = service.create_note(body)
         if note_id != expected_id:
             raise RuntimeError("fixture note identity changed unexpectedly")
@@ -123,8 +136,16 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="new or empty directory; production ReasonNotes paths are refused",
     )
+    parser.add_argument(
+        "--first-roundtrip-only",
+        action="store_true",
+        help="prepare one fresh note for the first bounded physical round trip",
+    )
     arguments = parser.parse_args(argv)
-    manifest = prepare_fixture(arguments.workspace)
+    manifest = prepare_fixture(
+        arguments.workspace,
+        seeds=(FIRST_ROUNDTRIP_SEEDS if arguments.first_roundtrip_only else SEEDS),
+    )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
 
