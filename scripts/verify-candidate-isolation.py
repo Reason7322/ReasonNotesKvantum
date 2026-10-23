@@ -8,6 +8,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import pwd
 
 
 ENVIRONMENT_ROOTS = (
@@ -81,6 +82,11 @@ def process_command_lines() -> tuple[tuple[int, tuple[str, ...]], ...]:
         if arguments:
             rows.append((int(entry.name), arguments))
     return tuple(rows)
+
+
+def system_account_home() -> Path:
+    """Return the login account home independently of an isolated HOME."""
+    return Path(pwd.getpwuid(os.getuid()).pw_dir).resolve(strict=False)
 
 
 def _process_conflicts(
@@ -176,7 +182,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
     parser.add_argument("--inbox", type=Path, required=True)
     parser.add_argument("--received-dir", type=Path, required=True)
     options = parser.parse_args(arguments)
-    real_home = Path.home()
+    real_home = system_account_home()
     roots, executables = _defaults(real_home)
     report = verify_candidate_isolation(
         repository=options.repository,

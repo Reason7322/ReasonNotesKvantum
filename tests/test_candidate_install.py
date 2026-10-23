@@ -1,10 +1,12 @@
 from importlib.util import module_from_spec, spec_from_file_location
 import os
 from pathlib import Path
+import pwd
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -237,6 +239,14 @@ class CandidateInstallTests(unittest.TestCase):
         self.assertEqual(report.repository, (safe / "repository").resolve())
         self.assertEqual(report.environment["HOME"], (safe / "home").resolve())
         self.assertEqual(report.conflicting_processes, ())
+
+    def test_isolation_verifier_protects_account_home_when_home_is_isolated(self):
+        verifier = load_isolation_verifier()
+        account_home = Path(pwd.getpwuid(os.getuid()).pw_dir)
+        with patch.dict(
+            os.environ, {"HOME": str(self.home / "isolated-home")}, clear=False
+        ):
+            self.assertEqual(verifier.system_account_home(), account_home)
 
     def test_check_launch_writes_only_explicit_isolated_roots(self):
         self.install()
