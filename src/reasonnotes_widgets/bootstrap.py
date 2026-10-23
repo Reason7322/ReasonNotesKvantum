@@ -107,7 +107,10 @@ def resolve_launch_paths(
         ("inbox", paths.inbox),
         ("received directory", paths.received_dir),
     ):
-        if any(_is_within(path, root) for root in protected):
+        if any(
+            _is_within(path, root) or _is_within(root, path)
+            for root in protected
+        ):
             raise UnsafeProductionPath(
                 f"Candidate {label} may not use protected production data: {path}"
             )

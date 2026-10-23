@@ -81,6 +81,18 @@ class WidgetsBootstrapTests(unittest.TestCase):
                 with self.assertRaises(UnsafeProductionPath):
                     resolve_launch_paths(inbox=production / "inbox")
 
+    def test_broad_repository_parent_containing_production_is_rejected(self):
+        from reasonnotes_widgets.bootstrap import UnsafeProductionPath, resolve_launch_paths
+
+        with TemporaryDirectory() as folder:
+            home = Path(folder)
+            with self.assertRaises(UnsafeProductionPath):
+                resolve_launch_paths(
+                    root=home / ".local/share",
+                    environ={"HOME": str(home)},
+                    home=home,
+                )
+
     def test_canonical_production_path_is_rejected_when_xdg_data_home_changes(self):
         from reasonnotes_widgets.bootstrap import UnsafeProductionPath, resolve_launch_paths
 

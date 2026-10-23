@@ -72,7 +72,11 @@ def _copy_release(source_root: Path, staging: Path) -> None:
     for directory in ("src", "linux-app", "docs", "packaging"):
         shutil.copytree(source_root / directory, staging / directory, ignore=ignored)
     (staging / "scripts").mkdir()
-    for script in ("build-wayland-blur.py", "install-candidate.py"):
+    for script in (
+        "build-wayland-blur.py",
+        "install-candidate.py",
+        "verify-candidate-isolation.py",
+    ):
         shutil.copy2(source_root / "scripts" / script, staging / "scripts" / script)
     for filename in ("README.md", "pyproject.toml"):
         shutil.copy2(source_root / filename, staging / filename)
