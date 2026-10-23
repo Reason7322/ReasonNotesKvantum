@@ -1,5 +1,31 @@
 # ReasonNotesKvantum - Project Status
 
+## Search notes restored as a native search bar — 2026-10-23
+
+Reason rejected the `b317b703f66d18a0bb0896041ae607deb3307d8a`
+always-focused clipped edge because it read as a blue border rather than a
+search input. The Search notes surround now paints LiquidGlass/Kvantum's
+complete native `PE_PanelLineEdit`: normal at rest and focused only while the
+child text field has actual focus.
+
+This restores the theme's own input depth and edge around the separately
+aligned search icon and text area. The child `QLineEdit` still has no frame and
+uses `NoBrush`, so no second panel is stacked over the surround. The native
+center is theme-painted and measurably translucent rather than opaque. No
+application color, opacity, fill, stylesheet, shader, alignment value, global
+theme setting, or unrelated UI was changed. The approved LiquidGlass rail
+material and sidebar grid remain unchanged.
+
+Focused tests cover the translucent center, exact native normal/focused state
+renders, typing, clearing, focus, Ctrl+F, accessibility, supported sidebar
+widths, and existing material/layout behavior. No interactive launch,
+installation, synchronization, Android action, or production-data access was
+performed. The existing persistent isolated review root and launch procedure
+remain applicable; owner Wayland review is still the final visual gate.
+
+**PRODUCT INCOMPLETE:** further UI refinement and reliable bidirectional
+Android synchronization require separate authorization.
+
 ## Brighter native Search notes frame — 2026-10-23
 
 Reason's real-Wayland review accepted the sidebar and alignment from

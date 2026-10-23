@@ -16,7 +16,6 @@ from PySide6.QtGui import (
     QPen,
     QPixmap,
     QPolygonF,
-    QRegion,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -240,7 +239,7 @@ class SidebarActionButton(QToolButton):
 
 
 class SidebarSearchWell(SearchWell):
-    """Kvantum-owned line-edit edge with no independent interior fill."""
+    """Complete native line edit using Kvantum's own translucent material."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -261,36 +260,25 @@ class SidebarSearchWell(SearchWell):
             self.update()
         return super().eventFilter(watched, event)
 
-    def draw_native_frame(self, painter: QPainter, rect: QRect) -> None:
+    def draw_native_surface(self, painter: QPainter, rect: QRect) -> None:
         option = QStyleOptionFrame()
         option.initFrom(self)
         option.rect = rect
         option.lineWidth = self.style().pixelMetric(
             QStyle.PixelMetric.PM_DefaultFrameWidth, option, self
         )
-        # LiquidGlass provides its legible line-edit edge through the native
-        # focused artwork. Keep that theme-owned edge visible at rest while
-        # clipping away the panel interior below.
-        option.state |= QStyle.StateFlag.State_HasFocus
-        frame_width = max(option.lineWidth, 1)
-        frame_region = QRegion(rect).subtracted(
-            QRegion(
-                rect.adjusted(frame_width, frame_width, -frame_width, -frame_width)
-            )
-        )
-        painter.save()
-        painter.setClipRegion(frame_region)
+        if self._focus_source is not None and self._focus_source.hasFocus():
+            option.state |= QStyle.StateFlag.State_HasFocus
         self.style().drawPrimitive(
             QStyle.PrimitiveElement.PE_PanelLineEdit,
             option,
             painter,
             self,
         )
-        painter.restore()
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
-        self.draw_native_frame(painter, self.rect())
+        self.draw_native_surface(painter, self.rect())
         painter.end()
 
 
