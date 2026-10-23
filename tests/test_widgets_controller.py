@@ -85,7 +85,10 @@ class WidgetsControllerTests(unittest.TestCase):
 
         self.assertEqual(controller.pending_delete_ids, (first,))
         self.assertTrue(controller.confirm_delete())
-        self.assertTrue(self.repository.is_purged(UUID(first)))
+        self.assertFalse(self.repository.is_purged(UUID(first)))
+        heads = self.repository.graph().heads(UUID(first))
+        self.assertEqual(1, len(heads))
+        self.assertTrue(heads[0].deleted)
         self.assertFalse(any(row.note_id == first for row in controller.presenter.notes))
         self.assertTrue(any(row.note_id == second for row in controller.presenter.notes))
 

@@ -1,5 +1,32 @@
 # ReasonNotesKvantum - Project Status
 
+## Four-requirement synchronization repair — 2026-10-23
+
+The product requirements are: notes remain editable on Fedora and Android;
+pressing Sync sends eligible changes; concurrent edits show both complete
+versions and require an explicit choice; and deletion on either device is sent
+to the other device without resurrection.
+
+Fedora user deletion now creates an immutable JSON v1 tombstone revision
+through the same repository and ordinary Sync path as an edit. Deleted notes
+remain hidden locally, persist across restart, and are delivered on the next
+Sync. A deletion concurrent with an independent edit remains an explicit
+two-version conflict; choosing either complete version creates the existing
+multi-parent resolution so both devices can converge. Legacy purge fences
+remain readable for backward compatibility, but new deletions no longer depend
+on the separate foreground-purge channel.
+
+The approved Qt Widgets/LiquidGlass interface and synchronization protocol are
+otherwise unchanged. The complete desktop suite passes 291 tests, including
+bidirectional create/edit exchange, full-version conflict choice, edit/delete
+conflicts, retry state, restart recovery, JSON v1 carriers, durable receipts,
+and isolation guards.
+
+No desktop release was installed or launched and no production or personal
+repository was accessed. Physical verification is still required for create
+and edit round-trip, both conflict choices, deletion in both directions,
+durable confirmations, and restart persistence with the repaired Android peer.
+
 ## Safe Fedora to Android synchronization preparation — 2026-10-23
 
 The approved Widgets branch still contains the Android-compatible JSON v1

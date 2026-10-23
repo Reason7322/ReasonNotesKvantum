@@ -69,7 +69,8 @@ class WidgetsSelectionTests(unittest.TestCase):
 
         self.assertEqual(confirmations, [(2, True)])
         self.assertEqual(
-            {note_id for note_id in ids if self.repository.is_purged(UUID(note_id))},
+            {note_id for note_id in ids
+             if self.repository.graph().heads(UUID(note_id))[0].deleted},
             frozen,
         )
         self.assertEqual(
@@ -186,7 +187,7 @@ class WidgetsSelectionTests(unittest.TestCase):
         )
         self.assertEqual(controller.active_note_id, active)
 
-    def test_delete_confirmation_describes_irrecoverable_history_and_peer_purge(self):
+    def test_delete_confirmation_describes_next_sync_propagation(self):
         from reasonnotes_widgets.main_window import ReasonNotesMainWindow
 
         window = ReasonNotesMainWindow(self.controller(), settings=self.settings)
@@ -194,9 +195,9 @@ class WidgetsSelectionTests(unittest.TestCase):
 
         prompt = window._delete_confirmation_text(2)
 
-        self.assertIn("local revision history", prompt)
+        self.assertIn("next time you sync", prompt)
         self.assertIn("paired phone", prompt)
-        self.assertNotIn("Recoverable", prompt)
+        self.assertNotIn("Permanently", prompt)
 
 
 if __name__ == "__main__":

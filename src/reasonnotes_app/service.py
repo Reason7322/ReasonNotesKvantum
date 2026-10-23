@@ -196,17 +196,17 @@ class NoteService:
         *,
         expected_revision_ids: tuple[str, ...] | None = None,
     ) -> None:
-        """Permanently purge all managed history, including conflicted heads.
-
-        A durable content-free fence survives until other paired instances
-        have also purged, preventing old KDE Connect transfers resurrecting it.
-        """
-        if expected_revision_ids is None:
-            self.repository.purge_note(note_id)
-        else:
-            self.repository.purge_note_if_revisions(
-                note_id, expected_revision_ids
-            )
+        """Create a tombstone delivered by the ordinary JSON sync path."""
+        current = self._require_live_head(note_id)
+        expected = expected_revision_ids or (current.revision_id,)
+        self.repository.create_revision(
+            note_id,
+            "",
+            self.origin_device,
+            self._now(),
+            deleted=True,
+            expected_head_ids=expected,
+        )
         self._edit_bases.pop(note_id, None)
         self._conflict_snapshots.pop(note_id, None)
 
