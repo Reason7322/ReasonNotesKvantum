@@ -772,3 +772,18 @@ required transfer-requested ledger row during overlapping scans. Android also
 performs measured 38.5-58.3 second rescans of roughly 400 accumulated exchange
 files, causing severe UI lag. No source repair, new build, deployment, personal
 data migration, or production synchronization is included in this checkpoint.
+
+## Forge current-operation status repair — 2026-10-24
+
+The confirmed-sync wrapper no longer converts unrelated exhausted historical
+revision rows into an error after the current operation successfully imports a
+remote revision, accepts a confirmation, or requests its receipts. Historical
+`needs-attention` evidence remains durable and still produces an error for a
+neutral sync with no current progress; current transfer, scan, and confirmation
+failures remain errors. No UI layout, protocol, ledger, or note model changed.
+
+The mixed historical-failure/current-import regression failed before the fix
+with the physically observed generic attention error and passes afterward.
+Focused verification: confirmed-sync plus presenter 28/28; Widgets sync panel
+and controller 9/9 under offscreen Qt. Physical desktop status verification
+against the repaired Android candidate remains pending; nothing was deployed.

@@ -457,7 +457,10 @@ def sync_linux_confirmed(
                 selected is None or revision.note_id in selected
             ):
                 blocked.append(entry)
-        if blocked:
+        current_progress = bool(
+            imports or confirmations or initial.receipt_requested
+        )
+        if blocked and not current_progress:
             errors.append(
                 "Synchronization needs attention: bounded transfer request "
                 f"limit reached for {len(blocked)} selected revision(s)"

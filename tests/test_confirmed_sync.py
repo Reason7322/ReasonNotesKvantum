@@ -5,6 +5,7 @@ import unittest
 from uuid import UUID
 
 from reasonnotes_sync.delivery import DeliveryLedger, DeliveryState
+from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.kdeconnect_linux import TransferRequest
 from reasonnotes_sync.receipt import ReceiptEnvelope
 from reasonnotes_sync.repository import Repository
@@ -200,6 +201,26 @@ class ConfirmedSyncTests(unittest.TestCase):
             any("needs attention" in error.casefold() for error in report.errors),
             report.errors,
         )
+
+    def test_successful_current_import_is_not_failed_by_unrelated_exhausted_history(self):
+        exhausted = self.repository.create_revision(NOTE_A, "Old local", "linux", T0)
+        for _ in range(3):
+            sync_linux(self.repository, self.inbox, FakeAdapter(), retry_unconfirmed=True)
+        self.assertEqual(
+            DeliveryLedger(self.root).entry(exhausted.revision_id, "android").state,
+            DeliveryState.NEEDS_ATTENTION,
+        )
+        remote = Revision.create(
+            NOTE_B, (), "android", T0 + timedelta(seconds=10), False,
+            "Remote current operation",
+        )
+        (self.inbox / "remote-current.md").write_bytes(remote.serialize())
+
+        report = self.run_confirmed(FakeAdapter(), ControlledTime())
+
+        self.assertEqual((remote.revision_id,), report.imports)
+        self.assertEqual(1, len(report.receipt_requested))
+        self.assertEqual((), report.errors)
 
 
 if __name__ == "__main__":
