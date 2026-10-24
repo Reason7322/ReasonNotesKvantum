@@ -734,3 +734,41 @@ Nothing was deployed. Production, the installed candidate, Android, KDE
 Connect state, and global desktop/theme configuration remain untouched.
 **ENGINEERING CANDIDATE — UI VISUAL ACCEPTANCE PENDING.** Android testing and
 production cutover remain explicitly unauthorized at this checkpoint.
+
+## Forge physical synchronization checkpoint — 2026-10-24
+
+The owner-approved Qt Widgets/LiquidGlass desktop ran only with isolated HOME,
+XDG, repository, inbox, and received roots under
+`/home/reason/Temporary/ReasonNotes-Physical-Acceptance-d312682-6527405/`.
+Production desktop files and personal note storage were not used.
+
+Physical disposable-note evidence now verifies:
+
+- Fedora create reached Android and Fedora accepted Android's durable receipt.
+- Android edits reached Fedora; Fedora receipts returned and Android confirmed
+  all transmitted revisions.
+- Independent edits produced a real two-head conflict; Reason saw both versions,
+  chose one, and the resolution converged on both devices.
+- Fedora-origin deletion reached Android and Fedora durably confirmed Android's
+  receipt for tombstone
+  `8d36d3b93f5b97b1590a41913134ca5472c2ef7896e93c336af3134ba5b786df`.
+- Android-origin tombstone
+  `76826346641842125b663079d9b2a58b86087e733612bcaf789b06a203642092`
+  imported durably on Fedora and removed the disposable note. Fedora generated
+  and KDE Connect delivered receipt
+  `d2e301def8b82adee2a65d364479ab798d008cccbd8a7bb3c349e8f1a68366e2`.
+
+The desktop repeatedly displayed a synchronization error despite successful
+current imports, receipt generation, KDE Connect delivery, and confirmations.
+Read-only inspection found historical receipt-delivery rows at
+`needs-attention` mixed into each new operation's aggregate result. This is a
+real status/orchestration defect: current-note success must not be reported as
+failure merely because unrelated old receipt attempts are exhausted, while
+the affected old items must remain identifiable and recoverable.
+
+Product remains incomplete. Android has not durably confirmed the final
+Android-origin deletion because its selected tombstone transfer lost the
+required transfer-requested ledger row during overlapping scans. Android also
+performs measured 38.5-58.3 second rescans of roughly 400 accumulated exchange
+files, causing severe UI lag. No source repair, new build, deployment, personal
+data migration, or production synchronization is included in this checkpoint.
