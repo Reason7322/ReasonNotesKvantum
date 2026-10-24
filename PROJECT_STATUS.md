@@ -1,5 +1,25 @@
 # ReasonNotesKvantum - Project Status
 
+## Physical deletion follow-up — 2026-10-24
+
+Physical create/edit synchronization and durable receipts passed in both
+directions. A real two-head Fedora/Android conflict displayed both complete
+versions on Android; choosing the Fedora version created one resolution with
+both conflict heads as parents, converged Fedora and Android to that exact
+single head, and received durable confirmations on both devices.
+
+The first physical Fedora deletion attempt exposed a narrow desktop safety
+check defect: the controller snapshotted every historical revision while the
+tombstone API correctly compares current heads. Consequently, a synchronized
+multi-revision note failed closed and remained visible; no deletion carrier was
+sent and no data was lost. The controller now snapshots exact head IDs. A new
+multi-revision regression failed before the fix and passes afterward; the
+controller (6), selection (7), and note-service (13) focused modules all pass.
+
+Physical deletion propagation must be retried after restarting the isolated
+candidate from this checkpoint. Android-to-Fedora deletion, restart
+persistence, and final production cutover remain pending.
+
 ## Four-requirement synchronization repair — 2026-10-23
 
 The product requirements are: notes remain editable on Fedora and Android;

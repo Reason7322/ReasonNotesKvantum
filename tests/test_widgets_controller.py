@@ -108,6 +108,21 @@ class WidgetsControllerTests(unittest.TestCase):
         )
         self.assertIn("changed", controller.presenter.save_error.casefold())
 
+    def test_delete_multi_revision_note_snapshots_only_current_heads(self):
+        note_id = self.service.create_note("# First\n\nOriginal")
+        self.service.open_note(note_id)
+        self.service.save_note(note_id, "# First\n\nEdited once")
+        self.service.save_note(note_id, "# First\n\nEdited twice")
+        controller = self.controller()
+        self.assertTrue(controller.select_note(str(note_id)))
+
+        self.assertEqual(controller.prepare_delete(), (str(note_id),))
+        self.assertTrue(controller.confirm_delete())
+
+        heads = self.repository.graph().heads(note_id)
+        self.assertEqual(1, len(heads))
+        self.assertTrue(heads[0].deleted)
+
     def test_async_incoming_refresh_updates_model_after_worker_completion(self):
         controller = self.controller()
         finished = []

@@ -301,7 +301,7 @@ class WidgetsController(QObject):
         else:
             self._pending_delete_ids = ()
         self._pending_delete_revisions = {
-            note_id: self.presenter.repository.note_revision_ids(UUID(note_id))
+            note_id: self.presenter.repository.graph().status(UUID(note_id)).head_ids
             for note_id in self._pending_delete_ids
         }
         self.selection_changed.emit()

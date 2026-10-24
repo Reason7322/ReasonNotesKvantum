@@ -349,11 +349,11 @@ class NotePresenter:
         *,
         expected_revisions: dict[str, tuple[str, ...]] | None = None,
     ) -> tuple[str, ...]:
-        """Purge each explicitly selected live note through the existing fence.
+        """Create a synchronized tombstone for each selected live note.
 
         Each successful deletion is committed independently by the repository.
         On partial failure, report an error and leave other notes untouched.
-        Never silently save a draft from a note being permanently deleted.
+        Never silently save a draft from a note being deleted.
         """
         ids = tuple(dict.fromkeys(note_ids))
         if not ids:
@@ -375,10 +375,8 @@ class NotePresenter:
                     ),
                 )
             except Exception as error:
-                # A durable deletion fence may already have been committed
-                # before a later cleanup step failed. Never keep a fenced
-                # note in the editor or the selected list, and never report
-                # the interrupted cleanup as a successful batch.
+                # Never keep a successfully deleted note in the editor or the
+                # selected list, and never report a partial batch as success.
                 if self.repository.is_purged(UUID(note_id)):
                     deleted.append(note_id)
                 failed = error
