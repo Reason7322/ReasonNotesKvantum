@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from reasonnotes_sync.delivery import DeliveryLedger, DeliveryState
 from reasonnotes_sync.sync import SyncReport
 
 from .service import NoteService
@@ -64,39 +63,7 @@ class NotePresenter:
         self.refresh()
 
     def _delivery_statuses(self) -> dict[UUID, str]:
-        target = self.repository.target_device
-        if target is None:
-            return {}
-        # Load immutable revisions once and resolve ledger IDs in memory.
-        # Repository.revision() scans the entire history for each ID; calling
-        # it for every delivery entry caused O(entries * revisions) disk I/O
-        # on every UI refresh and note switch.
-        revision_notes = {
-            revision.revision_id: revision.note_id
-            for revision in self.repository.revisions()
-        }
-        states: dict[UUID, list[DeliveryState]] = {}
-        for entry in DeliveryLedger(self.repository.root).entries(target):
-            note_id = revision_notes.get(entry.revision_id)
-            if note_id is not None:
-                states.setdefault(note_id, []).append(entry.state)
-
-        result = {}
-        for note_id, note_states in states.items():
-            if DeliveryState.NEEDS_ATTENTION in note_states:
-                status = "Needs attention"
-            elif DeliveryState.PENDING in note_states:
-                status = "Pending"
-            elif DeliveryState.TRANSFER_REQUESTED in note_states:
-                status = "Transfer requested"
-            elif note_states and all(
-                state == DeliveryState.CONFIRMED for state in note_states
-            ):
-                status = "Confirmed"
-            else:
-                status = "Local"
-            result[note_id] = status
-        return result
+        return self.service.delivery_statuses()
 
     def refresh(self, query: str | None = None) -> tuple[NoteRow, ...]:
         if query is not None:
@@ -121,8 +88,8 @@ class NotePresenter:
     def sync_notes(self) -> tuple[NoteRow, ...]:
         """Return an unfiltered sync catalogue, including live tombstones."""
         delivery = self._delivery_statuses()
-        rows = {
-            str(summary.note_id): NoteRow(
+        return tuple(
+            NoteRow(
                 note_id=str(summary.note_id),
                 title=summary.title,
                 preview=summary.preview,
@@ -130,30 +97,7 @@ class NotePresenter:
                 modified_utc=summary.modified_utc,
                 delivery_status=delivery.get(summary.note_id, "Local"),
             )
-            for summary in self.service.list_notes("")
-        }
-        graph = self.repository.graph()
-        note_ids = {revision.note_id for revision in self.repository.revisions()}
-        for note_id in note_ids:
-            if str(note_id) in rows:
-                continue
-            heads = graph.heads(note_id)
-            if len(heads) != 1 or not heads[0].deleted:
-                continue
-            rows[str(note_id)] = NoteRow(
-                note_id=str(note_id),
-                title="Deleted note",
-                preview="Pending deletion",
-                conflicted=False,
-                modified_utc=heads[0].modified_utc,
-                delivery_status=delivery.get(note_id, "Local"),
-            )
-        return tuple(
-            sorted(
-                rows.values(),
-                key=lambda row: (row.modified_utc, row.note_id),
-                reverse=True,
-            )
+            for summary in self.service.sync_notes()
         )
 
     def _set_save_error(self, error: BaseException | str) -> None:
@@ -168,9 +112,7 @@ class NotePresenter:
             return self.conflict_view is None
         if self.conflict_view is not None:
             return False
-        return not self.repository.graph().status(
-            UUID(self.active_note_id)
-        ).conflicted
+        return not self.service.is_conflicted(UUID(self.active_note_id))
 
     def create_note(self) -> bool:
         initial_body = ""
@@ -184,7 +126,7 @@ class NotePresenter:
             self._set_save_error(error)
             return False
         self.active_note_id = str(note_id)
-        self._active_head_ids = self.repository.graph().status(note_id).head_ids
+        self._active_head_ids = self.service.head_ids(note_id)
         self.draft = initial_body
         self.dirty = False
         self._unbound_implicit_title = False
@@ -197,16 +139,17 @@ class NotePresenter:
 
     def select_note(self, note_id: str) -> bool:
         selected = UUID(note_id)
-        status = self.repository.graph().status(selected)
+        head_ids = self.service.head_ids(selected)
+        conflicted = self.service.is_conflicted(selected)
         if (
             self.active_note_id == note_id
-            and not status.conflicted
-            and (self.dirty or status.head_ids == self._active_head_ids)
+            and not conflicted
+            and (self.dirty or head_ids == self._active_head_ids)
         ):
             return True
         if self.active_note_id != note_id and not self.save_active():
             return False
-        if status.conflicted:
+        if conflicted:
             if self.active_note_id != note_id:
                 try:
                     self.draft = self.service.open_note(selected)
@@ -222,7 +165,7 @@ class NotePresenter:
             self._set_save_error(error)
             return False
         self.active_note_id = note_id
-        self._active_head_ids = status.head_ids
+        self._active_head_ids = head_ids
         self.draft = body
         self.dirty = False
         self._unbound_implicit_title = False
@@ -276,7 +219,7 @@ class NotePresenter:
             self.save_state = "Saving"
             try:
                 note_id = self.service.create_note(self.draft)
-                head_ids = self.repository.graph().status(note_id).head_ids
+                head_ids = self.service.head_ids(note_id)
             except Exception as error:
                 self._set_save_error(error)
                 return False
@@ -303,12 +246,11 @@ class NotePresenter:
             self._set_save_error(error)
             return False
         self.dirty = False
-        self._active_head_ids = (revision.revision_id,)
+        self._active_head_ids = (self.service.change_id(revision),)
         self.save_state = "Saved"
         self.save_error = ""
         self.refresh()
-        status = self.repository.graph().status(UUID(self.active_note_id))
-        if status.conflicted:
+        if self.service.is_conflicted(UUID(self.active_note_id)):
             self.inspect_conflict(self.active_note_id)
         return True
 
@@ -377,7 +319,7 @@ class NotePresenter:
             except Exception as error:
                 # Never keep a successfully deleted note in the editor or the
                 # selected list, and never report a partial batch as success.
-                if self.repository.is_purged(UUID(note_id)):
+                if self.service.is_deleted(UUID(note_id)):
                     deleted.append(note_id)
                 failed = error
                 break
@@ -465,15 +407,15 @@ class NotePresenter:
             if self.active_note_id is None:
                 return
         note_id = UUID(self.active_note_id)
-        status = self.repository.graph().status(note_id)
-        if status.conflicted:
+        head_ids = self.service.head_ids(note_id)
+        if self.service.is_conflicted(note_id):
             self.inspect_conflict(self.active_note_id)
             if self.dirty:
                 self._set_save_error(
                     "note changed during synchronization; draft preserved"
                 )
             return
-        if status.head_ids == self._active_head_ids:
+        if head_ids == self._active_head_ids:
             return
         self._set_save_error(
             "note changed during synchronization; draft preserved"
@@ -502,19 +444,15 @@ class NotePresenter:
             self.conflict_view = None
             return None
         origin_rank = {"linux": 0, "android": 1}
-        versions = []
-        for candidate in candidates:
-            revision = self.repository.revision(candidate.revision_id)
-            if revision is None:
-                continue
-            versions.append(
+        versions = [
                 ConflictVersion(
-                    revision_id=revision.revision_id,
-                    origin_device=revision.origin_device,
-                    deleted=revision.deleted,
-                    body=revision.body,
+                    revision_id=candidate.revision_id,
+                    origin_device=candidate.origin_device,
+                    deleted=candidate.deleted,
+                    body=candidate.body,
                 )
-            )
+            for candidate in candidates
+        ]
         versions.sort(
             key=lambda item: (
                 origin_rank.get(item.origin_device, 2),
@@ -523,7 +461,7 @@ class NotePresenter:
             )
         )
         self.conflict_view = ConflictView(note_id, tuple(versions))
-        self._active_head_ids = self.repository.graph().status(parsed).head_ids
+        self._active_head_ids = self.service.head_ids(parsed)
         return self.conflict_view
 
     def resolve_conflict(
@@ -558,7 +496,7 @@ class NotePresenter:
             return True
         self.conflict_view = None
         self._skipped_conflict_draft = False
-        if resolution.deleted:
+        if self.service.change_deleted(resolution):
             self.active_note_id = None
             self._active_head_ids = ()
             self.draft = ""
@@ -568,7 +506,7 @@ class NotePresenter:
             self.refresh()
             return True
         self.active_note_id = str(note_id)
-        self._active_head_ids = self.repository.graph().status(note_id).head_ids
+        self._active_head_ids = self.service.head_ids(note_id)
         self.draft = self.service.open_note(note_id)
         self.dirty = False
         self.save_state = "Saved"

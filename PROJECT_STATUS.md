@@ -1,20 +1,34 @@
 # ReasonNotesKvantum - Project Status
 
-## CHECKPOINT — Simplified synchronization v2 Fedora Task 6 RED (2026-10-25)
+## Simplified synchronization v2 — Fedora Task 6 complete (2026-10-25)
 
-Task 6 has started with four current-store service regressions covering
-current-only listing despite 400 unrelated historical files, coalesced and
-unchanged saves, complete two-version conflict choice with losing-content
-erasure, and permanent deletion. The focused class runs four tests and all four
-fail at the intended boundary because the existing `NoteService` still calls
-the legacy repository's `create_revision()` API when given `CurrentNoteStore`.
+The Fedora application service now consumes the Task 5 `CurrentNoteStore` for
+ordinary create, open, edit, search, delete, conflict choice, pending-state and
+sync-catalogue operations. Presenter and controller storage queries now go
+through that service seam instead of assuming an immutable revision graph.
+One current record is shown per live note, repeated saves coalesce, unchanged
+saves are no-ops, deletions retain no note content, and conflict cards receive
+both complete candidate versions before the selected version replaces them.
 
-This is an intentional RED checkpoint, not a working Task 6 implementation.
-No application source, presenter/controller, Widgets layout, visual material,
-installed application, personal repository, migration, or synchronization was
-changed or exercised. Continue by adapting the service to Task 5 storage, then
-add presenter/controller and protected-UI contracts before running the focused
-service and offscreen Widgets checks.
+The legacy repository path remains supported for the not-yet-replaced Task 7
+transport integration. This avoids changing the protocol or transport during
+Task 6 while preventing historical delivery records from driving current-store
+UI state. The approved Widgets hierarchy, LiquidGlass material, sidebar,
+editor, alignment and styling are unchanged; source-hash contracts protect the
+three owner-approved visual implementation files.
+
+Focused verification passes 24/24 service, conflict-widget and sync-panel
+tests. Four directly affected legacy interaction modules pass independently:
+presenter 21/21, controller 6/6, selection 7/7 and main window 10/10. Combining
+those independent Qt modules in one interpreter can abort during process
+teardown after all assertions report OK; each module exits zero in isolation,
+and the required Task 6 combined slice exits zero. Compilation and whitespace
+checks also pass.
+
+No application was launched, deployed or installed. No personal repository,
+migration, KDE Connect transfer, physical synchronization or Android state was
+accessed. Task 7 transport adaptation and all physical acceptance remain
+incomplete and require separate authorization.
 
 ## Simplified synchronization v2 — Fedora Task 5 complete (2026-10-25)
 

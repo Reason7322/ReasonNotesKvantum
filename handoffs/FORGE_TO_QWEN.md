@@ -1,20 +1,28 @@
 # Forge -> Qwen directional handoff
 
-## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 6 RED
+## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 6 complete
 
-- Incoming completed Task 5 checkpoint:
-  `215ecd3d6ffe2bf400ec0ae0e86afa0f96f60639`.
-- Task 6 is intentionally incomplete. Four current-store `NoteService` tests
-  were added for current-only listing, coalesced/no-op saves, complete conflict
-  selection with loser erasure, and permanent deletion.
-- Focused RED command: `PYTHONPATH=src python3 -m unittest
-  tests.test_note_service.CurrentNoteServiceTest` → 4 tests, 4 expected errors.
-  Each fails because history-only `NoteService.create_note()` calls missing
-  `CurrentNoteStore.create_revision()`.
-- No production source or UI changed. No application launch, production data,
-  migration, synchronization, installation, or Android action occurred.
-- Continue the same authorized Task 6 by adapting service/presenter/controller
-  wiring while preserving the approved Widgets hierarchy and styling.
+- Incoming RED checkpoint:
+  `009426769f0caeaf7f02ae97ad2a100e6c76247e`.
+- `NoteService` now adapts the Task 5 current-state store for create/open/edit,
+  listing/search, permanent deletion, complete conflict choice, pending state,
+  delivery labels and the sync catalogue. Legacy repository behavior remains
+  available until the separately authorized Task 7 transport conversion.
+- `NotePresenter` and `WidgetsController` use service-level state/head/deletion
+  queries rather than reaching into the legacy revision graph.
+- Current-state conflict Widgets receive both complete versions; selecting one
+  writes exactly one pending resolution and removes the losing candidate.
+- Protected source contracts confirm the approved sidebar, material and editor
+  implementation files are byte-identical to their accepted versions.
+- Verification: required Task 6 slice 24/24; legacy presenter 21/21, controller
+  6/6, selection 7/7 and main-window 10/10, each with a clean zero exit;
+  compilation and `git diff --check` pass. A single interpreter combining the
+  four Qt modules aborts only during teardown after reporting all assertions
+  OK, so the modules were verified independently rather than counting that run.
+- No application launch, deployment, personal data, migration, physical sync,
+  KDE Connect action, Android action or visual redesign occurred.
+- Product remains incomplete. Task 7 transport adaptation is the potential next
+  milestone, but it is not authorized by this checkpoint.
 
 ## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 5 complete
 

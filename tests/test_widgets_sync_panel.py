@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QDockWidget, QProgressBar
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
+from reasonnotes_sync.current_store import CurrentNoteStore
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.sync import SyncReport
 from reasonnotes_widgets.bootstrap import create_application
@@ -38,9 +39,7 @@ class WidgetsSyncPanelTests(unittest.TestCase):
 
         with TemporaryDirectory() as folder:
             base = Path(folder)
-            repository = Repository.open(
-                base / "repo", local_device="linux", target_device="android"
-            )
+            repository = CurrentNoteStore.open(base / "reasonnotes-v2", "linux")
             service = NoteService(repository, origin_device="linux")
             service.create_note("# *Markdown title*\n\nLine one\nLine two")
             calls = []
@@ -59,7 +58,6 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             )
             settings = QSettings(str(base / "ui.ini"), QSettings.IniFormat)
             window = ReasonNotesMainWindow(controller, settings=settings)
-            self.addCleanup(window.close)
             window.show()
 
             window.open_sync_panel()
@@ -115,6 +113,7 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             self.assertFalse(panel.progress_bar.isVisible())
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(calls[0]), 1)
+            window.close()
 
     def test_redesigned_drawer_keeps_scope_summary_status_and_action_connected(self):
         """Catch a return to the disconnected footer and empty all-notes body."""
