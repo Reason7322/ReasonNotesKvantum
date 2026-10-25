@@ -191,3 +191,12 @@ physical Android test until that review passes. Only after visual and device
 acceptance should a separately authorized production migration/cutover
 checkpoint be prepared. Do not touch the installed candidate, production
 data/launcher, phone, or `main` before those gates.
+
+# Bounded autosave ancestry repair — 2026-10-25
+
+Fedora mirrors Android's bounded pending-autosave behavior and converts valid
+unorderable complete states into explicit conflicts. Fourteen focused
+current-state/cross-platform tests pass. The 338-test suite has one unrelated
+candidate-installer assertion failure; all other tests pass. Isolated release:
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Coalesced-Candidates/desktop/install/releases/4a3331f`.
+No launch or production change occurred; physical acceptance remains pending.

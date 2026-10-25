@@ -935,3 +935,18 @@ transferred. Task 8's offline milestone is complete; physical synchronization,
 Android migration, durable confirmation, conflict/deletion UI behavior,
 restart persistence, performance, and production cutover remain pending. See
 `docs/SIMPLIFIED_SYNC_V2_OFFLINE_ACCEPTANCE_2026-10-24.md`.
+
+## Bounded autosave ancestry repair — 2026-10-25
+
+Fedora now mirrors Android's bounded pending-autosave semantics and presents
+valid unorderable complete states as explicit conflicts. The 14 focused
+current-state/cross-platform tests pass. The broad suite ran 338 tests with
+one unrelated existing candidate-installer assertion failure
+(`test_check_launch_writes_only_explicit_isolated_roots`); all other tests
+passed after loopback tests were rerun outside the sandbox.
+
+Isolated candidate release:
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Coalesced-Candidates/desktop/install/releases/4a3331f`.
+Launcher SHA-256:
+`ff70654b86d21c9df336b90c05f156a22ec2160097fb54cabd86077b4a465c61`.
+Nothing was installed or launched; physical confirmation remains pending.
