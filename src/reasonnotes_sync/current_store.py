@@ -428,6 +428,6 @@ class CurrentNoteStore:
         return self.outgoing_acks_dir / f"{change_id}.json"
 
     def _processed_path(self, kind: str, identity: str) -> Path:
-        if kind not in ("ack", "state") or _HASH.fullmatch(identity) is None:
+        if kind not in ("ack", "legacy", "state") or _HASH.fullmatch(identity) is None:
             raise ValueError("invalid processed exchange identity")
         return self.processed_exchange_dir / f"{kind}-{identity}"

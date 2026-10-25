@@ -94,6 +94,11 @@ class CurrentStateTransportTests(unittest.TestCase):
         self.android = CurrentNoteStore.open(self.android.root, "android")
         scan_inbox(self.android, self.android_inbox, "android")
         self.assertEqual((), self.android.pending_acks())
+        original = next(self.android_inbox.glob("reasonnotes-bundle-v1-*.json"))
+        redelivery = original.with_name(f"{original.stem} (1).json")
+        redelivery.write_bytes(original.read_bytes())
+        scan_inbox(self.android, self.android_inbox, "android")
+        self.assertEqual(1, len(self.android.pending_acks()))
 
         edited = self.android.save_local(
             NOTE_A, "First", "edited on Android", T0 + timedelta(seconds=2)

@@ -13,10 +13,11 @@
 - V2 status reads only current pending/conflict state. Old delivery ledgers and
   receipts do not affect current operations; failure of one note does not block
   independent state transfer, and failed/unreachable requests remain retryable.
-- Durable processed-envelope markers prevent unchanged received files from
-  repeatedly requeueing acknowledgments after restart. Migration seeds them
-  for known v1 history before retirement. Deleted-note fences reject stale
-  live carriers without recurring stale-file errors.
+- Durable source-occurrence markers prevent unchanged received files from
+  repeatedly requeueing acknowledgments after restart while permitting actual
+  redelivery to regenerate a lost acknowledgment. Migration separately seeds
+  known v1 revision markers before retirement. Deleted-note fences reject
+  stale live carriers without recurring stale-file errors.
 - The CLI supports explicit `--current-state` v2 status/scan/sync operation;
   Fedora emits no new v1 revisions from this path but still imports valid v1
   revisions during transition.

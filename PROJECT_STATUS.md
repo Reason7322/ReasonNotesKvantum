@@ -16,12 +16,14 @@ delivery/receipt failures are never consulted, an unreachable or rejected
 transfer leaves each current note independently retryable, conflicts identify
 the affected note without blocking unrelated transfers, and confirmation still
 requires the peer's exact durable-import acknowledgment. Successfully handled
-incoming envelope identities receive durable processed markers, preventing
-unchanged exchange files from being rescanned, reimported or requeueing the
-same acknowledgment after restart. Migration seeds those markers for every
-known legacy revision before retiring history, so existing exchange files do
-not become new work on the first v2 scan. Stale live carriers remain unable to
-resurrect a deleted note and no longer create a recurring stale error.
+incoming file occurrences receive durable processed markers, preventing an
+unchanged exchange file from being rescanned or requeueing the same
+acknowledgment after restart while allowing an actual redelivery to regenerate
+an acknowledgment lost after transfer request. Migration separately seeds
+known legacy revision markers before retiring history, so existing exchange
+files do not become new work on the first v2 scan. Stale live carriers remain
+unable to resurrect a deleted note and no longer create a recurring stale
+error.
 
 The command-line tool has an explicit `--current-state` mode for v2 status,
 scan and synchronization without mixing in legacy delivery state. Legacy CLI

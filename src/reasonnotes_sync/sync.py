@@ -3,6 +3,7 @@
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import hashlib
 from pathlib import Path
 import re
 import time
@@ -291,7 +292,7 @@ def _split_legacy_document(document: str) -> tuple[str, str]:
 
 def _current_candidates(
     inbox: Path, received_dir: Path | None
-) -> tuple[list[tuple[str, str, bytes]], list[str]]:
+) -> tuple[list[tuple[str, str, str, bytes]], list[str]]:
     errors: list[str] = []
     inbox = Path(inbox)
     if not inbox.is_dir():
@@ -305,7 +306,7 @@ def _current_candidates(
             errors.append(f"received directory is not a directory: {directory}")
             continue
         paths.extend(_incoming_files(directory, downloads=downloads))
-    incoming: list[tuple[str, str, bytes]] = []
+    incoming: list[tuple[str, str, str, bytes]] = []
     for path in paths:
         try:
             if path.suffix.lower() == ".zip" and path.stat().st_size > MAX_ARCHIVE_BYTES:
@@ -319,7 +320,16 @@ def _current_candidates(
                 members = read_transport_bundle(data, path.name)
             else:
                 members = ((path.name, data),)
-            incoming.extend((f"{path}!{name}", name, item) for name, item in members)
+            metadata = path.stat()
+            for name, item in members:
+                source = f"{path}!{name}"
+                occurrence = hashlib.sha256(
+                    (
+                        f"{path.resolve(strict=False)}\0{metadata.st_mtime_ns}\0"
+                        f"{metadata.st_size}\0{name}"
+                    ).encode("utf-8")
+                ).hexdigest()
+                incoming.append((source, occurrence, name, item))
         except (OSError, BundleError, TransportBundleError) as error:
             errors.append(f"{path}: {error}")
     return incoming, errors
@@ -343,16 +353,20 @@ def _scan_current_inbox(
     # Bundles sort acknowledgment kinds before state kinds. Durable state must
     # nevertheless be applied first so a carrier can never confirm before its
     # independent note mutations have been persisted.
-    for source, source_name, data in incoming:
+    for source, occurrence, source_name, data in incoming:
+        legacy = data.startswith(_FORMAT_MARKER)
         try:
-            if data.startswith(_FORMAT_MARKER):
+            if legacy:
                 state = _legacy_state(Revision.parse(data))
             else:
                 state = StateEnvelope.from_bytes(data)
         except (EnvelopeError, StateEnvelopeError):
             continue
         try:
-            if store.was_processed("state", state.change_id):
+            if (
+                store.was_processed("state", occurrence)
+                or legacy and store.was_processed("legacy", state.change_id)
+            ):
                 continue
             if state.origin_device == local_device:
                 raise StateEnvelopeError("state originated on this device")
@@ -364,25 +378,25 @@ def _scan_current_inbox(
             else:
                 errors.append(f"{source}: {outcome.kind}")
                 continue
-            store.mark_processed("state", state.change_id)
+            store.mark_processed("state", occurrence)
             continue
         except (OSError, RuntimeError, StateEnvelopeError, ValueError) as error:
             quarantined.append(source_name)
             errors.append(f"{source}: {error}")
 
-    for source, source_name, data in incoming:
+    for source, occurrence, source_name, data in incoming:
         try:
             acknowledgment = StateAckEnvelope.from_bytes(data)
         except StateEnvelopeError:
             continue
         try:
-            if store.was_processed("ack", acknowledgment.ack_id):
+            if store.was_processed("ack", occurrence):
                 continue
             if store.acknowledge(acknowledgment):
                 confirmed.append(acknowledgment.acknowledged_change_id)
             else:
                 duplicate_acks.append(acknowledgment.ack_id)
-            store.mark_processed("ack", acknowledgment.ack_id)
+            store.mark_processed("ack", occurrence)
         except (OSError, RuntimeError, StateEnvelopeError, ValueError) as error:
             quarantined.append(source_name)
             errors.append(f"{source}: {error}")

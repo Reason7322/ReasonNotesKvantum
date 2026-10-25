@@ -168,7 +168,7 @@ def _convert_revision(revision: Revision) -> StateEnvelope:
 
 def _mark_legacy_processed(store: CurrentNoteStore, derived: _Derived) -> None:
     for change_id in derived.legacy_change_ids:
-        store.mark_processed("state", change_id)
+        store.mark_processed("legacy", change_id)
 
 
 def _legacy_parents(revision: Revision) -> tuple[str, ...]:
