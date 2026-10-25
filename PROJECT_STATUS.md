@@ -1,5 +1,34 @@
 # ReasonNotesKvantum - Project Status
 
+## Simplified synchronization v2 — Fedora Task 5 complete (2026-10-25)
+
+The desktop now has a durable current-state store matching the simplified v2
+model: one current record per live note, one coalesced pending state per note,
+content-free deletion fences, exact acknowledgments, and two complete temporary
+candidates only while an edit/edit conflict is unresolved. Local and incoming
+deletions permanently erase active content and reject stale live carriers;
+independent deletions acknowledge each other without restoring content. A
+remote descendant also retires the obsolete local pending ancestor instead of
+resending state the peer demonstrably imported.
+
+The one-time Fedora migration reads the legacy history without reconciling or
+writing generated views, derives live notes, ordinary two-head conflicts and
+deletions, then writes a sibling staging store with atomic durable records. It
+reopens and validates current notes, conflicts, fences and pending state before
+atomically selecting the v2 directory. Only after validating the active store
+does it retire the old root. Interrupted staging is rebuilt; an already active
+matching store completes retirement safely. Malformed history, missing ancestry
+and more than two live heads fail closed without activation or legacy removal.
+
+Focused verification passes 19/19 tests covering the current store, restart and
+crash recovery, migration refusal/activation, deletion content erasure, and the
+shared canonical envelope fixtures. All tests used disposable temporary
+repositories. The approved Qt Widgets/LiquidGlass UI and existing service,
+transport, installed application, personal notes and synchronization state were
+not changed or accessed. Task 6 must adapt the Fedora service/controller to this
+store without changing the approved interface; Tasks 7 and 8 and separately
+authorized physical acceptance remain incomplete.
+
 ## Physical deletion follow-up — 2026-10-24
 
 Physical create/edit synchronization and durable receipts passed in both

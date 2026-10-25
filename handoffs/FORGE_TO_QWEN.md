@@ -1,5 +1,31 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 5 complete
+
+- Original goal: save/edit on Fedora and Android, explicit Sync transfer,
+  complete two-version conflict choice, and permanent bidirectional deletion.
+- Incoming checkpoint: Task 1 Fedora envelopes at
+  `7de5e4678c671dcd6d6a8dc813b46d000f530ec7`.
+- Completed milestone: Fedora current-state store and restartable one-time
+  migration from immutable legacy history.
+- `CurrentNoteStore` persists one live record and one coalesced pending state,
+  exact acknowledgments, two complete conflict candidates, and content-free
+  deletion fences using fsync plus atomic replacement.
+- Deletion permanently removes current/conflict content and blocks stale live
+  carriers. Independent deletions acknowledge without resurrection. A remote
+  descendant clears the obsolete pending ancestor already known by that peer.
+- Migration is read-only against the old repository until activation: it stages,
+  reopens and validates exact current/conflict/deletion/pending state, atomically
+  selects the sibling v2 directory, and only then retires the legacy root.
+  Interrupted staging is rebuilt; malformed/missing/three-head histories fail
+  closed with legacy data retained.
+- Verification: 19/19 focused current-store, migration, and canonical-envelope
+  tests pass using disposable repositories.
+- Runtime/deployment: no application launch, production migration, personal
+  note access, installation, KDE Connect transfer, or Android action occurred.
+- Product remains incomplete. Potential next action is Fedora Task 6 service
+  and approved Widgets adapters; it is not authorized by this checkpoint.
+
 ## 2026-10-23 JSON v1 Fedora candidate checkpoint
 
 - Original goal: reliable bidirectional synchronization with visible progress,
