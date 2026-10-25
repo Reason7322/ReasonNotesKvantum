@@ -28,6 +28,7 @@ class _Derived:
     current: tuple[StateEnvelope, ...]
     conflicts: tuple[tuple[StateEnvelope, StateEnvelope], ...]
     deletions: tuple[StateEnvelope, ...]
+    legacy_change_ids: tuple[str, ...]
 
     def report(self) -> MigrationReport:
         return MigrationReport(len(self.current), len(self.conflicts), len(self.deletions))
@@ -57,7 +58,9 @@ def migrate_legacy_repository(
     derived = _derive(legacy)
 
     if active.exists():
-        _validate(CurrentNoteStore.open(active, "linux"), derived)
+        existing = CurrentNoteStore.open(active, "linux")
+        _validate(existing, derived)
+        _mark_legacy_processed(existing, derived)
         _retire_legacy(old_root)
         return derived.report()
 
@@ -70,6 +73,7 @@ def migrate_legacy_repository(
         staged._write_migrated_conflict(candidates)
     for deletion in derived.deletions:
         staged._write_migrated_deletion(deletion)
+    _mark_legacy_processed(staged, derived)
 
     _validate(CurrentNoteStore.open(staging, "linux"), derived)
     os.replace(staging, active)
@@ -134,6 +138,7 @@ def _derive(legacy: Repository) -> _Derived:
         tuple(sorted(current, key=lambda state: str(state.note_id))),
         tuple(sorted(conflicts, key=lambda pair: str(pair[0].note_id))),
         tuple(sorted(deletions, key=lambda state: str(state.note_id))),
+        tuple(sorted(_convert_revision(revision).change_id for revision in revisions)),
     )
 
 
@@ -148,6 +153,22 @@ def _convert_live(revision: Revision) -> StateEnvelope:
         title,
         parts.content,
     )
+
+
+def _convert_revision(revision: Revision) -> StateEnvelope:
+    if revision.deleted:
+        return StateEnvelope.deletion(
+            revision.note_id,
+            _legacy_parents(revision),
+            revision.origin_device,
+            revision.modified_utc,
+        )
+    return _convert_live(revision)
+
+
+def _mark_legacy_processed(store: CurrentNoteStore, derived: _Derived) -> None:
+    for change_id in derived.legacy_change_ids:
+        store.mark_processed("state", change_id)
 
 
 def _legacy_parents(revision: Revision) -> tuple[str, ...]:

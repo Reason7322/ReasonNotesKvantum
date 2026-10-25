@@ -41,6 +41,7 @@ class CurrentNoteStore:
         self.deleted_dir = self.root / "deleted"
         self.pending_dir = self.root / "pending"
         self.outgoing_acks_dir = self.root / "outgoing-acks"
+        self.processed_exchange_dir = self.root / "processed-exchange"
         self._lock = RLock()
 
     @classmethod
@@ -223,6 +224,15 @@ class CurrentNoteStore:
     def is_deleted(self, note_id: UUID) -> bool:
         return self._fence_path(note_id).is_file()
 
+    def was_processed(self, kind: str, identity: str) -> bool:
+        return self._processed_path(kind, identity).is_file()
+
+    def mark_processed(self, kind: str, identity: str) -> None:
+        path = self._processed_path(kind, identity)
+        if path.is_file():
+            return
+        self._atomic_write(path, b"")
+
     def _write_migrated_current(self, state: StateEnvelope) -> None:
         if state.operation != "upsert":
             raise ValueError("migrated current state must be live")
@@ -363,6 +373,7 @@ class CurrentNoteStore:
             self.deleted_dir,
             self.pending_dir,
             self.outgoing_acks_dir,
+            self.processed_exchange_dir,
         ):
             if directory.is_symlink():
                 raise RuntimeError("current store directory must not be a symbolic link")
@@ -415,3 +426,8 @@ class CurrentNoteStore:
 
     def _ack_path(self, change_id: str) -> Path:
         return self.outgoing_acks_dir / f"{change_id}.json"
+
+    def _processed_path(self, kind: str, identity: str) -> Path:
+        if kind not in ("ack", "state") or _HASH.fullmatch(identity) is None:
+            raise ValueError("invalid processed exchange identity")
+        return self.processed_exchange_dir / f"{kind}-{identity}"

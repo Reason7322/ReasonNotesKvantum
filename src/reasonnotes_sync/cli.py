@@ -8,11 +8,13 @@ import sys
 from uuid import UUID
 
 from .conflicts import ConflictSelectionError, list_conflict, resolve_conflict
+from .current_store import CurrentNoteStore
 from .delivery import DeliveryLedger, DeliveryLedgerError
 from .envelope import EnvelopeError
 from .kdeconnect_linux import KdeConnectLinux
 from .receipt import ReceiptEnvelope, ReceiptError, ReceiptStore
 from .repository import ConflictRequired, Repository
+from .state_envelope import StateEnvelopeError
 from .sync import scan_inbox, sync_linux
 
 
@@ -41,6 +43,11 @@ def _utc_timestamp(value: str) -> datetime:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="reasonnotes-sync")
     parser.add_argument("--root", required=True, type=Path)
+    parser.add_argument(
+        "--current-state",
+        action="store_true",
+        help="open the simplified synchronization v2 current-state store",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
 
     status = commands.add_parser("status")
@@ -94,7 +101,32 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _status(repository: Repository, note_id: UUID | None, stdout) -> int:
+def _status(
+    repository: Repository | CurrentNoteStore, note_id: UUID | None, stdout
+) -> int:
+    if isinstance(repository, CurrentNoteStore):
+        pending_by_note = {
+            state.note_id: state.change_id for state in repository.pending_states()
+        }
+        if note_id is None:
+            note_ids = tuple(sorted(
+                {
+                    *(state.note_id for state in repository.list()),
+                    *(conflict.note_id for conflict in repository.conflicts()),
+                },
+                key=str,
+            ))
+        else:
+            note_ids = (note_id,)
+        for current in note_ids:
+            heads = ",".join(repository.head_ids(current)) or "-"
+            pending = pending_by_note.get(current, "-")
+            print(
+                f"note={current} heads={heads} pending={pending} "
+                f"conflicted={'true' if repository.conflict(current) else 'false'}",
+                file=stdout,
+            )
+        return 0
     graph = repository.graph()
     if note_id is None:
         note_ids = tuple(sorted({revision.note_id for revision in repository.revisions()}, key=str))
@@ -361,11 +393,17 @@ def main(
     stdout = sys.stdout if stdout is None else stdout
     stderr = sys.stderr if stderr is None else stderr
     arguments = _parser().parse_args(argv)
-    repository = Repository.open(
-        arguments.root,
-        local_device=getattr(arguments, "local_device", None),
-        target_device=getattr(arguments, "target_device", None),
-    )
+    if arguments.current_state:
+        repository = CurrentNoteStore.open(
+            arguments.root,
+            getattr(arguments, "local_device", None) or "linux",
+        )
+    else:
+        repository = Repository.open(
+            arguments.root,
+            local_device=getattr(arguments, "local_device", None),
+            target_device=getattr(arguments, "target_device", None),
+        )
     try:
         if arguments.command == "status":
             return _status(repository, arguments.note_id, stdout)
@@ -396,6 +434,7 @@ def main(
         DeliveryLedgerError,
         EnvelopeError,
         ReceiptError,
+        StateEnvelopeError,
     ) as error:
         print(f"error={json.dumps(str(error))}", file=stderr)
         return 2

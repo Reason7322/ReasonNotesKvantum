@@ -14,10 +14,12 @@ from .bundle import (
     is_bundle_name,
     read_bundle,
 )
+from .current_store import CurrentNoteStore
 from .delivery import DeliveryLedger, DeliveryState
-from .envelope import Revision
+from .envelope import EnvelopeError, Revision
 from .receipt import ReceiptEnvelope, ReceiptError, ReceiptStore
 from .repository import Repository
+from .state_envelope import StateAckEnvelope, StateEnvelope, StateEnvelopeError
 from .transport_bundle import (
     BundleItem,
     MAX_PAYLOAD_BYTES,
@@ -94,11 +96,15 @@ class SyncReport:
 
 
 def scan_inbox(
-    repository: Repository,
+    repository: Repository | CurrentNoteStore,
     inbox: Path,
     local_device: str,
     received_dir: Path | None = None,
 ) -> ScanReport:
+    if isinstance(repository, CurrentNoteStore):
+        return _scan_current_inbox(
+            repository, inbox, local_device, received_dir=received_dir
+        )
     imported = []
     duplicates = []
     confirmed = []
@@ -250,8 +256,157 @@ def scan_inbox(
     )
 
 
+def _legacy_state(revision: Revision) -> StateEnvelope:
+    if revision.deleted:
+        return StateEnvelope.deletion(
+            revision.note_id,
+            revision.parents,
+            revision.origin_device,
+            revision.modified_utc,
+        )
+    title, body = _split_legacy_document(revision.body)
+    return StateEnvelope.upsert(
+        revision.note_id,
+        revision.parents,
+        revision.origin_device,
+        revision.modified_utc,
+        title,
+        body,
+    )
+
+
+def _split_legacy_document(document: str) -> tuple[str, str]:
+    offset = 0
+    for line in document.splitlines(keepends=True):
+        heading = line.rstrip("\r\n")
+        ending = line[len(heading):]
+        if heading.strip():
+            remainder = document[offset + len(line):]
+            if ending and remainder.startswith(ending):
+                remainder = remainder[len(ending):]
+            return heading.strip().lstrip("#").strip() or "Untitled", remainder
+        offset += len(line)
+    return "Untitled", document
+
+
+def _current_candidates(
+    inbox: Path, received_dir: Path | None
+) -> tuple[list[tuple[str, str, bytes]], list[str]]:
+    errors: list[str] = []
+    inbox = Path(inbox)
+    if not inbox.is_dir():
+        return [], [f"inbox is not a directory: {inbox}"]
+    directories = [(inbox, False)]
+    if received_dir is not None and Path(received_dir).resolve() != inbox.resolve():
+        directories.append((Path(received_dir), True))
+    paths = []
+    for directory, downloads in directories:
+        if not directory.is_dir():
+            errors.append(f"received directory is not a directory: {directory}")
+            continue
+        paths.extend(_incoming_files(directory, downloads=downloads))
+    incoming: list[tuple[str, str, bytes]] = []
+    for path in paths:
+        try:
+            if path.suffix.lower() == ".zip" and path.stat().st_size > MAX_ARCHIVE_BYTES:
+                raise BundleError("bundle exceeds archive size limit")
+            if path.suffix.lower() == ".json" and path.stat().st_size > MAX_PAYLOAD_BYTES:
+                raise TransportBundleError("bundle payload exceeds size limit")
+            data = path.read_bytes()
+            if is_bundle_name(path.name):
+                members = read_bundle(data, path.name)
+            elif is_transport_bundle_name(path.name):
+                members = read_transport_bundle(data, path.name)
+            else:
+                members = ((path.name, data),)
+            incoming.extend((f"{path}!{name}", name, item) for name, item in members)
+        except (OSError, BundleError, TransportBundleError) as error:
+            errors.append(f"{path}: {error}")
+    return incoming, errors
+
+
+def _scan_current_inbox(
+    store: CurrentNoteStore,
+    inbox: Path,
+    local_device: str,
+    *,
+    received_dir: Path | None = None,
+) -> ScanReport:
+    imported: list[str] = []
+    duplicates: list[str] = []
+    confirmed: list[str] = []
+    duplicate_acks: list[str] = []
+    quarantined: list[str] = []
+    incoming, errors = _current_candidates(inbox, received_dir)
+    acknowledgments_before = {ack.ack_id for ack in store.pending_acks()}
+
+    # Bundles sort acknowledgment kinds before state kinds. Durable state must
+    # nevertheless be applied first so a carrier can never confirm before its
+    # independent note mutations have been persisted.
+    for source, source_name, data in incoming:
+        try:
+            if data.startswith(_FORMAT_MARKER):
+                state = _legacy_state(Revision.parse(data))
+            else:
+                state = StateEnvelope.from_bytes(data)
+        except (EnvelopeError, StateEnvelopeError):
+            continue
+        try:
+            if store.was_processed("state", state.change_id):
+                continue
+            if state.origin_device == local_device:
+                raise StateEnvelopeError("state originated on this device")
+            outcome = store.apply(state)
+            if outcome.kind in ("applied", "deleted", "conflict"):
+                imported.append(state.change_id)
+            elif outcome.kind in ("duplicate", "rejected-deleted"):
+                duplicates.append(state.change_id)
+            else:
+                errors.append(f"{source}: {outcome.kind}")
+                continue
+            store.mark_processed("state", state.change_id)
+            continue
+        except (OSError, RuntimeError, StateEnvelopeError, ValueError) as error:
+            quarantined.append(source_name)
+            errors.append(f"{source}: {error}")
+
+    for source, source_name, data in incoming:
+        try:
+            acknowledgment = StateAckEnvelope.from_bytes(data)
+        except StateEnvelopeError:
+            continue
+        try:
+            if store.was_processed("ack", acknowledgment.ack_id):
+                continue
+            if store.acknowledge(acknowledgment):
+                confirmed.append(acknowledgment.acknowledged_change_id)
+            else:
+                duplicate_acks.append(acknowledgment.ack_id)
+            store.mark_processed("ack", acknowledgment.ack_id)
+        except (OSError, RuntimeError, StateEnvelopeError, ValueError) as error:
+            quarantined.append(source_name)
+            errors.append(f"{source}: {error}")
+
+    acknowledgments_after = tuple(
+        ack.ack_id
+        for ack in store.pending_acks()
+        if ack.ack_id not in acknowledgments_before
+    )
+    conflicts = tuple(sorted(str(conflict.note_id) for conflict in store.conflicts()))
+    return ScanReport(
+        tuple(dict.fromkeys(imported)),
+        tuple(dict.fromkeys(duplicates)),
+        tuple(dict.fromkeys(confirmed)),
+        tuple(dict.fromkeys(duplicate_acks)),
+        acknowledgments_after,
+        tuple(dict.fromkeys(quarantined)),
+        conflicts,
+        tuple(dict.fromkeys(errors)),
+    )
+
+
 def sync_linux(
-    repository: Repository,
+    repository: Repository | CurrentNoteStore,
     inbox: Path,
     adapter,
     retry_unconfirmed: bool = False,
@@ -260,6 +415,14 @@ def sync_linux(
     selected_note_ids: Collection[UUID] | None = None,
     received_dir: Path | None = None,
 ) -> SyncReport:
+    if isinstance(repository, CurrentNoteStore):
+        return _sync_current(
+            repository,
+            inbox,
+            adapter,
+            selected_note_ids=selected_note_ids,
+            received_dir=received_dir,
+        )
     local_device = repository.local_device or "linux"
     target_device = repository.target_device
     if target_device is None:
@@ -376,8 +539,73 @@ def sync_linux(
     )
 
 
+def _sync_current(
+    store: CurrentNoteStore,
+    inbox: Path,
+    adapter,
+    *,
+    selected_note_ids: Collection[UUID] | None,
+    received_dir: Path | None,
+) -> SyncReport:
+    selected = None if selected_note_ids is None else frozenset(selected_note_ids)
+    if selected is not None and any(not isinstance(note_id, UUID) for note_id in selected):
+        raise ValueError("selected note IDs must be UUID values")
+    scan = _scan_current_inbox(
+        store, inbox, store.device_id, received_dir=received_dir
+    )
+    states = tuple(
+        state
+        for state in store.pending_states()
+        if (selected is None or state.note_id in selected)
+        and store.conflict(state.note_id) is None
+    )
+    acknowledgments = store.pending_acks()
+    items = tuple(
+        [BundleItem("state-v2", state.change_id, state.to_bytes()) for state in states]
+        + [BundleItem("ack-v2", ack.ack_id, ack.to_bytes()) for ack in acknowledgments]
+    )
+    requested: list[str] = []
+    acknowledgment_requested: list[str] = []
+    errors = list(scan.errors)
+    if items and not adapter.reachable():
+        errors.append(f"KDE Connect device unavailable: {adapter.device_id}")
+    elif items:
+        try:
+            path = write_bundle(store.root / "transport" / "outbox", items)
+            result = adapter.request_transfer(path)
+        except (OSError, ValueError, RuntimeError, TransportBundleError) as error:
+            errors.append(f"transport bundle unavailable: {error}")
+        else:
+            if not result.accepted:
+                errors.append(f"transport bundle: {result.detail}")
+            else:
+                requested.extend(state.change_id for state in states)
+                acknowledgment_requested.extend(ack.ack_id for ack in acknowledgments)
+                store.mark_acks_requested(acknowledgments)
+    conflicted = tuple(
+        conflict.note_id
+        for conflict in store.conflicts()
+        if selected is None or conflict.note_id in selected
+    )
+    if conflicted:
+        errors.append(
+            "Conflict requires choice: "
+            + ",".join(str(note_id) for note_id in sorted(conflicted))
+        )
+    return SyncReport(
+        imports=scan.imported,
+        confirmations=scan.confirmed,
+        conflicts=scan.conflicts,
+        pending=tuple(state.change_id for state in store.pending_states()),
+        requested=tuple(requested),
+        receipt_pending=tuple(ack.ack_id for ack in store.pending_acks()),
+        receipt_requested=tuple(acknowledgment_requested),
+        errors=tuple(dict.fromkeys(errors)),
+    )
+
+
 def sync_linux_confirmed(
-    repository: Repository,
+    repository: Repository | CurrentNoteStore,
     inbox: Path,
     adapter,
     *,
@@ -399,6 +627,19 @@ def sync_linux_confirmed(
         raise ValueError("confirmation timeout must be positive")
     if poll_interval_seconds <= 0:
         raise ValueError("confirmation poll interval must be positive")
+
+    if isinstance(repository, CurrentNoteStore):
+        return _sync_current_confirmed(
+            repository,
+            inbox,
+            adapter,
+            selected_note_ids=selected_note_ids,
+            received_dir=received_dir,
+            timeout_seconds=timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+            monotonic=monotonic,
+            sleeper=sleeper,
+        )
 
     initial = sync_linux(
         repository,
@@ -506,6 +747,74 @@ def sync_linux_confirmed(
                 "Timed out waiting for phone import confirmation: "
                 f"{len(confirmed_requested)} of {len(requested)} requested "
                 "revisions confirmed"
+            )
+            return report()
+        sleeper(min(poll_interval_seconds, deadline - now))
+
+
+def _sync_current_confirmed(
+    store: CurrentNoteStore,
+    inbox: Path,
+    adapter,
+    *,
+    selected_note_ids: Collection[UUID] | None,
+    received_dir: Path | None,
+    timeout_seconds: float,
+    poll_interval_seconds: float,
+    monotonic,
+    sleeper,
+) -> SyncReport:
+    initial = _sync_current(
+        store,
+        inbox,
+        adapter,
+        selected_note_ids=selected_note_ids,
+        received_dir=received_dir,
+    )
+    imports = list(initial.imports)
+    confirmations = list(initial.confirmations)
+    conflicts = list(initial.conflicts)
+    errors = list(initial.errors)
+    requested = tuple(initial.requested)
+
+    def report() -> SyncReport:
+        return SyncReport(
+            imports=tuple(dict.fromkeys(imports)),
+            confirmations=tuple(dict.fromkeys(confirmations)),
+            conflicts=tuple(dict.fromkeys(conflicts)),
+            pending=tuple(state.change_id for state in store.pending_states()),
+            requested=requested,
+            receipt_pending=tuple(ack.ack_id for ack in store.pending_acks()),
+            receipt_requested=initial.receipt_requested,
+            errors=tuple(dict.fromkeys(errors)),
+        )
+
+    if not requested:
+        return report()
+    deadline = monotonic() + timeout_seconds
+    requested_set = frozenset(requested)
+    while True:
+        scan = _scan_current_inbox(
+            store, inbox, store.device_id, received_dir=received_dir
+        )
+        imports.extend(scan.imported)
+        confirmations.extend(scan.confirmed)
+        conflicts[:] = scan.conflicts
+        errors.extend(scan.errors)
+        if requested_set.issubset(confirmations):
+            return report()
+        if not adapter.reachable():
+            errors.append(
+                "KDE Connect device disconnected while waiting for peer confirmation: "
+                f"{adapter.device_id}"
+            )
+            return report()
+        now = monotonic()
+        if now >= deadline:
+            count = len(requested_set.intersection(confirmations))
+            errors.append(
+                "Timed out waiting for peer import confirmation: "
+                f"{count} of {len(requested)} requested changes confirmed"
             )
             return report()
         sleeper(min(poll_interval_seconds, deadline - now))

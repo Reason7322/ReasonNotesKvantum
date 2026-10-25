@@ -12,6 +12,7 @@ import tempfile
 
 from .envelope import EnvelopeError, Revision
 from .receipt import ReceiptEnvelope, ReceiptError
+from .state_envelope import StateAckEnvelope, StateEnvelope, StateEnvelopeError
 
 
 FORMAT = "reasonnotes-transport-bundle"
@@ -42,7 +43,7 @@ def is_transport_bundle_name(name: str) -> bool:
 
 
 def _validated_item(item: BundleItem) -> tuple[BundleItem, str]:
-    if item.kind not in ("receipt", "revision"):
+    if item.kind not in ("ack-v2", "receipt", "revision", "state-v2"):
         raise TransportBundleError("bundle item kind is unsupported")
     if IDENTITY.fullmatch(item.identity) is None:
         raise TransportBundleError("bundle item identity is invalid")
@@ -54,11 +55,15 @@ def _validated_item(item: BundleItem) -> tuple[BundleItem, str]:
         text = item.envelope.decode("utf-8", errors="strict")
         if item.kind == "revision":
             parsed_identity = Revision.parse(item.envelope).revision_id
-        else:
+        elif item.kind == "receipt":
             parsed_identity = ReceiptEnvelope.parse(item.envelope).receipt_id
+        elif item.kind == "state-v2":
+            parsed_identity = StateEnvelope.from_bytes(item.envelope).change_id
+        else:
+            parsed_identity = StateAckEnvelope.from_bytes(item.envelope).ack_id
     except UnicodeDecodeError as error:
         raise TransportBundleError("bundle envelope is not UTF-8") from error
-    except (EnvelopeError, ReceiptError) as error:
+    except (EnvelopeError, ReceiptError, StateEnvelopeError) as error:
         raise TransportBundleError("bundle envelope is invalid") from error
     if parsed_identity != item.identity:
         raise TransportBundleError("bundle item identity differs from envelope")
@@ -173,7 +178,15 @@ def read_transport_bundle(data: bytes, name: str) -> tuple[tuple[str, bytes], ..
         raise TransportBundleError("bundle payload is not canonical")
     return tuple(
         (
-            f"{item.identity}.receipt.md" if item.kind == "receipt" else f"{item.identity}.md",
+            (
+                f"{item.identity}.receipt.md"
+                if item.kind == "receipt"
+                else f"{item.identity}.ack.json"
+                if item.kind == "ack-v2"
+                else f"{item.identity}.state.json"
+                if item.kind == "state-v2"
+                else f"{item.identity}.md"
+            ),
             item.envelope,
         )
         for item, _text in ordered

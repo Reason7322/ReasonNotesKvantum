@@ -1,5 +1,34 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 7 complete
+
+- Incoming Task 6 checkpoint:
+  `773cf53f1c851a9ef19b90877aacb0452adf4afe`.
+- The existing JSON bundle now validates and transports `state-v2` and `ack-v2`
+  alongside transition-only v1 revision/receipt items.
+- `scan_inbox`, `sync_linux` and `sync_linux_confirmed` adapt automatically to
+  `CurrentNoteStore`: state is applied durably before acknowledgments, exact
+  acknowledgments clear pending changes, selection sends one latest state per
+  note, and peer confirmation remains distinct from transfer acceptance.
+- V2 status reads only current pending/conflict state. Old delivery ledgers and
+  receipts do not affect current operations; failure of one note does not block
+  independent state transfer, and failed/unreachable requests remain retryable.
+- Durable processed-envelope markers prevent unchanged received files from
+  repeatedly requeueing acknowledgments after restart. Migration seeds them
+  for known v1 history before retirement. Deleted-note fences reject stale
+  live carriers without recurring stale-file errors.
+- The CLI supports explicit `--current-state` v2 status/scan/sync operation;
+  Fedora emits no new v1 revisions from this path but still imports valid v1
+  revisions during transition.
+- Verification: 96 focused tests pass (v2/current store/migration 31 and CLI,
+  bundles, legacy sync interactions and offscreen Widgets compatibility 65).
+  Disposable roots were kept in the plan-specific workspace, not `/tmp`.
+- No launch, deployment, personal migration/data access, KDE Connect transfer,
+  physical synchronization, Android action or UI redesign occurred.
+- Product remains incomplete. Task 8 candidate integration and cross-platform
+  offline acceptance is the potential next milestone and is not authorized by
+  this checkpoint.
+
 ## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 6 complete
 
 - Incoming RED checkpoint:

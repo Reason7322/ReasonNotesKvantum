@@ -1,5 +1,41 @@
 # ReasonNotesKvantum - Project Status
 
+## Simplified synchronization v2 — Fedora Task 7 complete (2026-10-25)
+
+The Fedora synchronization layer now sends and receives Task 5 current-state
+records through the physically proven JSON bundle and KDE Connect adapter.
+Bundles accept canonical `state-v2` and `ack-v2` items alongside read-only v1
+revision/receipt compatibility. Incoming state mutations are durably applied
+before acknowledgments, acknowledgments clear only their exact pending change,
+and outgoing synchronization contains only the latest pending state for each
+selected note plus currently pending acknowledgments. Fedora emits no new v1
+revisions on the v2 path.
+
+Current-operation status is derived only from the v2 store. Historical v1
+delivery/receipt failures are never consulted, an unreachable or rejected
+transfer leaves each current note independently retryable, conflicts identify
+the affected note without blocking unrelated transfers, and confirmation still
+requires the peer's exact durable-import acknowledgment. Successfully handled
+incoming envelope identities receive durable processed markers, preventing
+unchanged exchange files from being rescanned, reimported or requeueing the
+same acknowledgment after restart. Migration seeds those markers for every
+known legacy revision before retiring history, so existing exchange files do
+not become new work on the first v2 scan. Stale live carriers remain unable to
+resurrect a deleted note and no longer create a recurring stale error.
+
+The command-line tool has an explicit `--current-state` mode for v2 status,
+scan and synchronization without mixing in legacy delivery state. Legacy CLI
+and synchronization behavior remains compatible for transition-only imports.
+
+Focused verification passes 96 tests: v2/current-store/migration 31 and CLI,
+bundle, legacy synchronization/bidirectional/confirmation/selection, and
+offscreen Widgets compatibility 65. Tests used disposable roots under the
+project-specific persistent Task workspace. No application was launched,
+deployed or installed; no personal repository, migration, KDE Connect transfer,
+physical synchronization or Android state was accessed. Task 8 candidate
+integration/cross-platform fixtures and physical acceptance remain incomplete
+and require separate authorization.
+
 ## Simplified synchronization v2 — Fedora Task 6 complete (2026-10-25)
 
 The Fedora application service now consumes the Task 5 `CurrentNoteStore` for
