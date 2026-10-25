@@ -16,11 +16,13 @@ writing generated views, derives live notes, ordinary two-head conflicts and
 deletions, then writes a sibling staging store with atomic durable records. It
 reopens and validates current notes, conflicts, fences and pending state before
 atomically selecting the v2 directory. Only after validating the active store
-does it retire the old root. Interrupted staging is rebuilt; an already active
-matching store completes retirement safely. Malformed history, missing ancestry
-and more than two live heads fail closed without activation or legacy removal.
+does it atomically rename and retire the old root. Interrupted staging is
+rebuilt; interrupted legacy retirement resumes from its separate retiring path
+without deriving partially removed history; an already active matching store
+completes retirement safely. Malformed history, missing ancestry and more than
+two live heads fail closed without activation or legacy removal.
 
-Focused verification passes 19/19 tests covering the current store, restart and
+Focused verification passes 21/21 tests covering the current store, restart and
 crash recovery, migration refusal/activation, deletion content erasure, and the
 shared canonical envelope fixtures. All tests used disposable temporary
 repositories. The approved Qt Widgets/LiquidGlass UI and existing service,

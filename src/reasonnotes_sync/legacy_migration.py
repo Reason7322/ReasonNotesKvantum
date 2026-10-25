@@ -42,12 +42,23 @@ def migrate_legacy_repository(
     staging = Path(staging)
     active = Path(active)
     _validate_paths(old_root, staging, active)
+    retiring = _retiring_path(old_root)
+    if not old_root.exists():
+        if not active.is_dir():
+            raise ValueError("legacy repository root must exist")
+        store = CurrentNoteStore.open(active, "linux")
+        report = _report(store)
+        if retiring.exists() or retiring.is_symlink():
+            _erase_tree(retiring)
+        return report
+    if retiring.exists() or retiring.is_symlink():
+        raise RuntimeError("legacy repository and interrupted retirement both exist")
     legacy = Repository(old_root)
     derived = _derive(legacy)
 
     if active.exists():
         _validate(CurrentNoteStore.open(active, "linux"), derived)
-        _erase_tree(old_root)
+        _retire_legacy(old_root)
         return derived.report()
 
     _erase_tree(staging)
@@ -64,7 +75,7 @@ def migrate_legacy_repository(
     os.replace(staging, active)
     _fsync_directory(active.parent)
     _validate(CurrentNoteStore.open(active, "linux"), derived)
-    _erase_tree(old_root)
+    _retire_legacy(old_root)
     return derived.report()
 
 
@@ -212,11 +223,30 @@ def _validate_paths(old_root: Path, staging: Path, active: Path) -> None:
     target = active.resolve(strict=False)
     if old in (stage, target) or stage == target or stage.parent != target.parent:
         raise ValueError("migration paths must be distinct and staging/active must be siblings")
-    if not old_root.is_dir():
-        raise ValueError("legacy repository root must exist")
     for path in (old_root, staging, active):
         if path.is_symlink():
             raise RuntimeError("migration refuses symbolic-link roots")
+
+
+def _retiring_path(old_root: Path) -> Path:
+    return old_root.with_name(f".{old_root.name}.reasonnotes-v2-retiring")
+
+
+def _retire_legacy(old_root: Path) -> None:
+    retiring = _retiring_path(old_root)
+    if retiring.exists() or retiring.is_symlink():
+        raise RuntimeError("legacy retirement path already exists")
+    os.replace(old_root, retiring)
+    _fsync_directory(old_root.parent)
+    _erase_tree(retiring)
+
+
+def _report(store: CurrentNoteStore) -> MigrationReport:
+    return MigrationReport(
+        len(store.list()),
+        len(store.conflicts()),
+        len(store._read_states(store.deleted_dir)),
+    )
 
 
 def _erase_tree(root: Path) -> None:

@@ -157,6 +157,20 @@ class CurrentNoteStoreTests(unittest.TestCase):
         self.assertEqual((state,), reopened.pending_states())
         self.assertFalse(staged.exists())
 
+    def test_open_rejects_conflict_candidates_stored_under_another_note(self):
+        self.open()
+        directory = self.root / "conflicts" / str(NOTE)
+        directory.mkdir()
+        left = StateEnvelope.upsert(OTHER, (), "linux", NOW, "Left", "one")
+        right = StateEnvelope.upsert(
+            OTHER, (), "android", NOW + timedelta(seconds=1), "Right", "two"
+        )
+        (directory / f"{left.change_id}.json").write_bytes(left.to_bytes())
+        (directory / f"{right.change_id}.json").write_bytes(right.to_bytes())
+
+        with self.assertRaisesRegex(RuntimeError, "conflict candidate note"):
+            self.open()
+
 
 if __name__ == "__main__":
     unittest.main()

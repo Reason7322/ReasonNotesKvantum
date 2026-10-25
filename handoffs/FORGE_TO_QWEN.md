@@ -16,10 +16,11 @@
   descendant clears the obsolete pending ancestor already known by that peer.
 - Migration is read-only against the old repository until activation: it stages,
   reopens and validates exact current/conflict/deletion/pending state, atomically
-  selects the sibling v2 directory, and only then retires the legacy root.
-  Interrupted staging is rebuilt; malformed/missing/three-head histories fail
-  closed with legacy data retained.
-- Verification: 19/19 focused current-store, migration, and canonical-envelope
+  selects the sibling v2 directory, and only then atomically renames and retires
+  the legacy root. Interrupted staging is rebuilt; interrupted retirement
+  resumes without deriving partial history; malformed/missing/three-head
+  histories fail closed with legacy data retained.
+- Verification: 21/21 focused current-store, migration, and canonical-envelope
   tests pass using disposable repositories.
 - Runtime/deployment: no application launch, production migration, personal
   note access, installation, KDE Connect transfer, or Android action occurred.

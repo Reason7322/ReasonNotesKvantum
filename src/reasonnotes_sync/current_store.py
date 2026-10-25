@@ -326,6 +326,8 @@ class CurrentNoteStore:
         for conflict in self.conflicts():
             if len(conflict.candidates) != 2:
                 raise RuntimeError("conflict must contain exactly two candidates")
+            if any(candidate.note_id != conflict.note_id for candidate in conflict.candidates):
+                raise RuntimeError("conflict candidate note does not match directory")
 
     def _read_states(self, directory: Path) -> tuple[StateEnvelope, ...]:
         result = []

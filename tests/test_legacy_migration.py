@@ -2,10 +2,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 from uuid import UUID
 
 from reasonnotes_sync.current_store import CurrentNoteStore
 from reasonnotes_sync.envelope import Revision
+import reasonnotes_sync.legacy_migration as legacy_migration
 from reasonnotes_sync.legacy_migration import migrate_legacy_repository
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.state_envelope import StateEnvelope
@@ -126,6 +128,31 @@ class LegacyMigrationTests(unittest.TestCase):
         self.assertEqual(1, report.live_notes)
         self.assertFalse(self.legacy_root.exists())
         self.assertIsNotNone(CurrentNoteStore.open(self.active, "linux").get(LIVE))
+
+    def test_interrupted_legacy_retirement_resumes_without_deriving_partial_history(self):
+        legacy = self.repository()
+        legacy.create_revision(LIVE, "# Title\n\nBody", "android", NOW)
+        retiring = self.legacy_root.with_name(f".{self.legacy_root.name}.reasonnotes-v2-retiring")
+        erase_tree = legacy_migration._erase_tree
+
+        def interrupt_retirement(path):
+            if Path(path) == retiring:
+                raise RuntimeError("simulated interruption during retirement")
+            return erase_tree(path)
+
+        with patch.object(legacy_migration, "_erase_tree", side_effect=interrupt_retirement):
+            with self.assertRaisesRegex(RuntimeError, "simulated interruption"):
+                migrate_legacy_repository(self.legacy_root, self.staging, self.active)
+
+        self.assertTrue(self.active.is_dir())
+        self.assertFalse(self.legacy_root.exists())
+        self.assertTrue(retiring.is_dir())
+
+        report = migrate_legacy_repository(self.legacy_root, self.staging, self.active)
+
+        self.assertEqual(1, report.live_notes)
+        self.assertFalse(retiring.exists())
+        self.assertEqual("Body", CurrentNoteStore.open(self.active, "linux").get(LIVE).body)
 
     def test_missing_ancestry_refuses_without_switching_or_removing_legacy(self):
         legacy = self.repository()
