@@ -232,6 +232,19 @@ class WidgetsBootstrapTests(unittest.TestCase):
             )
             self.assertEqual(calls[0][3]["received_dir"], paths.received_dir)
 
+    def test_candidate_opens_only_the_simplified_current_state_store(self):
+        from reasonnotes_sync.current_store import CurrentNoteStore
+
+        module = self.candidate_module()
+        with TemporaryDirectory() as folder:
+            root = Path(folder) / "repository"
+            store = module.open_candidate_store(root)
+
+            self.assertIsInstance(store, CurrentNoteStore)
+            self.assertEqual(root.resolve(), store.root.resolve())
+            self.assertFalse((root / "history").exists())
+            self.assertFalse((root / "delivery-ledger.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

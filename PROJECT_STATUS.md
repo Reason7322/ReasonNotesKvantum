@@ -886,3 +886,26 @@ with the physically observed generic attention error and passes afterward.
 Focused verification: confirmed-sync plus presenter 28/28; Widgets sync panel
 and controller 9/9 under offscreen Qt. Physical desktop status verification
 against the repaired Android candidate remains pending; nothing was deployed.
+
+## Simplified synchronization v2 Task 8 partial checkpoint — 2026-10-25
+
+The original product goal remains save/edit on both devices, explicit Sync
+transfer, complete two-version conflict choice, and permanent bidirectional
+deletion. Task 8 is interrupted at a useful cross-platform fixture and desktop
+bootstrap checkpoint.
+
+Fedora now contains the same deterministic eight-carrier transcript as Android.
+The focused cross-platform test verifies byte-identical canonical carriers,
+Android create/import, independent edit conflict with both complete versions,
+chosen-version convergence, Android-to-Fedora deletion, Fedora-to-Android
+deletion generation, stale-carrier non-resurrection, exact acknowledgment, and
+absence of deleted title/body text from the durable store. The candidate
+entrypoint now opens only `CurrentNoteStore`; legacy receipt return and purge
+relay paths are no longer attached to the v2 candidate. This does not perform
+legacy migration, and production cutover remains separate.
+
+Focused verification passed 5/5. Task 8 is NOT complete: the full Fedora suite
+has not been run, the isolated candidate archive and acceptance document are
+not prepared, and final Android build/evidence remains outstanding. No
+application was launched, no personal data was migrated, and no KDE Connect or
+physical synchronization action occurred.

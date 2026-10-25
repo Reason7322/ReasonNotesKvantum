@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import re
-import socket
 import subprocess
 import sys
 from threading import Lock
@@ -30,10 +29,8 @@ from reasonnotes_widgets.wayland_blur import (
 )
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
-from reasonnotes_sync.repository import Repository
-from reasonnotes_sync.foreground_purge import PORT, PurgeRelay, shared_key
+from reasonnotes_sync.current_store import CurrentNoteStore
 from reasonnotes_sync.kdeconnect_linux import KdeConnectLinux
-from reasonnotes_sync.receipt_return import return_pending_receipts
 from reasonnotes_sync.sync import scan_inbox, sync_linux_confirmed
 
 
@@ -82,13 +79,9 @@ def discover_device_id(command_runner=subprocess.run) -> str | None:
     return next(iter(available)) if len(available) == 1 else None
 
 
-def computer_address() -> str:
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
-            probe.connect(("192.0.2.1", 80))
-            return probe.getsockname()[0]
-    except OSError:
-        return "See this computer's LAN IPv4 address"
+def open_candidate_store(root: Path) -> CurrentNoteStore:
+    """Open the isolated simplified store without touching legacy history."""
+    return CurrentNoteStore.open(root, "linux")
 
 
 def run_confirmed_sync(repository, paths, device_id, selection, receive_lock):
@@ -121,9 +114,7 @@ def main(arguments=None) -> int:
         raise SystemExit("--runtime-probe-ms must be positive")
     device_id = options.device_id or discover_device_id()
     application = create_application([sys.argv[0]])
-    repository = Repository.open(
-        paths.repository, local_device="linux", target_device=options.target_device
-    )
+    repository = open_candidate_store(paths.repository)
     paths.inbox.mkdir(parents=True, exist_ok=True)
     receive_lock = Lock()
 
@@ -133,8 +124,6 @@ def main(arguments=None) -> int:
             report = scan_inbox(
                 repository, paths.inbox, "linux", received_dir=paths.received_dir
             )
-            if not options.check_launch and device_id is not None:
-                return_pending_receipts(repository, KdeConnectLinux(device_id))
             return report
 
     def run_sync(selection):
@@ -151,15 +140,9 @@ def main(arguments=None) -> int:
     )
     controller.configure_incoming_scan(scan_received)
     probe_mode = options.runtime_probe_ms is not None
-    relay = None
-    deletion_pairing = None
-    if not options.check_launch and not probe_mode:
-        key = shared_key(paths.data_root / "delete-sync-key")
-        relay = PurgeRelay(repository, key)
-        deletion_pairing = (computer_address(), PORT, key.hex())
     window = ReasonNotesMainWindow(
         controller,
-        deletion_pairing=deletion_pairing,
+        deletion_pairing=None,
         native_window_material=options.native_window_material,
         kitty_window_material=options.kitty_window_material,
     )
@@ -168,7 +151,7 @@ def main(arguments=None) -> int:
     runtime = ApplicationRuntime(
         repository,
         controller,
-        relay=relay,
+        relay=None,
         incoming_paths=(paths.inbox, paths.received_dir),
     )
     application.aboutToQuit.connect(runtime.stop)

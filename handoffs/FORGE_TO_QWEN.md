@@ -1,5 +1,23 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-25 checkpoint — simplified sync v2 Task 8 partial
+
+- Original goal: save/edit on Fedora and Android, explicit Sync transfer,
+  complete two-version conflict choice, and permanent bidirectional deletion.
+- Added the shared deterministic eight-carrier JSON fixture transcript and a
+  Fedora test that consumes Android carriers through the real v2 inbox scanner.
+- Verified byte-identical generation, create/import, edit/edit conflict,
+  selected resolution, exact ack, permanent deletion in both directions,
+  stale-state rejection, and deleted-content absence.
+- The desktop entrypoint now opens the isolated `CurrentNoteStore` directly and
+  does not attach legacy receipt-return or foreground-purge mechanisms. It does
+  not migrate production or legacy candidate data.
+- Focused result: 5/5 PASS. Android counterpart focused result: 2/2 PASS.
+- Task 8 remains incomplete: full suites, Android APK build, isolated Fedora
+  archive, acceptance documentation, hashes, and final checkpoint remain.
+- No launch, installation, personal migration, KDE Connect transfer, or
+  physical synchronization occurred.
+
 ## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 7 complete
 
 - Incoming Task 6 checkpoint:
