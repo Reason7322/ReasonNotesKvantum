@@ -200,3 +200,9 @@ current-state/cross-platform tests pass. The 338-test suite has one unrelated
 candidate-installer assertion failure; all other tests pass. Isolated release:
 `/home/reason/Temporary/ReasonNotes-Sync-v2-Coalesced-Candidates/desktop/install/releases/4a3331f`.
 No launch or production change occurred; physical acceptance remains pending.
+
+Physical checkpoint: explicit conflict recovery worked and Reason chose the
+Android version. Android imported Fedora resolution `7d3836fc…` and queued its
+ack, but Fedora timed out before receiving it and remains pending. No retry was
+made. The generic Error wording is still a UI defect; durable confirmation is
+not yet complete.

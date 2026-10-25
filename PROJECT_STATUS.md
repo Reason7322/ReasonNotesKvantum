@@ -950,3 +950,16 @@ Isolated candidate release:
 Launcher SHA-256:
 `ff70654b86d21c9df336b90c05f156a22ec2160097fb54cabd86077b4a465c61`.
 Nothing was installed or launched; physical confirmation remains pending.
+
+## Physical conflict recovery checkpoint — 2026-10-25
+
+The repaired isolated candidate converted the old unknown-parent edit into an
+explicit two-version conflict. Reason chose the Android version. Fedora created
+and transferred resolution `7d3836fc2c77f0e2ca0aff6c5c0a4dfa7a61cce935d8c2c07df0af57671016c7`.
+Android durably imported it and queued the exact acknowledgment, but Fedora did
+not receive that return carrier before its timeout. Fedora therefore retains
+the resolution as pending. Screenshots:
+`/home/reason/Pictures/2026-10-25-184627_hyprshot.png`,
+`184634_hyprshot.png`, `184743_hyprshot.png`, and `184747_hyprshot.png`.
+The synchronization state is truthful; the generic Error wording remains a UI
+acceptance defect. No retry or source change followed this checkpoint.
