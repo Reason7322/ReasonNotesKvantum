@@ -909,3 +909,29 @@ has not been run, the isolated candidate archive and acceptance document are
 not prepared, and final Android build/evidence remains outstanding. No
 application was launched, no personal data was migrated, and no KDE Connect or
 physical synchronization action occurred.
+
+## Simplified synchronization v2 Task 8 complete offline — 2026-10-25
+
+The shared eight-carrier transcript is byte-identical across Python and Java.
+Offline coverage demonstrates create, independent edits, complete two-version
+conflict choice, chosen-version convergence, permanent deletion from either
+platform, stale-carrier non-resurrection, duplicates, restart persistence,
+unreachable retry, unrelated-note progress, and exact acknowledgment
+convergence. Deleted title/body text is absent from stores and deletion
+carriers. The isolated desktop entrypoint opens only the current-state store.
+
+Final Fedora verification passed 331/331 offline tests using isolated
+HOME/XDG/TMP roots. Five methods that explicitly start the application process
+were excluded to honor the no-launch boundary and are listed in the acceptance
+report. Candidate archive:
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Candidates/desktop/ReasonNotes-Fedora-Sync-v2-3a6d684.tar.gz`,
+SHA-256 `750843eac45682721ba2bbae9ea5f05e55344d97a4e3b2e3f86fe354b2e018a4`.
+Runtime source is checkpoint `3a6d68446b2829235f8a2f5b78e7d461498e0744`.
+
+The fail-closed preflight resolved every runtime path beneath
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Physical-Test/` and found no
+conflicting ReasonNotes process. Nothing was launched, installed, migrated, or
+transferred. Task 8's offline milestone is complete; physical synchronization,
+Android migration, durable confirmation, conflict/deletion UI behavior,
+restart persistence, performance, and production cutover remain pending. See
+`docs/SIMPLIFIED_SYNC_V2_OFFLINE_ACCEPTANCE_2026-10-24.md`.

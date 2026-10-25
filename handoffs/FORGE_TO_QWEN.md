@@ -18,6 +18,24 @@
 - No launch, installation, personal migration, KDE Connect transfer, or
   physical synchronization occurred.
 
+## 2026-10-25 checkpoint — simplified sync v2 Task 8 complete offline
+
+- Runtime source checkpoint: `3a6d68446b2829235f8a2f5b78e7d461498e0744`.
+- Shared Java/Python carriers are byte-identical and cover create, edit/edit
+  conflict, selected resolution, exact acknowledgment and permanent deletion
+  in both directions without retaining deleted content.
+- Fedora offline suite: 331/331 PASS; five application-process launch tests
+  excluded by the explicit no-launch boundary.
+- Immutable archive:
+  `/home/reason/Temporary/ReasonNotes-Sync-v2-Candidates/desktop/ReasonNotes-Fedora-Sync-v2-3a6d684.tar.gz`;
+  SHA-256 `750843eac45682721ba2bbae9ea5f05e55344d97a4e3b2e3f86fe354b2e018a4`.
+- Exact future procedure is at
+  `/home/reason/Temporary/ReasonNotes-Sync-v2-Candidates/desktop/LAUNCH_PROCEDURE.txt`.
+- Isolation preflight passed with all runtime roots under the disposable
+  physical-test tree and zero conflicting ReasonNotes processes.
+- No launch, install, migration, KDE Connect transfer, or physical sync.
+  Physical product acceptance and production cutover remain pending.
+
 ## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 7 complete
 
 - Incoming Task 6 checkpoint:
