@@ -1,5 +1,21 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 6 RED
+
+- Incoming completed Task 5 checkpoint:
+  `215ecd3d6ffe2bf400ec0ae0e86afa0f96f60639`.
+- Task 6 is intentionally incomplete. Four current-store `NoteService` tests
+  were added for current-only listing, coalesced/no-op saves, complete conflict
+  selection with loser erasure, and permanent deletion.
+- Focused RED command: `PYTHONPATH=src python3 -m unittest
+  tests.test_note_service.CurrentNoteServiceTest` → 4 tests, 4 expected errors.
+  Each fails because history-only `NoteService.create_note()` calls missing
+  `CurrentNoteStore.create_revision()`.
+- No production source or UI changed. No application launch, production data,
+  migration, synchronization, installation, or Android action occurred.
+- Continue the same authorized Task 6 by adapting service/presenter/controller
+  wiring while preserving the approved Widgets hierarchy and styling.
+
 ## 2026-10-25 checkpoint — simplified sync v2 Fedora Task 5 complete
 
 - Original goal: save/edit on Fedora and Android, explicit Sync transfer,

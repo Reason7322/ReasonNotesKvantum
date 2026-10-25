@@ -10,8 +10,10 @@ from reasonnotes_app.service import (
     StaleConflictChoice,
 )
 from reasonnotes_sync.conflicts import resolve_conflict
+from reasonnotes_sync.current_store import CurrentNoteStore
 from reasonnotes_sync.envelope import Revision
 from reasonnotes_sync.repository import ConflictRequired, Repository
+from reasonnotes_sync.state_envelope import StateEnvelope
 
 
 NOTE_A = UUID("11111111-1111-4111-8111-111111111111")
@@ -345,6 +347,98 @@ class NoteServiceTest(unittest.TestCase):
 
         self.assertEqual([note_id], [item.note_id for item in summaries])
         self.assertTrue(summaries[0].conflicted)
+
+
+class CurrentNoteServiceTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.base = Path(self.tempdir.name)
+        self.store = CurrentNoteStore.open(self.base / "reasonnotes-v2", "linux")
+        self.ids = iter((NOTE_A, NOTE_B, NOTE_C))
+        self.service = NoteService(
+            self.store,
+            origin_device="linux",
+            clock=AdvancingClock(),
+            note_id_factory=lambda: next(self.ids),
+        )
+
+    def test_listing_reads_current_records_and_ignores_historical_files(self):
+        first = self.service.create_note("# First\n\nCurrent body")
+        second = self.service.create_note("# Second\n\nAnother body")
+        history = self.base / "legacy" / "history"
+        history.mkdir(parents=True)
+        for index in range(400):
+            (history / f"historical-{index}.md").write_text("obsolete", encoding="utf-8")
+
+        summaries = self.service.list_notes()
+
+        self.assertEqual({first, second}, {summary.note_id for summary in summaries})
+        self.assertEqual({"First", "Second"}, {summary.title for summary in summaries})
+        self.assertEqual([first], [summary.note_id for summary in self.service.list_notes("CURRENT")])
+
+    def test_repeated_and_unchanged_saves_keep_only_latest_pending_state(self):
+        note_id = self.service.create_note("# First\n\nOne")
+        first = self.store.get(note_id)
+        self.service.open_note(note_id)
+
+        second = self.service.save_note(note_id, "# First\n\nTwo")
+        unchanged = self.service.save_note(note_id, "# First\n\nTwo")
+
+        self.assertEqual(second, unchanged)
+        self.assertNotEqual(first.change_id, second.change_id)
+        self.assertEqual((second,), self.store.pending_states())
+
+    def test_conflict_exposes_both_complete_versions_and_erases_loser_after_choice(self):
+        note_id = self.service.create_note("# Base\n\noriginal")
+        base = self.store.get(note_id)
+        self.store.acknowledge(base.change_id)
+        self.service.open_note(note_id)
+        local = self.service.save_note(note_id, "# Local\n\nlinux complete body")
+        remote = StateEnvelope.upsert(
+            note_id,
+            (base.change_id,),
+            "android",
+            START + timedelta(seconds=30),
+            "Remote",
+            "android complete body",
+        )
+        self.assertEqual("conflict", self.store.apply(remote).kind)
+
+        candidates = self.service.conflict(note_id)
+
+        self.assertEqual(
+            {"# Local\n\nlinux complete body", "# Remote\n\nandroid complete body"},
+            {candidate.body for candidate in candidates},
+        )
+        resolved = self.service.resolve(
+            note_id, "keep-android", revision_id=remote.change_id
+        )
+        self.assertEqual("# Remote\n\nandroid complete body", self.service.open_note(note_id))
+        self.assertEqual(remote.change_id, resolved.parent_change_ids[1] if resolved.parent_change_ids[1] == remote.change_id else resolved.parent_change_ids[0])
+        stored_bytes = b"".join(
+            path.read_bytes()
+            for path in self.store.root.rglob("*")
+            if path.is_file()
+        )
+        self.assertNotIn(b"linux complete body", stored_bytes)
+
+    def test_delete_permanently_erases_note_content(self):
+        note_id = self.service.create_note("# Secret\n\nprivate body")
+
+        self.service.delete_note(note_id)
+
+        self.assertEqual([], self.service.list_notes())
+        with self.assertRaises(NoteNotFoundError):
+            self.service.open_note(note_id)
+        self.assertTrue(self.store.is_deleted(note_id))
+        stored_bytes = b"".join(
+            path.read_bytes()
+            for path in self.store.root.rglob("*")
+            if path.is_file()
+        )
+        self.assertNotIn(b"Secret", stored_bytes)
+        self.assertNotIn(b"private body", stored_bytes)
 
 
 if __name__ == "__main__":

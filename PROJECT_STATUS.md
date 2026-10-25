@@ -1,5 +1,21 @@
 # ReasonNotesKvantum - Project Status
 
+## CHECKPOINT — Simplified synchronization v2 Fedora Task 6 RED (2026-10-25)
+
+Task 6 has started with four current-store service regressions covering
+current-only listing despite 400 unrelated historical files, coalesced and
+unchanged saves, complete two-version conflict choice with losing-content
+erasure, and permanent deletion. The focused class runs four tests and all four
+fail at the intended boundary because the existing `NoteService` still calls
+the legacy repository's `create_revision()` API when given `CurrentNoteStore`.
+
+This is an intentional RED checkpoint, not a working Task 6 implementation.
+No application source, presenter/controller, Widgets layout, visual material,
+installed application, personal repository, migration, or synchronization was
+changed or exercised. Continue by adapting the service to Task 5 storage, then
+add presenter/controller and protected-UI contracts before running the focused
+service and offscreen Widgets checks.
+
 ## Simplified synchronization v2 — Fedora Task 5 complete (2026-10-25)
 
 The desktop now has a durable current-state store matching the simplified v2
