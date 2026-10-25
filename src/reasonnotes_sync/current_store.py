@@ -81,7 +81,7 @@ class CurrentNoteStore:
             if self.conflict(note_id) is not None:
                 raise RuntimeError("conflict must be resolved first")
             existing = self.get(note_id)
-            parents = () if existing is None else (existing.change_id,)
+            parents = self._local_parents(note_id, existing)
             state = StateEnvelope.upsert(
                 note_id, parents, self.device_id, modified_utc, title, body
             )
@@ -122,7 +122,9 @@ class CurrentNoteStore:
                 self._write_conflict(local, incoming)
                 self._queue_ack(incoming)
                 return ApplyOutcome("conflict", incoming.change_id)
-            return ApplyOutcome("needs-attention", incoming.change_id)
+            self._write_conflict(local, incoming)
+            self._queue_ack(incoming)
+            return ApplyOutcome("conflict", incoming.change_id)
 
     def resolve(
         self, note_id: UUID, selected_change_id: str, modified_utc: datetime
@@ -156,12 +158,20 @@ class CurrentNoteStore:
                 parents = tuple(sorted(candidate.change_id for candidate in conflict.candidates))
             else:
                 live = self.get(note_id)
-                parents = () if live is None else (live.change_id,)
+                parents = self._local_parents(note_id, live)
             deletion = StateEnvelope.deletion(
                 note_id, parents, self.device_id, modified_utc
             )
             self._persist_deletion(deletion, outgoing=True)
             return deletion
+
+    def _local_parents(
+        self, note_id: UUID, current: StateEnvelope | None
+    ) -> tuple[str, ...]:
+        pending = self._read_optional(self._state_path(self.pending_dir, note_id))
+        if pending is not None:
+            return pending.parent_change_ids
+        return () if current is None else (current.change_id,)
 
     def pending_states(self) -> tuple[StateEnvelope, ...]:
         with self._lock:

@@ -31,7 +31,40 @@ class CurrentNoteStoreTests(unittest.TestCase):
 
         self.assertEqual(second, reopened.get(NOTE))
         self.assertEqual((second,), reopened.pending_states())
-        self.assertEqual((first.change_id,), second.parent_change_ids)
+        self.assertEqual(first.parent_change_ids, second.parent_change_ids)
+
+    def test_repeated_pending_autosaves_remain_one_bounded_descendant(self):
+        base = StateEnvelope.upsert(NOTE, (), "android", NOW, "Base", "A")
+        store = self.open()
+        self.assertEqual("applied", store.apply(base).kind)
+        middle = store.save_local(NOTE, "Middle", "B", NOW + timedelta(seconds=1))
+        latest = store.save_local(NOTE, "Latest", "C", NOW + timedelta(seconds=2))
+
+        self.assertEqual((base.change_id,), middle.parent_change_ids)
+        self.assertEqual((base.change_id,), latest.parent_change_ids)
+
+        peer_root = Path(self.temporary.name) / "peer-v2"
+        peer = CurrentNoteStore.open(peer_root, "android")
+        peer_base = peer.save_local(NOTE, "Base", "A", NOW)
+        peer.acknowledge(peer_base.change_id)
+        self.assertEqual(base, peer_base)
+        self.assertEqual("applied", peer.apply(latest).kind)
+        self.assertEqual(latest, peer.get(NOTE))
+
+        deletion = store.delete_local(NOTE, NOW + timedelta(seconds=3))
+        self.assertEqual((base.change_id,), deletion.parent_change_ids)
+
+    def test_valid_unknown_ancestry_becomes_explicit_conflict(self):
+        store = self.open()
+        local = store.save_local(NOTE, "Local", "complete local", NOW)
+        store.acknowledge(local.change_id)
+        remote = StateEnvelope.upsert(
+            NOTE, ("a" * 64,), "android", NOW + timedelta(seconds=1),
+            "Remote", "complete remote"
+        )
+
+        self.assertEqual("conflict", store.apply(remote).kind)
+        self.assertEqual(2, len(store.conflict(NOTE).candidates))
 
     def test_concurrent_edits_preserve_both_complete_versions_until_resolution(self):
         store = self.open()
