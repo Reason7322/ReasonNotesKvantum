@@ -249,3 +249,11 @@ Fedora now automatically transfers only queued v2 acknowledgments after durable
 receive scanning; no desktop notes are staged by that path. Focused tests pass
 33/33; full suite 345/346 with only the known unrelated candidate-installer
 assertion failing.
+
+# Physical local-deletion checkpoint
+
+Three Android-local deletions were restored by one Fedora Sync All. Fedora now
+auto-returns ACKs and accepts peer-returned Linux-origin live states. Focused
+tests pass 30/30. The disposable candidate watches real `~/Downloads` after
+149 old occurrences were baselined; production data was untouched. Final
+confirmation of the newest Android foreground-poll build remains pending.

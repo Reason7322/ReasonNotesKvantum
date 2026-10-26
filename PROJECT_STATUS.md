@@ -1028,3 +1028,15 @@ only pending acknowledgments through KDE Connect and never stages note states.
 Failed return requests remain queued and are reported. Focused tests passed
 33/33. The full suite ran 346 tests: 345 passed, with only the same unrelated
 candidate-installer assertion failing.
+
+## Physical local-deletion checkpoint — 2026-10-26
+
+Three Android-local deletions left Fedora unchanged and one Fedora Sync All
+restored all three notes on Android. Fedora now returns acknowledgment-only
+carriers automatically and accepts live Linux-origin states returned by the
+peer, addressing their receipts to Android. The isolated runtime watches KDE
+Connect's real `/home/reason/Downloads` after 149 pre-existing carrier
+occurrences were baselined in its disposable processed index; no historical
+carrier replayed and production data was untouched. Focused current-state tests
+passed 30/30. Source before this documentation commit: `322b9bc`. Final owner
+confirmation after the latest Android foreground-poll deployment is pending.
