@@ -31,7 +31,11 @@ from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
 from reasonnotes_sync.current_store import CurrentNoteStore
 from reasonnotes_sync.kdeconnect_linux import KdeConnectLinux
-from reasonnotes_sync.sync import scan_inbox, sync_linux_confirmed
+from reasonnotes_sync.sync import (
+    return_current_acknowledgments,
+    scan_inbox,
+    sync_linux_confirmed,
+)
 
 
 DEVICE_ID_PATTERN = re.compile(r"[0-9a-f]{32}")
@@ -124,6 +128,20 @@ def main(arguments=None) -> int:
             report = scan_inbox(
                 repository, paths.inbox, "linux", received_dir=paths.received_dir
             )
+            _requested, acknowledgment_errors = return_current_acknowledgments(
+                repository, KdeConnectLinux(device_id)
+            )
+            if acknowledgment_errors:
+                report = type(report)(
+                    report.imported,
+                    report.duplicates,
+                    report.confirmed,
+                    report.duplicate_receipts,
+                    report.receipts_queued,
+                    report.quarantined,
+                    report.conflicts,
+                    tuple((*report.errors, *acknowledgment_errors)),
+                )
             return report
 
     def run_sync(selection):

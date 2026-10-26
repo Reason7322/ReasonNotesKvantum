@@ -14,7 +14,12 @@ from reasonnotes_sync.kdeconnect_linux import TransferRequest
 from reasonnotes_sync.legacy_migration import migrate_legacy_repository
 from reasonnotes_sync.repository import Repository
 from reasonnotes_sync.state_envelope import StateAckEnvelope, StateEnvelope
-from reasonnotes_sync.sync import scan_inbox, sync_linux, sync_linux_confirmed
+from reasonnotes_sync.sync import (
+    return_current_acknowledgments,
+    scan_inbox,
+    sync_linux,
+    sync_linux_confirmed,
+)
 from reasonnotes_sync.transport_bundle import BundleItem, build_bundle
 
 
@@ -234,6 +239,35 @@ class CurrentStateTransportTests(unittest.TestCase):
         self.assertEqual((deletion.change_id,), report.duplicates)
         self.assertEqual((), self.android.pending_acks())
         self.assertEqual("body", self.android.get(NOTE_A).body)
+
+    def test_automatic_ack_return_sends_only_receipts(self):
+        incoming = StateEnvelope.upsert(
+            NOTE_A, (), "android", T0, "A", "body"
+        )
+        self.assertEqual("applied", self.linux.apply(incoming).kind)
+        adapter = FakeAdapter()
+
+        requested, errors = return_current_acknowledgments(self.linux, adapter)
+
+        self.assertEqual(1, len(requested))
+        self.assertEqual((), errors)
+        self.assertEqual(("ack-v2",), carrier_kinds(adapter.paths[0]))
+        self.assertEqual((), self.linux.pending_acks())
+        self.assertEqual((), self.linux.pending_states())
+
+    def test_failed_automatic_ack_return_remains_retryable(self):
+        incoming = StateEnvelope.upsert(
+            NOTE_A, (), "android", T0, "A", "body"
+        )
+        self.linux.apply(incoming)
+
+        requested, errors = return_current_acknowledgments(
+            self.linux, FakeAdapter(accepted=False)
+        )
+
+        self.assertEqual((), requested)
+        self.assertTrue(errors)
+        self.assertEqual(1, len(self.linux.pending_acks()))
 
     def test_selection_sends_only_latest_selected_state_but_all_pending_acks(self):
         selected = self.linux.save_local(NOTE_A, "A", "old", T0)

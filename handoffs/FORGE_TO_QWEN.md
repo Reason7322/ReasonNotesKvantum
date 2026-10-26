@@ -243,3 +243,9 @@ snapshots no longer corrupt autosave ancestry. Focused affected tests pass
 assertion failing. No production desktop installation or personal repository
 was modified. Remaining acceptance is physical local delete/restoration and
 both-delete verification with the independently checkpointed Android build.
+
+Android-to-Fedora physical import exposed the symmetric receipt-return gap.
+Fedora now automatically transfers only queued v2 acknowledgments after durable
+receive scanning; no desktop notes are staged by that path. Focused tests pass
+33/33; full suite 345/346 with only the known unrelated candidate-installer
+assertion failing.

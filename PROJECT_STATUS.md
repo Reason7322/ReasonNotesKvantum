@@ -1020,3 +1020,11 @@ the one pre-existing candidate-installer assertion
 current-state, migration, conflict, and transport tests passed. Android source
 and physical deployment are checkpointed independently. Physical local-delete,
 one-sided restoration, both-delete, and restart acceptance remain pending.
+
+Physical Android-to-Fedora testing then exposed the symmetric receipt-return
+gap: Fedora durably imported six Android states but left six acknowledgments
+queued, so Android waited indefinitely. Foreground receive scanning now returns
+only pending acknowledgments through KDE Connect and never stages note states.
+Failed return requests remain queued and are reported. Focused tests passed
+33/33. The full suite ran 346 tests: 345 passed, with only the same unrelated
+candidate-installer assertion failing.

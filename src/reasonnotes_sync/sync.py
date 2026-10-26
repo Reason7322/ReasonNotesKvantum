@@ -619,6 +619,30 @@ def _sync_current(
     )
 
 
+def return_current_acknowledgments(
+    store: CurrentNoteStore, adapter
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return durable-import acknowledgments without staging note states."""
+    acknowledgments = store.pending_acks()
+    if not acknowledgments:
+        return (), ()
+    if not adapter.reachable():
+        return (), (f"KDE Connect device unavailable: {adapter.device_id}",)
+    items = tuple(
+        BundleItem("ack-v2", acknowledgment.ack_id, acknowledgment.to_bytes())
+        for acknowledgment in acknowledgments
+    )
+    try:
+        path = write_bundle(store.root / "transport" / "outbox", items)
+        result = adapter.request_transfer(path)
+    except (OSError, ValueError, RuntimeError, TransportBundleError) as error:
+        return (), (f"acknowledgment return unavailable: {error}",)
+    if not result.accepted:
+        return (), (f"acknowledgment return: {result.detail}",)
+    store.mark_acks_requested(acknowledgments)
+    return tuple(ack.ack_id for ack in acknowledgments), ()
+
+
 def sync_linux_confirmed(
     repository: Repository | CurrentNoteStore,
     inbox: Path,
