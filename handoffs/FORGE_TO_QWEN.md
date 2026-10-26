@@ -1,5 +1,30 @@
 # Forge -> Qwen directional handoff
 
+## 2026-10-26 checkpoint — full-content Sync page
+
+- Original goal: reliable two-device save/edit synchronization, truthful
+  durable confirmation, explicit conflict choice, and permanent deletion.
+- Physical result: `sync-v2-roundtrip` is durably confirmed. Fedora imported
+  Android acknowledgment carrier `d9ad0979…ea3` for exact change
+  `7d3836fc…016c7` and cleared that pending record. One unrelated synthetic
+  `Fedora note` remains pending and untouched.
+- UI correction: Sync is now a page in the existing main content stack. It
+  replaces editor/Settings while open, restores the prior valid page on close,
+  and keeps the approved sidebar visible. The sidebar footer is concise;
+  complete diagnostics remain on the Sync page.
+- Verification: focused navigation/lifecycle 11/11 PASS; affected Widgets
+  55/55 PASS. Complete suite: 340 run, 339 PASS, with only the previously
+  recorded unrelated candidate-installer assertion failing; localhost relay
+  tests passed outside the sandbox.
+- Deployment: source-only. The running isolated physical-test candidate was
+  not replaced and still shows the old drawer UI. Production remains untouched.
+- Remaining acceptance: owner Wayland review of a separately prepared updated
+  candidate; no-trace deletion is still unresolved and requires separately
+  authorized cross-platform work.
+- One potential next action: prepare and launch an isolated Fedora candidate
+  containing this page change for owner visual review. Do not begin deletion
+  redesign or production cutover without authorization.
+
 ## 2026-10-25 checkpoint — simplified sync v2 Task 8 partial
 
 - Original goal: save/edit on Fedora and Android, explicit Sync transfer,

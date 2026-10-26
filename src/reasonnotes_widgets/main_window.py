@@ -74,8 +74,11 @@ class ReasonNotesMainWindow(QMainWindow):
             self.translator, deletion_pairing, self.page_stack
         )
         self.conflict_page = ConflictPage(controller, self.translator, self.page_stack)
+        self.sync_panel = SyncPanel(controller, self.translator, self.page_stack)
         self.page_stack.addWidget(self.settings_page)
         self.page_stack.addWidget(self.conflict_page)
+        self.page_stack.addWidget(self.sync_panel)
+        self._page_before_sync = self.editor
 
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.main_splitter.setObjectName("mainSplitter")
@@ -85,9 +88,6 @@ class ReasonNotesMainWindow(QMainWindow):
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
         self.setCentralWidget(self.main_splitter)
-        self.sync_panel = SyncPanel(controller, self.translator, self)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.sync_panel)
-        self.sync_panel.hide()
 
         if self.window_material_mode == "native-kvantum":
             self.sidebar.set_native_style_enabled(True)
@@ -117,6 +117,7 @@ class ReasonNotesMainWindow(QMainWindow):
         self.sidebar.delete_button.clicked.connect(self.delete_selection)
         self.sidebar.sync_button.clicked.connect(self.open_sync_panel)
         self.sidebar.settings_button.clicked.connect(self.open_settings)
+        self.sync_panel.close_requested.connect(self.close_sync_page)
         self.sidebar.search_field.textChanged.connect(controller.search)
         self.sidebar.list_view.activated.connect(self.activate_note)
         self.sidebar.list_view.selectionModel().currentChanged.connect(
@@ -178,9 +179,27 @@ class ReasonNotesMainWindow(QMainWindow):
         self.refresh_from_controller()
 
     def open_sync_panel(self) -> None:
+        current = self.page_stack.currentWidget()
+        if current is not self.sync_panel:
+            self._page_before_sync = current
         self.controller.open_sync_panel()
-        self.sync_panel.show()
-        self.sync_panel.raise_()
+        self.sidebar.settings_button.setChecked(False)
+        self.page_stack.setCurrentWidget(self.sync_panel)
+
+    def close_sync_page(self) -> None:
+        target = self._page_before_sync
+        if (
+            target is self.conflict_page
+            and self.controller.presenter.conflict_view is None
+        ):
+            target = self.editor
+        elif (
+            target is self.editor
+            and self.controller.presenter.conflict_view is not None
+        ):
+            target = self.conflict_page
+        self.page_stack.setCurrentWidget(target)
+        self.sidebar.settings_button.setChecked(target is self.settings_page)
 
     def _title_edited(self, title: str) -> None:
         if self._refreshing:
@@ -206,6 +225,7 @@ class ReasonNotesMainWindow(QMainWindow):
     def _new_note(self) -> None:
         self.autosave_timer.stop()
         if self.controller.create_note():
+            self.page_stack.setCurrentWidget(self.editor)
             self.refresh_from_controller()
             self.editor.title_editor.setFocus()
 
@@ -221,6 +241,7 @@ class ReasonNotesMainWindow(QMainWindow):
             return
         self.autosave_timer.stop()
         if self.controller.select_note(note_id):
+            self.page_stack.setCurrentWidget(self.editor)
             self.refresh_from_controller()
 
     def _current_note_changed(self, current, _previous) -> None:
@@ -297,11 +318,10 @@ class ReasonNotesMainWindow(QMainWindow):
             text += f": {presenter.save_error}"
         self.sidebar.local_status.setText(f"{tr('local')}: {text}")
         sync = tr(presenter.sync_state.casefold())
-        if presenter.sync_message:
-            sync += f": {presenter.sync_message}"
         self.sidebar.sync_status.setText(f"{tr('phone')}: {sync}")
 
     def refresh_from_controller(self) -> None:
+        sync_open = self.page_stack.currentWidget() is self.sync_panel
         self.sidebar.settings_button.setChecked(False)
         self._refreshing = True
         try:
@@ -311,11 +331,14 @@ class ReasonNotesMainWindow(QMainWindow):
             )
             self.editor.set_editable(self.controller.presenter.can_edit)
             self.conflict_page.load()
-            self.page_stack.setCurrentWidget(
-                self.conflict_page
-                if self.controller.presenter.conflict_view is not None
-                else self.editor
-            )
+            if sync_open:
+                self.sync_panel.refresh()
+            else:
+                self.page_stack.setCurrentWidget(
+                    self.conflict_page
+                    if self.controller.presenter.conflict_view is not None
+                    else self.editor
+                )
             self._restore_active_selection()
             self._refresh_status()
         finally:

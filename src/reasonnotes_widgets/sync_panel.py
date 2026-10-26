@@ -1,10 +1,9 @@
-"""Focused right-edge synchronization drawer."""
+"""Focused synchronization content page."""
 
-from PySide6.QtCore import QEvent, QSize, Qt
+from PySide6.QtCore import QEvent, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
-    QDockWidget,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -174,27 +173,20 @@ class SyncNoteDelegate(QStyledItemDelegate):
         return super().editorEvent(event, model, option, index)
 
 
-class SyncPanel(QDockWidget):
+class SyncPanel(QWidget):
+    close_requested = Signal()
+
     def __init__(self, controller, translator, parent=None):
         super().__init__(parent)
         self.controller = controller
         self.translator = translator
         self.setObjectName("syncPanel")
-        self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setFeatures(
-            QDockWidget.DockWidgetFeature.NoDockWidgetFeatures
-        )
-        self.setMinimumWidth(460)
-        self.setMaximumWidth(580)
 
-        # The drawer owns its close action; suppress the redundant native
-        # dock title strip while keeping it docked to the main window.
-        title_bar = QWidget(self)
-        title_bar.setFixedHeight(1)
-        self.setTitleBarWidget(title_bar)
-
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
         content = QWidget(self)
         content.setObjectName("syncDrawer")
+        page_layout.addWidget(content)
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 22)
         layout.setSpacing(13)
@@ -366,8 +358,6 @@ class SyncPanel(QDockWidget):
         layout.addWidget(self.selection_section, 1)
         layout.addWidget(self.action_card)
         layout.addStretch(1)
-        self.setWidget(content)
-
         self.all_button.toggled.connect(self.refresh)
         self.selected_button.toggled.connect(self.refresh)
         self.search_field.textChanged.connect(
@@ -379,8 +369,8 @@ class SyncPanel(QDockWidget):
         self.clear_button.clicked.connect(
             controller.clear_sync_selection
         )
-        self.close_button.clicked.connect(self.hide)
-        self.cancel_button.clicked.connect(self.hide)
+        self.close_button.clicked.connect(self.close_requested)
+        self.cancel_button.clicked.connect(self.close_requested)
         self.start_button.clicked.connect(self.start_sync)
         controller.selection_changed.connect(self.refresh)
         controller.models_changed.connect(self.refresh)

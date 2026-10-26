@@ -1,5 +1,37 @@
 # ReasonNotesKvantum - Project Status
 
+## Full-content Sync page and durable round-trip confirmation (2026-10-26)
+
+The isolated `sync-v2-roundtrip` conflict resolution is now durably confirmed
+end to end. Android imported Fedora change
+`7d3836fc2c77f0e2ca0aff6c5c0a4dfa7a61cce935d8c2c07df0af57671016c7`,
+returned acknowledgment carrier
+`reasonnotes-bundle-v1-d9ad097931b60bd3f225380888b17b3199615c7374d7f5b4783882f625063ea3.json`,
+and Fedora imported it and removed the exact pending record. The carrier had
+landed in KDE Connect's normal Downloads directory and was copied byte-for-byte
+into the isolated candidate's received directory; its SHA-256 matched its
+canonical filename. One unrelated synthetic `Fedora note` remains pending and
+was not synchronized.
+
+The approved sidebar remains visible, but Sync is now a normal page in the
+main content stack instead of a narrow right-edge dock. Opening Sync replaces
+the editor or Settings; closing it restores the prior valid page. Controller
+refreshes do not navigate away from an open Sync page. The sidebar footer now
+shows only the concise translated sync state, while full operation details,
+counts, progress, and errors remain on the full-width Sync page.
+
+Focused RED-to-GREEN verification passed 11/11 navigation/lifecycle tests and
+55/55 affected Widgets tests. The complete offline suite ran 340 tests with
+339 passing and only the previously recorded unrelated failure
+`test_check_launch_writes_only_explicit_isolated_roots`; all five localhost
+purge-relay tests passed when rerun with required socket permission. No new
+candidate was installed or launched, and the currently running isolated
+candidate still contains the pre-change drawer UI.
+
+Remaining product acceptance includes owner review of a newly prepared
+full-content Sync candidate, the separately unresolved no-trace deletion
+requirement, and broader physical conflict/deletion/restart testing.
+
 ## Simplified synchronization v2 — Fedora Task 7 complete (2026-10-25)
 
 The Fedora synchronization layer now sends and receives Task 5 current-state

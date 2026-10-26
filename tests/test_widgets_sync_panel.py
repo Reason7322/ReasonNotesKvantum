@@ -5,7 +5,7 @@ import unittest
 
 from PySide6.QtCore import QCoreApplication, QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDockWidget, QProgressBar
+from PySide6.QtWidgets import QApplication, QProgressBar, QWidget
 
 from reasonnotes_app.presenter import NotePresenter
 from reasonnotes_app.service import NoteService
@@ -63,7 +63,8 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             window.open_sync_panel()
             panel = window.sync_panel
 
-            self.assertIsInstance(panel, QDockWidget)
+            self.assertIsInstance(panel, QWidget)
+            self.assertIs(window.page_stack.currentWidget(), panel)
             self.assertTrue(panel.isVisible())
             self.assertTrue(panel.all_button.isChecked())
             self.assertTrue(panel.start_button.isEnabled())
@@ -113,9 +114,72 @@ class WidgetsSyncPanelTests(unittest.TestCase):
             self.assertFalse(panel.progress_bar.isVisible())
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(calls[0]), 1)
+            self.assertEqual(window.sidebar.sync_status.text(), "Phone: Completed")
+            self.assertIn("Phone confirmed 1", panel.status_label.text())
             window.close()
 
-    def test_redesigned_drawer_keeps_scope_summary_status_and_action_connected(self):
+    def test_sync_replaces_content_restores_settings_and_survives_refresh(self):
+        """Catch a return to a drawer that leaves Settings visible beside Sync."""
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            repository = CurrentNoteStore.open(base / "reasonnotes-v2", "linux")
+            service = NoteService(repository, origin_device="linux")
+            service.create_note("# Page navigation fixture")
+            controller = WidgetsController(
+                NotePresenter(service, lambda _selection: None)
+            )
+            window = ReasonNotesMainWindow(
+                controller,
+                settings=QSettings(str(base / "ui.ini"), QSettings.IniFormat),
+            )
+            window.show()
+
+            window.open_settings()
+            self.assertIs(window.page_stack.currentWidget(), window.settings_page)
+
+            window.open_sync_panel()
+            self.assertIs(window.page_stack.currentWidget(), window.sync_panel)
+            self.assertFalse(window.settings_page.isVisible())
+
+            window.refresh_from_controller()
+            self.assertIs(window.page_stack.currentWidget(), window.sync_panel)
+
+            window.sync_panel.close_button.click()
+            self.assertIs(window.page_stack.currentWidget(), window.settings_page)
+            self.assertTrue(window.sidebar.settings_button.isChecked())
+            window.close()
+
+    def test_explicit_note_navigation_leaves_sync_page_for_editor(self):
+        """Catch Sync swallowing deliberate New Note and note-list navigation."""
+        from reasonnotes_widgets.main_window import ReasonNotesMainWindow
+
+        with TemporaryDirectory() as folder:
+            base = Path(folder)
+            repository = CurrentNoteStore.open(base / "reasonnotes-v2", "linux")
+            service = NoteService(repository, origin_device="linux")
+            service.create_note("# Existing note")
+            controller = WidgetsController(
+                NotePresenter(service, lambda _selection: None)
+            )
+            window = ReasonNotesMainWindow(
+                controller,
+                settings=QSettings(str(base / "ui.ini"), QSettings.IniFormat),
+            )
+            window.show()
+
+            window.open_sync_panel()
+            window.sidebar.new_button.click()
+            self.assertIs(window.page_stack.currentWidget(), window.editor)
+
+            window.open_sync_panel()
+            index = controller.note_model.index(0, 0)
+            window.activate_note(index)
+            self.assertIs(window.page_stack.currentWidget(), window.editor)
+            window.close()
+
+    def test_sync_page_keeps_scope_summary_status_and_action_connected(self):
         """Catch a return to the disconnected footer and empty all-notes body."""
         from reasonnotes_widgets.main_window import ReasonNotesMainWindow
 
