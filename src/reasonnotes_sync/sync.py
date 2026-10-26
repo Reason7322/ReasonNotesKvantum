@@ -373,7 +373,7 @@ def _scan_current_inbox(
             outcome = store.apply(state)
             if outcome.kind in ("applied", "deleted", "conflict"):
                 imported.append(state.change_id)
-            elif outcome.kind in ("duplicate", "rejected-deleted"):
+            elif outcome.kind in ("duplicate", "rejected-deleted", "ignored-deletion"):
                 duplicates.append(state.change_id)
             else:
                 errors.append(f"{source}: {outcome.kind}")
@@ -567,6 +567,7 @@ def _sync_current(
     scan = _scan_current_inbox(
         store, inbox, store.device_id, received_dir=received_dir
     )
+    store.stage_live_for_sync(selected)
     states = tuple(
         state
         for state in store.pending_states()

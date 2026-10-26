@@ -40,6 +40,7 @@ class CurrentNoteStore:
         self.conflicts_dir = self.root / "conflicts"
         self.deleted_dir = self.root / "deleted"
         self.pending_dir = self.root / "pending"
+        self.restaged_dir = self.root / "restaged"
         self.outgoing_acks_dir = self.root / "outgoing-acks"
         self.processed_exchange_dir = self.root / "processed-exchange"
         self._lock = RLock()
@@ -152,12 +153,32 @@ class CurrentNoteStore:
     ) -> tuple[str, ...]:
         pending = self._read_optional(self._state_path(self.pending_dir, note_id))
         if pending is not None:
+            if self._restaged_path(note_id).is_file():
+                return () if current is None else (current.change_id,)
             return pending.parent_change_ids
         return () if current is None else (current.change_id,)
 
     def pending_states(self) -> tuple[StateEnvelope, ...]:
         with self._lock:
             return tuple(sorted(self._read_states(self.pending_dir), key=lambda state: str(state.note_id)))
+
+    def stage_live_for_sync(
+        self, selected_note_ids: set[UUID] | frozenset[UUID] | None = None
+    ) -> tuple[StateEnvelope, ...]:
+        """Stage current live snapshots for an explicit synchronization request."""
+        with self._lock:
+            staged = []
+            for state in self.list():
+                if selected_note_ids is not None and state.note_id not in selected_note_ids:
+                    continue
+                if self.conflict(state.note_id) is not None:
+                    continue
+                pending_path = self._state_path(self.pending_dir, state.note_id)
+                if not pending_path.is_file():
+                    self._atomic_write(pending_path, state.to_bytes())
+                    self._atomic_write(self._restaged_path(state.note_id), b"")
+                staged.append(state)
+            return tuple(staged)
 
     def pending_acks(self) -> tuple[StateAckEnvelope, ...]:
         with self._lock:
@@ -179,6 +200,7 @@ class CurrentNoteStore:
                     if state.note_id != acknowledgment.note_id:
                         raise ValueError("acknowledgment note does not match change")
                     self._remove(self._state_path(self.pending_dir, state.note_id))
+                    self._remove(self._restaged_path(state.note_id))
                     return True
                 return False
             if _HASH.fullmatch(acknowledgment) is None:
@@ -186,6 +208,7 @@ class CurrentNoteStore:
             for state in self.pending_states():
                 if state.change_id == acknowledgment:
                     self._remove(self._state_path(self.pending_dir, state.note_id))
+                    self._remove(self._restaged_path(state.note_id))
                     return True
             return False
 
@@ -250,6 +273,7 @@ class CurrentNoteStore:
         self._atomic_write(staged, state.to_bytes())
         self._atomic_write(self._state_path(self.current_dir, state.note_id), state.to_bytes())
         self._move(staged, self._state_path(self.pending_dir, state.note_id))
+        self._remove(self._restaged_path(state.note_id))
 
     def _retire_legacy_deletions(self) -> None:
         for fence in self._read_states(self.deleted_dir):
@@ -258,6 +282,7 @@ class CurrentNoteStore:
     def _purge_note(self, note_id: UUID) -> None:
         self._erase_live_content(note_id)
         self._remove(self._state_path(self.pending_dir, note_id))
+        self._remove(self._restaged_path(note_id))
         self._remove(self._pending_temporary(note_id))
         self._remove(self._fence_path(note_id))
         for path in sorted(self.outgoing_acks_dir.glob("*.json")):
@@ -363,6 +388,7 @@ class CurrentNoteStore:
             self.conflicts_dir,
             self.deleted_dir,
             self.pending_dir,
+            self.restaged_dir,
             self.outgoing_acks_dir,
             self.processed_exchange_dir,
         ):
@@ -414,6 +440,9 @@ class CurrentNoteStore:
 
     def _pending_temporary(self, note_id: UUID) -> Path:
         return self.pending_dir / f"{note_id}.pending.tmp"
+
+    def _restaged_path(self, note_id: UUID) -> Path:
+        return self.restaged_dir / str(note_id)
 
     def _ack_path(self, change_id: str) -> Path:
         return self.outgoing_acks_dir / f"{change_id}.json"

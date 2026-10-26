@@ -88,7 +88,7 @@ class CurrentStateTransportTests(unittest.TestCase):
         returned, confirmed = self.transfer(
             self.android, self.android_inbox, self.linux, self.linux_inbox
         )
-        self.assertEqual((), returned.requested)
+        self.assertEqual((first.change_id,), returned.requested)
         self.assertEqual((first.change_id,), confirmed.confirmed)
         self.assertEqual((), self.linux.pending_states())
         self.android = CurrentNoteStore.open(self.android.root, "android")
@@ -161,29 +161,79 @@ class CurrentStateTransportTests(unittest.TestCase):
         self.assertIsNone(self.linux.get(NOTE_B))
         self.assertTrue(any(local_echo.change_id in error for error in report.errors))
 
-    def test_deletion_propagates_and_late_live_carrier_cannot_resurrect(self):
+    def test_explicit_sync_restages_a_confirmed_unchanged_live_note(self):
+        live = self.linux.save_local(NOTE_A, "A", "unchanged", T0)
+        self.assertTrue(self.linux.acknowledge(live.change_id))
+        self.assertEqual((), self.linux.pending_states())
+
+        adapter = FakeAdapter()
+        report = sync_linux(self.linux, self.linux_inbox, adapter)
+
+        self.assertEqual((live.change_id,), report.requested)
+        self.assertEqual((live,), self.linux.pending_states())
+
+    def test_one_sync_from_surviving_device_restores_locally_deleted_receiver(self):
         live = self.linux.save_local(NOTE_A, "Private title", "private body", T0)
-        self.transfer(self.linux, self.linux_inbox, self.android, self.android_inbox)
-        deletion = self.linux.delete_local(NOTE_A, T0 + timedelta(seconds=1))
         _sent, imported = self.transfer(
             self.linux, self.linux_inbox, self.android, self.android_inbox
         )
-
-        self.assertEqual((deletion.change_id,), imported.imported)
-        self.assertTrue(self.android.is_deleted(NOTE_A))
+        self.assertEqual((live.change_id,), imported.imported)
+        self.transfer(self.android, self.android_inbox, self.linux, self.linux_inbox)
+        self.assertEqual((), self.linux.pending_states())
+        self.android.delete_local(NOTE_A)
         self.assertIsNone(self.android.get(NOTE_A))
-        self.assertNotIn(b"Private title", deletion.to_bytes())
-        self.assertNotIn(b"private body", deletion.to_bytes())
 
-        stale_name, stale_payload = build_bundle(
-            (BundleItem("state-v2", live.change_id, live.to_bytes()),)
+        _sent, restored = self.transfer(
+            self.linux, self.linux_inbox, self.android, self.android_inbox
         )
-        (self.android_inbox / stale_name).write_bytes(stale_payload)
-        stale = scan_inbox(self.android, self.android_inbox, "android")
 
-        self.assertTrue(self.android.is_deleted(NOTE_A))
+        self.assertEqual((live.change_id,), restored.imported)
+        self.assertEqual("private body", self.android.get(NOTE_A).body)
+
+    def test_if_both_devices_delete_locally_explicit_sync_sends_no_state(self):
+        self.linux.save_local(NOTE_A, "A", "body", T0)
+        self.transfer(self.linux, self.linux_inbox, self.android, self.android_inbox)
+        self.linux.delete_local(NOTE_A)
+        self.android.delete_local(NOTE_A)
+        adapter = FakeAdapter()
+
+        report = sync_linux(self.linux, self.linux_inbox, adapter)
+
+        self.assertEqual((), report.requested)
+        self.assertEqual([], adapter.paths)
+        self.assertIsNone(self.linux.get(NOTE_A))
         self.assertIsNone(self.android.get(NOTE_A))
-        self.assertEqual((), stale.errors)
+
+    def test_processed_historical_carrier_does_not_restore_locally_deleted_note(self):
+        live = self.linux.save_local(NOTE_A, "A", "body", T0)
+        _sent, imported = self.transfer(
+            self.linux, self.linux_inbox, self.android, self.android_inbox
+        )
+        self.assertEqual((live.change_id,), imported.imported)
+        self.android.delete_local(NOTE_A)
+
+        rescanned = scan_inbox(self.android, self.android_inbox, "android")
+
+        self.assertEqual((), rescanned.imported)
+        self.assertEqual((), rescanned.errors)
+        self.assertIsNone(self.android.get(NOTE_A))
+
+    def test_incoming_legacy_deletion_is_ignored_without_error_or_ack(self):
+        live = self.android.save_local(NOTE_A, "A", "body", T0)
+        deletion = StateEnvelope.deletion(
+            NOTE_A, (live.change_id,), "linux", T0 + timedelta(seconds=1)
+        )
+        name, payload = build_bundle((
+            BundleItem("state-v2", deletion.change_id, deletion.to_bytes()),
+        ))
+        (self.android_inbox / name).write_bytes(payload)
+
+        report = scan_inbox(self.android, self.android_inbox, "android")
+
+        self.assertEqual((), report.errors)
+        self.assertEqual((deletion.change_id,), report.duplicates)
+        self.assertEqual((), self.android.pending_acks())
+        self.assertEqual("body", self.android.get(NOTE_A).body)
 
     def test_selection_sends_only_latest_selected_state_but_all_pending_acks(self):
         selected = self.linux.save_local(NOTE_A, "A", "old", T0)
