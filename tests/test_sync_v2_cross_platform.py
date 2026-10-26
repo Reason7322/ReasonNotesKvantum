@@ -141,7 +141,7 @@ class CrossPlatformV2AcceptanceTests(unittest.TestCase):
                 members = read_transport_bundle(expected, canonical_name(expected))
                 self.assertEqual(1, len(members))
 
-    def test_android_carriers_create_conflict_delete_and_cannot_resurrect_on_fedora(self):
+    def test_android_carriers_create_conflict_while_deletion_remains_local_only(self):
         (
             created,
             fedora_edit,
@@ -181,25 +181,26 @@ class CrossPlatformV2AcceptanceTests(unittest.TestCase):
             self.assertEqual(resolution, resolved)
 
             deleted = import_fixture("android-delete.carrier.json")
-            self.assertEqual((deletion.change_id,), deleted.imported)
-            self.assertTrue(store.is_deleted(NOTE))
-            self.assertIsNone(store.get(NOTE))
+            self.assertEqual((), deleted.imported)
+            self.assertEqual((deletion.change_id,), deleted.duplicates)
+            self.assertFalse(store.is_deleted(NOTE))
+            self.assertEqual(resolution, store.get(NOTE))
             self.assertIsNone(store.conflict(NOTE))
+
+            store.delete_local(NOTE)
+            self.assertIsNone(store.get(NOTE))
 
             self.assertEqual(
                 (secondary_create.change_id,),
                 import_fixture("android-secondary-create.carrier.json").imported,
             )
-            local_deletion = store.delete_local(
-                SECOND, T0 + timedelta(minutes=7)
-            )
-            self.assertEqual(fedora_deletion, local_deletion)
-            self.assertTrue(store.is_deleted(SECOND))
+            store.delete_local(SECOND)
+            self.assertFalse(store.is_deleted(SECOND))
             self.assertIsNone(store.get(SECOND))
 
-            late = import_fixture("android-create.carrier.json")
+            late = scan_inbox(store, inbox, "linux")
             self.assertEqual((), late.errors)
-            self.assertTrue(store.is_deleted(NOTE))
+            self.assertFalse(store.is_deleted(NOTE))
             self.assertIsNone(store.get(NOTE))
             combined = b"".join(
                 path.read_bytes()

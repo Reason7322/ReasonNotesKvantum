@@ -81,7 +81,8 @@ class LegacyMigrationTests(unittest.TestCase):
         self.assertEqual(2, len(migrated.conflict(CONFLICT).candidates))
         self.assertIsNone(migrated.get(DELETED))
         stale = StateEnvelope.upsert(DELETED, (), "android", NOW, "Erase me", "secret")
-        self.assertEqual("rejected-deleted", migrated.apply(stale).kind)
+        self.assertEqual("applied", migrated.apply(stale).kind)
+        self.assertEqual(stale, migrated.get(DELETED))
         self.assertFalse(self.legacy_root.exists())
 
     def test_converted_state_ids_match_android_migration_fixture(self):

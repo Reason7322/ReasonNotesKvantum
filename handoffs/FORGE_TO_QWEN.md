@@ -231,3 +231,15 @@ Android version. Android imported Fedora resolution `7d3836fc…` and queued its
 ack, but Fedora timed out before receiving it and remains pending. No retry was
 made. The generic Error wording is still a UI defect; durable confirmation is
 not yet complete.
+
+# Local-only deletion implementation
+
+Fedora deletion is now an immediate local purge with no tombstone or peer
+message. Explicit Sync stages current live snapshots, allowing one Sync on the
+surviving device to restore a deleted peer. Processed historical occurrences
+remain suppressed, both-deleted notes produce no outgoing state, and restaged
+snapshots no longer corrupt autosave ancestry. Focused affected tests pass
+63/63; the full suite is 343/344 with only the known unrelated candidate-install
+assertion failing. No production desktop installation or personal repository
+was modified. Remaining acceptance is physical local delete/restoration and
+both-delete verification with the independently checkpointed Android build.

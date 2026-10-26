@@ -995,3 +995,28 @@ the resolution as pending. Screenshots:
 `184634_hyprshot.png`, `184743_hyprshot.png`, and `184747_hyprshot.png`.
 The synchronization state is truthful; the generic Error wording remains a UI
 acceptance defect. No retry or source change followed this checkpoint.
+
+## Local-only deletion and explicit restoration — 2026-10-26
+
+ReasonNotes now implements the owner-approved symmetric deletion contract.
+Delete permanently purges the note's live state, conflict candidates, pending
+state, note-specific acknowledgments, and obsolete deletion fence on that
+device only. It creates no deletion carrier or acknowledgment and cannot affect
+the peer. Existing incoming deletion envelopes are retired as ignored legacy
+data. Rescanning an already processed historical carrier does not restore a
+note.
+
+Every explicit Sync now restages the selected current live snapshots without
+changing their IDs. Therefore one Sync on the device that still has a note can
+restore a locally deleted peer through normal receive scanning; if both devices
+deleted it, neither has live state to send. Explicitly restaged snapshots are
+tracked separately from unsent autosaves so a subsequent edit preserves correct
+ancestry and does not create a false conflict.
+
+Verification: the focused Fedora store/service/sync/lifecycle and
+cross-platform set passed 63/63. The full suite ran 344 tests: 343 passed and
+the one pre-existing candidate-installer assertion
+`test_check_launch_writes_only_explicit_isolated_roots` failed; all changed
+current-state, migration, conflict, and transport tests passed. Android source
+and physical deployment are checkpointed independently. Physical local-delete,
+one-sided restoration, both-delete, and restart acceptance remain pending.

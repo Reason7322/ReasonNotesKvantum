@@ -195,18 +195,13 @@ def _validate(store: CurrentNoteStore, expected: _Derived) -> None:
     if {conflict.note_id for conflict in store.conflicts()} != actual_conflict_ids:
         raise RuntimeError("staged store contains extra conflicts")
 
-    expected_deletions = {state.note_id: state for state in expected.deletions}
-    actual_deletions = {
-        state.note_id: state for state in store._read_states(store.deleted_dir)
-    }
-    if actual_deletions != expected_deletions:
-        raise RuntimeError("staged deletions did not reopen exactly")
+    expected_deletions = {state.note_id for state in expected.deletions}
+    if store._read_states(store.deleted_dir):
+        raise RuntimeError("staged migration retained deletion fences")
     if any(store.get(note_id) is not None for note_id in expected_deletions):
-        raise RuntimeError("staged deletion retained live content")
+        raise RuntimeError("staged deleted note retained live content")
 
-    expected_pending = {
-        state.note_id: state for state in (*expected.current, *expected.deletions)
-    }
+    expected_pending = {state.note_id: state for state in expected.current}
     actual_pending = {state.note_id: state for state in store.pending_states()}
     if actual_pending != expected_pending:
         raise RuntimeError("staged pending state did not reopen exactly")
