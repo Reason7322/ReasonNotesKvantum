@@ -51,7 +51,7 @@ class CurrentNoteStore:
         store = cls(Path(root), device_id)
         store._ensure_layout()
         store._recover_interrupted_pending()
-        store._finish_durable_deletions()
+        store._retire_legacy_deletions()
         store._validate_all()
         return store
 
@@ -76,8 +76,6 @@ class CurrentNoteStore:
         self, note_id: UUID, title: str, body: str, modified_utc: datetime
     ) -> StateEnvelope:
         with self._lock:
-            if self._fence_path(note_id).is_file():
-                raise RuntimeError("deleted note cannot be edited")
             if self.conflict(note_id) is not None:
                 raise RuntimeError("conflict must be resolved first")
             existing = self.get(note_id)
@@ -90,17 +88,11 @@ class CurrentNoteStore:
 
     def apply(self, incoming: StateEnvelope) -> ApplyOutcome:
         with self._lock:
+            if incoming.operation == "delete":
+                return ApplyOutcome("ignored-deletion", incoming.change_id)
             fence = self._read_optional(self._fence_path(incoming.note_id))
             if fence is not None:
-                if incoming.operation == "delete":
-                    self._queue_ack(incoming)
-                    return ApplyOutcome("duplicate", incoming.change_id)
                 return ApplyOutcome("rejected-deleted", incoming.change_id)
-
-            if incoming.operation == "delete":
-                self._persist_deletion(incoming, outgoing=False)
-                self._queue_ack(incoming)
-                return ApplyOutcome("deleted", incoming.change_id)
 
             local = self.get(incoming.note_id)
             if local is None:
@@ -151,19 +143,9 @@ class CurrentNoteStore:
             self._clear_conflict(note_id)
             return resolution
 
-    def delete_local(self, note_id: UUID, modified_utc: datetime) -> StateEnvelope:
+    def delete_local(self, note_id: UUID) -> None:
         with self._lock:
-            conflict = self.conflict(note_id)
-            if conflict is not None:
-                parents = tuple(sorted(candidate.change_id for candidate in conflict.candidates))
-            else:
-                live = self.get(note_id)
-                parents = self._local_parents(note_id, live)
-            deletion = StateEnvelope.deletion(
-                note_id, parents, self.device_id, modified_utc
-            )
-            self._persist_deletion(deletion, outgoing=True)
-            return deletion
+            self._purge_note(note_id)
 
     def _local_parents(
         self, note_id: UUID, current: StateEnvelope | None
@@ -261,7 +243,7 @@ class CurrentNoteStore:
     def _write_migrated_deletion(self, deletion: StateEnvelope) -> None:
         if deletion.operation != "delete":
             raise ValueError("migrated fence must be a deletion")
-        self._persist_deletion(deletion, outgoing=True)
+        self._purge_note(deletion.note_id)
 
     def _commit_local(self, state: StateEnvelope) -> None:
         staged = self._pending_temporary(state.note_id)
@@ -269,20 +251,19 @@ class CurrentNoteStore:
         self._atomic_write(self._state_path(self.current_dir, state.note_id), state.to_bytes())
         self._move(staged, self._state_path(self.pending_dir, state.note_id))
 
-    def _persist_deletion(self, deletion: StateEnvelope, *, outgoing: bool) -> None:
-        staged = self._pending_temporary(deletion.note_id)
-        if outgoing:
-            self._atomic_write(staged, deletion.to_bytes())
-        self._atomic_write(self._fence_path(deletion.note_id), deletion.to_bytes())
-        self._erase_live_content(deletion.note_id)
-        if outgoing:
-            self._move(staged, self._state_path(self.pending_dir, deletion.note_id))
-        else:
-            self._remove(self._state_path(self.pending_dir, deletion.note_id))
-
-    def _finish_durable_deletions(self) -> None:
+    def _retire_legacy_deletions(self) -> None:
         for fence in self._read_states(self.deleted_dir):
-            self._erase_live_content(fence.note_id)
+            self._purge_note(fence.note_id)
+
+    def _purge_note(self, note_id: UUID) -> None:
+        self._erase_live_content(note_id)
+        self._remove(self._state_path(self.pending_dir, note_id))
+        self._remove(self._pending_temporary(note_id))
+        self._remove(self._fence_path(note_id))
+        for path in sorted(self.outgoing_acks_dir.glob("*.json")):
+            acknowledgment = StateAckEnvelope.from_bytes(path.read_bytes())
+            if acknowledgment.note_id == note_id:
+                self._remove(path)
 
     def _erase_live_content(self, note_id: UUID) -> None:
         self._remove(self._state_path(self.current_dir, note_id))

@@ -431,7 +431,9 @@ class CurrentNoteServiceTest(unittest.TestCase):
         self.assertEqual([], self.service.list_notes())
         with self.assertRaises(NoteNotFoundError):
             self.service.open_note(note_id)
-        self.assertTrue(self.store.is_deleted(note_id))
+        self.assertFalse(self.store.is_deleted(note_id))
+        self.assertEqual((), self.store.pending_states())
+        self.assertEqual((), self.store.pending_acks())
         stored_bytes = b"".join(
             path.read_bytes()
             for path in self.store.root.rglob("*")

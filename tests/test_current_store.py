@@ -51,8 +51,9 @@ class CurrentNoteStoreTests(unittest.TestCase):
         self.assertEqual("applied", peer.apply(latest).kind)
         self.assertEqual(latest, peer.get(NOTE))
 
-        deletion = store.delete_local(NOTE, NOW + timedelta(seconds=3))
-        self.assertEqual((base.change_id,), deletion.parent_change_ids)
+        self.assertIsNone(store.delete_local(NOTE))
+        self.assertIsNone(store.get(NOTE))
+        self.assertEqual((), store.pending_states())
 
     def test_valid_unknown_ancestry_becomes_explicit_conflict(self):
         store = self.open()
@@ -95,52 +96,75 @@ class CurrentNoteStoreTests(unittest.TestCase):
         self.assertIsNone(store.conflict(NOTE))
         self.assertEqual((resolved,), store.pending_states())
 
-    def test_deletion_erases_content_and_rejects_every_old_live_carrier(self):
+    def test_local_deletion_purges_every_note_specific_record_without_outgoing_work(self):
         store = self.open()
-        live = store.save_local(NOTE, "Secret title", "secret body", NOW)
+        base = StateEnvelope.upsert(
+            NOTE, (), "android", NOW, "Secret title", "secret body"
+        )
+        self.assertEqual("applied", store.apply(base).kind)
+        local = store.save_local(
+            NOTE, "Local secret", "local body", NOW + timedelta(seconds=1)
+        )
+        remote = StateEnvelope.upsert(
+            NOTE,
+            (base.change_id,),
+            "android",
+            NOW + timedelta(seconds=2),
+            "Remote secret",
+            "remote body",
+        )
+        self.assertEqual("conflict", store.apply(remote).kind)
+        self.assertTrue(any(ack.note_id == NOTE for ack in store.pending_acks()))
 
-        deletion = store.delete_local(NOTE, NOW + timedelta(seconds=1))
+        result = store.delete_local(NOTE)
 
+        self.assertIsNone(result)
         self.assertIsNone(store.get(NOTE))
-        self.assertEqual((deletion,), store.pending_states())
-        self.assertEqual("rejected-deleted", store.apply(live).kind)
+        self.assertIsNone(store.conflict(NOTE))
+        self.assertFalse(any(state.note_id == NOTE for state in store.pending_states()))
+        self.assertFalse(any(ack.note_id == NOTE for ack in store.pending_acks()))
+        self.assertFalse(store.is_deleted(NOTE))
         contents = b"".join(
             path.read_bytes() for path in self.root.rglob("*") if path.is_file()
         )
         self.assertNotIn(b"Secret title", contents)
         self.assertNotIn(b"secret body", contents)
+        self.assertNotIn(b"Local secret", contents)
+        self.assertNotIn(b"remote body", contents)
 
-    def test_incoming_deletion_wins_over_local_edit_and_queues_ack(self):
+        reopened = self.open()
+        self.assertIsNone(reopened.get(NOTE))
+        self.assertIsNone(reopened.conflict(NOTE))
+        self.assertEqual((), reopened.pending_states())
+
+    def test_incoming_deletion_is_ignored_without_acknowledgment(self):
         store = self.open()
         local = store.save_local(NOTE, "Local", "must disappear", NOW)
         incoming = StateEnvelope.deletion(
             NOTE, (local.change_id,), "android", NOW + timedelta(seconds=1)
         )
 
-        self.assertEqual("deleted", store.apply(incoming).kind)
+        self.assertEqual("ignored-deletion", store.apply(incoming).kind)
 
-        self.assertIsNone(store.get(NOTE))
-        self.assertEqual((), store.pending_states())
-        acknowledgments = store.pending_acks()
-        self.assertEqual(1, len(acknowledgments))
-        self.assertEqual(incoming.change_id, acknowledgments[0].acknowledged_change_id)
+        self.assertEqual(local, store.get(NOTE))
+        self.assertEqual((local,), store.pending_states())
+        self.assertEqual((), store.pending_acks())
 
-    def test_independent_deletions_acknowledge_without_restoring_content(self):
+    def test_open_retires_obsolete_deletion_fence_without_leaving_trace(self):
         store = self.open()
         live = store.save_local(NOTE, "Private", "gone", NOW)
-        local_deletion = store.delete_local(NOTE, NOW + timedelta(seconds=1))
-        remote_deletion = StateEnvelope.deletion(
-            NOTE, (live.change_id,), "android", NOW + timedelta(seconds=2)
+        deletion = StateEnvelope.deletion(
+            NOTE, (live.change_id,), "linux", NOW + timedelta(seconds=1)
         )
+        fence = self.root / "deleted" / f"{NOTE}.json"
+        fence.write_bytes(deletion.to_bytes())
 
-        self.assertEqual("duplicate", store.apply(remote_deletion).kind)
+        reopened = self.open()
 
-        self.assertIsNone(store.get(NOTE))
-        self.assertEqual((local_deletion,), store.pending_states())
-        self.assertEqual(
-            (remote_deletion.change_id,),
-            tuple(ack.acknowledged_change_id for ack in store.pending_acks()),
-        )
+        self.assertIsNone(reopened.get(NOTE))
+        self.assertEqual((), reopened.pending_states())
+        self.assertFalse(fence.exists())
+        self.assertFalse(reopened.is_deleted(NOTE))
 
     def test_remote_descendant_replaces_obsolete_local_pending_state(self):
         store = self.open()

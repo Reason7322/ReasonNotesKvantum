@@ -313,7 +313,7 @@ class NoteService:
             expected = expected_revision_ids or (current.change_id,)
             if self.head_ids(note_id) != tuple(expected):
                 raise ConflictRequired("note changed since deletion was requested")
-            self.repository.delete_local(note_id, self._now())
+            self.repository.delete_local(note_id)
             self._edit_bases.pop(note_id, None)
             self._conflict_snapshots.pop(note_id, None)
             return
