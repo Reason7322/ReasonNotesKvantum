@@ -368,8 +368,6 @@ def _scan_current_inbox(
                 or legacy and store.was_processed("legacy", state.change_id)
             ):
                 continue
-            if state.origin_device == local_device:
-                raise StateEnvelopeError("state originated on this device")
             outcome = store.apply(state)
             if outcome.kind in ("applied", "deleted", "conflict"):
                 imported.append(state.change_id)

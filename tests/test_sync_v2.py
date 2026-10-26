@@ -146,25 +146,25 @@ class CurrentStateTransportTests(unittest.TestCase):
         self.assertEqual((), replay.confirmed)
         self.assertEqual((), replay.errors)
 
-    def test_one_invalid_note_does_not_block_an_independent_valid_note(self):
+    def test_peer_may_return_a_state_originally_authored_on_this_device(self):
         good = StateEnvelope.upsert(NOTE_A, (), "android", T0, "Good", "safe")
-        local_echo = StateEnvelope.upsert(
-            NOTE_B, (), "linux", T0, "Wrong", "must not import"
+        returned = StateEnvelope.upsert(
+            NOTE_B, (), "linux", T0, "Returned", "restore me"
         )
         name, payload = build_bundle(
             (
                 BundleItem("state-v2", good.change_id, good.to_bytes()),
-                BundleItem("state-v2", local_echo.change_id, local_echo.to_bytes()),
+                BundleItem("state-v2", returned.change_id, returned.to_bytes()),
             )
         )
         (self.linux_inbox / name).write_bytes(payload)
 
         report = scan_inbox(self.linux, self.linux_inbox, "linux")
 
-        self.assertEqual((good.change_id,), report.imported)
+        self.assertEqual({good.change_id, returned.change_id}, set(report.imported))
         self.assertEqual("safe", self.linux.get(NOTE_A).body)
-        self.assertIsNone(self.linux.get(NOTE_B))
-        self.assertTrue(any(local_echo.change_id in error for error in report.errors))
+        self.assertEqual("restore me", self.linux.get(NOTE_B).body)
+        self.assertEqual((), report.errors)
 
     def test_explicit_sync_restages_a_confirmed_unchanged_live_note(self):
         live = self.linux.save_local(NOTE_A, "A", "unchanged", T0)

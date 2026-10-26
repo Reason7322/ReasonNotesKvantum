@@ -324,11 +324,14 @@ class CurrentNoteStore:
         if path.is_file():
             return
         now = datetime.now(timezone.utc).replace(microsecond=0)
+        destination = incoming.origin_device
+        if destination == self.device_id:
+            destination = "android" if self.device_id == "linux" else "linux"
         acknowledgment = StateAckEnvelope.create(
             incoming.note_id,
             incoming.change_id,
             self.device_id,
-            incoming.origin_device,
+            destination,
             now,
         )
         self._atomic_write(path, acknowledgment.to_bytes())
