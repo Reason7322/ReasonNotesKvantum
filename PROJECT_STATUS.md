@@ -1158,3 +1158,40 @@ The 63 unrelated top-level Trash names retained their pre/post fingerprint
 Public source/release publication remains the unfinished part of this milestone
 at this checkpoint. No application was launched and Android was not accessed or
 modified during cleanup.
+
+## Public release complete — 2026-10-27
+
+Public repositories and canonical release:
+
+- https://github.com/Reason7322/ReasonNotes
+- https://github.com/Reason7322/ReasonNotesKvantum
+- https://github.com/Reason7322/ReasonNotes/releases/tag/v0.1.0
+
+Both repositories are public with default branch `main`, matching their
+accepted release branches before this final documentation-only checkpoint.
+Release source commits are Android
+`d24c53122a3b1272b9586bfea5a375d89bdabe61` and Fedora
+`440f5f89cc913403c7546c46a03e22244b1d05f2`. Annotated tag `v0.1.0` peels to
+the Android release commit and is identical on local, handoff, and GitHub.
+
+Release assets:
+
+- `reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm`, 658,576 bytes, SHA-256
+  `ef734264722788d6222312c9608bf6ab2866411942477fad871cc9ae9f26bb11`.
+- `reasonnotes-android-0.1.apk`, 2,717,764 bytes, SHA-256
+  `d0aef58c05567a928e4aad35ee2535988aeb01582458b64e7ee8cf1fce3d27d8`.
+- `SHA256SUMS`, 204 bytes, SHA-256
+  `be70922a659e4a2609b4a1a682411bf2dc51617847f1f6dce96327f1bb833644`.
+
+GitHub's public release API reports those exact asset digests and fresh
+unauthenticated downloads pass `SHA256SUMS`. The RPM retains accepted NEVRA,
+header/payload digests, runtime source
+`cdf63233d2956718e5353ed58ad230dad07aad91`, and byte identity. The APK retains
+package/version/SDK metadata, v2 signature, accepted certificate, and runtime
+source `98b094f`.
+
+The public histories passed focused scans for credential signatures, key or
+backup payload filenames, and literal active-note content. MIT licensing,
+reciprocal platform READMEs, build/install instructions, limitations, and
+third-party notices are present. No replacement binary was built or installed,
+no app was launched, and Android and protected note data remained untouched.

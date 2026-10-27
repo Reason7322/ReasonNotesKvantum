@@ -312,3 +312,18 @@ Protected live state is unchanged: 406 files, six current notes, tree hash
 The verified backup manifest passes unchanged. Host `rpm -V`, ownership, one
 launcher, and one desktop entry pass. No app launch or Android interaction.
 Publication is the remaining authorized work.
+
+## 2026-10-27 public release complete
+
+Public source: `https://github.com/Reason7322/ReasonNotes` and
+`https://github.com/Reason7322/ReasonNotesKvantum`. Canonical release:
+`https://github.com/Reason7322/ReasonNotes/releases/tag/v0.1.0`.
+
+Release commits are Android `d24c53122a3b1272b9586bfea5a375d89bdabe61`
+and Fedora `440f5f89cc913403c7546c46a03e22244b1d05f2`. Released hashes are RPM
+`ef734264722788d6222312c9608bf6ab2866411942477fad871cc9ae9f26bb11`
+and APK `d0aef58c05567a928e4aad35ee2535988aeb01582458b64e7ee8cf1fce3d27d8`.
+Public API digests and fresh unauthenticated downloads match. Both default
+branches expose MIT-licensed source and preserved third-party notices. Cleanup,
+live/backup protection, one-installation verification, and Android non-access
+all remain as recorded above. No next milestone is authorized.
