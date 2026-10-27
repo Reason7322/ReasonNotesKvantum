@@ -45,6 +45,12 @@ def prepare(source_root: Path, topdir: Path) -> Path:
         rpm_sources / "org.reasonnotes.ReasonNotesKvantum.desktop",
         topdir / "SOURCES/org.reasonnotes.ReasonNotesKvantum.desktop",
     )
+    for source in (
+        source_root / "LICENSE",
+        source_root / "THIRD_PARTY_NOTICES.md",
+        source_root / "third_party/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt",
+    ):
+        shutil.copy2(source, topdir / "SOURCES" / source.name)
     spec = topdir / "SPECS/reasonnotes.spec"
     shutil.copy2(rpm_sources / "reasonnotes.spec", spec)
     return spec

@@ -19,6 +19,11 @@ The accepted RPM is unsigned. Its bytes were retained exactly, so its embedded
 RPM license header still reflects the pre-publication `LicenseRef-Private`
 metadata. The source license and future-build spec are MIT.
 
+The accepted RPM also predates the release-documentation correction that adds
+the MIT project license, third-party notices, and the ext-background-effect
+protocol license to future RPM payloads. Those texts are available in the
+[source notices](../THIRD_PARTY_NOTICES.md); the released RPM remains unchanged.
+
 ## Android
 
 - File: `reasonnotes-android-0.1.apk`
@@ -34,3 +39,7 @@ metadata. The source license and future-build spec are MIT.
 
 The APK is the accepted development-certificate-signed artifact, renamed for
 public download without changing its bytes.
+
+The accepted APK predates the release-documentation correction that embeds the
+Apache License 2.0 and dependency notice in future APKs. The complete notice is
+published in the [Android source repository](https://github.com/Reason7322/ReasonNotes/blob/main/THIRD_PARTY_NOTICES.md).

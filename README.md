@@ -26,12 +26,20 @@ background synchronization server.
 
 ReasonNotes deliberately synchronizes only when you ask it to.
 
-1. Install and pair KDE Connect on Fedora and Android.
-2. On Android, grant ReasonNotes **All files access** so it can use
-   `/storage/emulated/0/ReasonNotes Exchange`.
-3. Keep KDE Connect reachable on both devices and open ReasonNotes on Android.
-4. In ReasonNotes, choose all notes or selected notes and start Sync.
-5. KDE Connect carries a JSON bundle to the peer. The receiving app validates
+1. Install and pair KDE Connect on Fedora and Android. On Fedora, run
+   `kdeconnect-cli -l` and copy the paired Fedora computer's 32-character
+   device ID.
+2. In Android ReasonNotes, open **Settings → Computer** and replace the
+   prefilled development value with that Fedora device ID.
+3. Configure KDE Connect on Android to save received files in
+   `ReasonNotes Exchange`. Fedora receives incoming bundles through
+   `~/Downloads`.
+4. Give Android ReasonNotes access to that receive directory. On Android 11
+   and newer, grant **All files access**. On Android 8–10, use ReasonNotes'
+   storage directory picker to select the KDE Connect receive folder.
+5. Keep KDE Connect reachable on both devices and open ReasonNotes on Android.
+6. In ReasonNotes, choose all notes or selected notes and start Sync.
+7. KDE Connect carries a JSON bundle to the peer. The receiving app validates
    and imports it, then returns an acknowledgment. The sender reports completion
    only after that acknowledgment is imported.
 
@@ -44,7 +52,7 @@ The public release provides the accepted Fedora 44 x86_64 RPM:
 `reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm`.
 
 ```sh
-sha256sum -c SHA256SUMS
+grep 'reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm$' SHA256SUMS | sha256sum -c -
 sudo dnf5 --no-gpgchecks install ./reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm
 ```
 
@@ -87,7 +95,8 @@ QT_QPA_PLATFORM=offscreen PYTHONPATH=src \
 
 - The published RPM targets Fedora 44 x86_64 and Wayland.
 - KDE Connect pairing and reachability are required for cross-device sync.
-- Android exchange access requires Android's special **All files access** grant.
+- Android exchange access requires **All files access** on Android 11+ or a
+  selected receive directory through the system picker on Android 8–10.
 - Synchronization is explicit and foreground-oriented, not continuous cloud
   sync.
 - The first public APK is development-certificate signed and distributed

@@ -11,7 +11,10 @@ ReasonNotes for Fedora uses these separately distributed system components:
 - KDE Connect — distributed by KDE under GPL terms.
 - Kvantum — distributed under GPL terms.
 - Wayland client libraries and protocols — distributed under their upstream
-  permissive licenses.
+  permissive licenses. ReasonNotes compiles generated client bindings for the
+  ext-background-effect protocol into its native helper; the protocol's full
+  copyright and license text is retained in
+  [`third_party/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt`](third_party/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt).
 
 The RPM declares these as system dependencies and does not vendor their source
 or relicense them. Consult the installed Fedora package metadata and each

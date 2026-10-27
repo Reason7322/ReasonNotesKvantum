@@ -327,3 +327,9 @@ Public API digests and fresh unauthenticated downloads match. Both default
 branches expose MIT-licensed source and preserved third-party notices. Cleanup,
 live/backup protection, one-installation verification, and Android non-access
 all remain as recorded above. No next milestone is authorized.
+
+Post-publication review corrections are documentation/future-packaging only:
+the README now includes complete first-sync setup and a platform-specific
+checksum command, and future RPMs install project/protocol license notices via
+`%license`. The accepted release RPM was neither rebuilt nor replaced. Focused
+tests pass 6/6. No next milestone is authorized.

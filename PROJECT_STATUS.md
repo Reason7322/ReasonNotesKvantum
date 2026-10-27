@@ -1195,3 +1195,13 @@ backup payload filenames, and literal active-note content. MIT licensing,
 reciprocal platform READMEs, build/install instructions, limitations, and
 third-party notices are present. No replacement binary was built or installed,
 no app was launched, and Android and protected note data remained untouched.
+
+Post-publication review found that the first-sync instructions and binary
+third-party notices needed to be more explicit. Both READMEs now document the
+Fedora KDE Connect device ID, Android **Settings → Computer**, the Android
+`ReasonNotes Exchange` receive destination, Fedora `~/Downloads`, and the
+different Android 8–10 versus Android 11+ storage grants. Single-asset checksum
+commands now verify only the downloaded platform file. Future RPM builds carry
+the MIT license, third-party notices, and the ext-background-effect protocol
+license under `%license`; the accepted public RPM is unchanged. Focused RPM
+packaging/documentation tests pass 6/6.

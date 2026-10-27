@@ -10,6 +10,9 @@ URL:            https://github.com/Reason7322/ReasonNotesKvantum
 Source0:        %{name}-%{version}.tar.gz
 Source1:        reasonnotes
 Source2:        org.reasonnotes.ReasonNotesKvantum.desktop
+Source3:        LICENSE
+Source4:        THIRD_PARTY_NOTICES.md
+Source5:        EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt
 
 BuildRequires:  gcc
 BuildRequires:  python3 >= 3.14
@@ -41,10 +44,16 @@ printf '%s\n' '%{source_revision}' > %{buildroot}%{_libdir}/reasonnotes/SOURCE_R
 install -Dm0755 %{SOURCE1} %{buildroot}%{_bindir}/reasonnotes
 install -Dm0644 %{SOURCE2} %{buildroot}%{_datadir}/applications/org.reasonnotes.ReasonNotesKvantum.desktop
 install -Dm0644 linux-app/icons/reasonnotes-yamis.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/org.reasonnotes.ReasonNotesKvantum.svg
+install -Dm0644 %{SOURCE3} %{buildroot}%{_licensedir}/%{name}/LICENSE
+install -Dm0644 %{SOURCE4} %{buildroot}%{_licensedir}/%{name}/THIRD_PARTY_NOTICES.md
+install -Dm0644 %{SOURCE5} %{buildroot}%{_licensedir}/%{name}/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt
 desktop-file-validate %{buildroot}%{_datadir}/applications/org.reasonnotes.ReasonNotesKvantum.desktop
 
 %files
 %defattr(-,root,root,-)
+%license %{_licensedir}/%{name}/LICENSE
+%license %{_licensedir}/%{name}/THIRD_PARTY_NOTICES.md
+%license %{_licensedir}/%{name}/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt
 %{_bindir}/reasonnotes
 %{_libdir}/reasonnotes/
 %{_datadir}/applications/org.reasonnotes.ReasonNotesKvantum.desktop

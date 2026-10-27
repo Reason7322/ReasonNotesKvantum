@@ -132,6 +132,13 @@ class RpmPackagingTests(unittest.TestCase):
             self.assertIn("License:        MIT\n", spec)
             description = spec.split("%description", 1)[1].split("%prep", 1)[0]
             self.assertNotIn("private", description.lower())
+            for license_source in (
+                "LICENSE",
+                "THIRD_PARTY_NOTICES.md",
+                "EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt",
+            ):
+                self.assertTrue((topdir / "SOURCES" / license_source).is_file())
+                self.assertIn(f"%license %{{_licensedir}}/%{{name}}/{license_source}", spec)
 
             desktop = topdir / "SOURCES/org.reasonnotes.ReasonNotesKvantum.desktop"
             validation = subprocess.run(
@@ -141,6 +148,24 @@ class RpmPackagingTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(validation.returncode, 0, validation.stderr)
+
+    def test_public_readme_documents_first_sync_and_single_asset_checksum(self):
+        readme = (ROOT / "README.md").read_text()
+
+        for required in (
+            "Settings → Computer",
+            "kdeconnect-cli -l",
+            "ReasonNotes Exchange",
+            "Android 8–10",
+            "Android 11",
+            "grep 'reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm$' SHA256SUMS",
+        ):
+            self.assertIn(required, readme)
+        notices = (ROOT / "THIRD_PARTY_NOTICES.md").read_text()
+        self.assertIn("EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt", notices)
+        self.assertTrue(
+            (ROOT / "third_party/EXT_BACKGROUND_EFFECT_PROTOCOL_LICENSE.txt").is_file()
+        )
 
     def test_build_rejects_an_rpm_with_an_unexpected_output_name(self):
         with tempfile.TemporaryDirectory() as temporary:
