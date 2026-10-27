@@ -119,6 +119,11 @@ class RpmPackagingTests(unittest.TestCase):
                 "%{_datadir}/icons/hicolor/scalable/apps/org.reasonnotes.ReasonNotesKvantum.svg",
             ):
                 self.assertIn(payload_path, spec)
+            self.assertIn(
+                "%global debug_package %{nil}\n",
+                spec,
+                "the private single-RPM build must not emit an empty debugsource package",
+            )
 
             desktop = topdir / "SOURCES/org.reasonnotes.ReasonNotesKvantum.desktop"
             validation = subprocess.run(

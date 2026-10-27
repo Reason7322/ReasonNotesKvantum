@@ -1,4 +1,5 @@
 %global source_revision cdf63233d2956718e5353ed58ad230dad07aad91
+%global debug_package %{nil}
 
 Name:           reasonnotes
 Version:        0.1.0
