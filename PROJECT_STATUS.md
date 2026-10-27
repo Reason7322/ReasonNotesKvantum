@@ -1077,3 +1077,40 @@ no data was copied or deleted, no legacy application path was removed, and no
 desktop or Android app interaction occurred. Potential next action: run only
 `/usr/bin/python3 -m unittest tests.test_rpm_packaging -v` and continue from its
 result.
+
+## Native RPM cutover complete — 2026-10-27
+
+The owner-accepted desktop source
+`cdf63233d2956718e5353ed58ad230dad07aad91` is now installed as the sole
+ReasonNotes desktop application in RPM `reasonnotes-0.1.0-1.cdf6323.fc44.x86_64`.
+The retained RPM is
+`dist/rpm/reasonnotes-0.1.0-1.cdf6323.fc44.x86_64.rpm`, SHA-256
+`ef734264722788d6222312c9608bf6ab2866411942477fad871cc9ae9f26bb11`.
+It is an unsigned private local package; RPM header and payload SHA-256 digests
+pass, the embedded `SOURCE_REVISION` is the full accepted SHA, and host-namespace
+`rpm -V reasonnotes` is clean with installed payload ownership `root:root`.
+
+The three pre-cutover data roots are preserved at
+`/ssd-storage/Backups/ReasonNotes/2026-10-27T173534+0100/`: 482 production
+files, 246 installed-candidate files, and 386 accepted physical-test files.
+All 1,114 manifest entries pass and recursive source comparisons are identical;
+the backup `SHA256SUMS` file hash is
+`e12b23d4c2f94343a6169bf03c228a9e5cfae97ca63c328c8e21fe41151ca9be`.
+The new live repository at
+`/home/reason/.local/share/reasonnotes/repository` is byte-for-byte identical
+to the accepted physical-test repository and retains its six current note IDs.
+
+`/usr/bin/reasonnotes --check-launch` exited zero without displaying the
+application or starting synchronization. The two old manual launchers, two
+manual release trees, and two user desktop entries were moved to the
+recoverable desktop Trash only after package and data verification. User and
+system desktop metadata were refreshed. Exactly one active launcher and one
+active desktop entry remain, and no ReasonNotes process is running. Older
+orphan icon assets and both old data roots were deliberately left untouched.
+
+Focused RPM packaging tests pass 5/5. The package was built with official
+Fedora 44 `rpm-build` and `debugedit` payloads extracted into ignored project
+workspace because the host `rpm-build` package remains uninstalled; the final
+install used a host-systemd transient service so files received true root
+ownership outside the Codex user namespace. Android was not accessed,
+modified, launched, installed, or synchronized during this cutover.

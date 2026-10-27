@@ -280,3 +280,17 @@ the implementation files existed; GREEN was not run. `rpm-build` is absent.
 Nothing was built, installed, copied, removed, synchronized, or launched.
 Potential next action: run only the focused packaging test and continue from
 its result.
+
+## 2026-10-27 native RPM cutover complete
+
+Accepted source `cdf6323` is installed as the sole desktop app in
+`reasonnotes-0.1.0-1.cdf6323.fc44.x86_64`. Retained RPM SHA-256:
+`ef734264722788d6222312c9608bf6ab2866411942477fad871cc9ae9f26bb11`;
+host `rpm -V` and `root:root` ownership pass, and nonvisual `--check-launch`
+exits zero. Verified backup:
+`/ssd-storage/Backups/ReasonNotes/2026-10-27T173534+0100/`, 1,114 files,
+manifest hash `e12b23d4c2f94343a6169bf03c228a9e5cfae97ca63c328c8e21fe41151ca9be`.
+The lowercase live repository is byte-identical to the accepted six-note store.
+Six obsolete manual app paths are recoverable from Trash; old data roots and
+orphan icon assets remain untouched. One launcher and one desktop entry remain,
+with no ReasonNotes process. Packaging tests pass 5/5. Android was untouched.

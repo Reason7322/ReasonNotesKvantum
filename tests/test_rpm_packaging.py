@@ -124,6 +124,11 @@ class RpmPackagingTests(unittest.TestCase):
                 spec,
                 "the private single-RPM build must not emit an empty debugsource package",
             )
+            self.assertIn(
+                "%defattr(-,root,root,-)\n",
+                spec,
+                "the RPM payload must not inherit the unprivileged builder's ownership",
+            )
 
             desktop = topdir / "SOURCES/org.reasonnotes.ReasonNotesKvantum.desktop"
             validation = subprocess.run(

@@ -44,6 +44,7 @@ install -Dm0644 linux-app/icons/reasonnotes-yamis.svg %{buildroot}%{_datadir}/ic
 desktop-file-validate %{buildroot}%{_datadir}/applications/org.reasonnotes.ReasonNotesKvantum.desktop
 
 %files
+%defattr(-,root,root,-)
 %{_bindir}/reasonnotes
 %{_libdir}/reasonnotes/
 %{_datadir}/applications/org.reasonnotes.ReasonNotesKvantum.desktop
