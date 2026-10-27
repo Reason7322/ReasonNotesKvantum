@@ -60,9 +60,17 @@ def build(source_root: Path, topdir: Path, output: Path) -> list[Path]:
         cwd=source_root,
         check=True,
     )
-    packages = sorted((topdir / "RPMS").glob("**/reasonnotes-*.rpm"))
+    packages = sorted(
+        (topdir / "RPMS").glob(
+            f"**/reasonnotes-{VERSION}-1.cdf6323*.x86_64.rpm"
+        )
+    )
     if len(packages) != 1:
-        raise RuntimeError(f"expected one binary RPM, found {len(packages)}")
+        discovered = sorted(path.name for path in (topdir / "RPMS").glob("**/*.rpm"))
+        raise RuntimeError(
+            "expected one accepted-revision binary RPM, "
+            f"found {len(packages)} matching packages; discovered {discovered}"
+        )
     output.mkdir(parents=True, exist_ok=True)
     destination = output / packages[0].name
     shutil.copy2(packages[0], destination)
