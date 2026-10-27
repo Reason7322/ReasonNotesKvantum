@@ -294,3 +294,5 @@ The lowercase live repository is byte-identical to the accepted six-note store.
 Six obsolete manual app paths are recoverable from Trash; old data roots and
 orphan icon assets remain untouched. One launcher and one desktop entry remain,
 with no ReasonNotes process. Packaging tests pass 5/5. Android was untouched.
+Deferred minor: `scripts/build-rpm.py --topdir` must be absolute when invoked
+outside the repository; the completed cutover used absolute paths.

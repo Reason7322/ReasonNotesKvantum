@@ -1114,3 +1114,9 @@ workspace because the host `rpm-build` package remains uninstalled; the final
 install used a host-systemd transient service so files received true root
 ownership outside the Codex user namespace. Android was not accessed,
 modified, launched, installed, or synchronized during this cutover.
+
+Known non-blocking build-tool limitation: `scripts/build-rpm.py --topdir`
+currently requires an absolute path when called from outside the repository.
+This cutover used absolute build paths, so the retained and installed RPM is
+unaffected. Relative-path normalization is deferred maintenance, not remaining
+cutover acceptance.
