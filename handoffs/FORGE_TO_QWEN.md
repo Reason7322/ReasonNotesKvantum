@@ -257,3 +257,13 @@ auto-returns ACKs and accepts peer-returned Linux-origin live states. Focused
 tests pass 30/30. The disposable candidate watches real `~/Downloads` after
 149 old occurrences were baselined; production data was untouched. Final
 confirmation of the newest Android foreground-poll build remains pending.
+
+## 2026-10-27 final owner-acceptance checkpoint
+
+The final selected sync of `sync-v2-roundtrip` completed, the phone confirmed
+the requested revision, the desktop progress indicator cleared, and both sides'
+relevant ACK queues were empty. An unrelated Android-local pending edit remained
+unsent. The owner accepted both apps as done. The desktop remains an isolated
+physical-test runtime; production cutover was not requested. No further
+milestone is authorized; there is no next action unless the owner later requests
+maintenance or a separate cutover.

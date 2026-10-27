@@ -1040,3 +1040,19 @@ occurrences were baselined in its disposable processed index; no historical
 carrier replayed and production data was untouched. Focused current-state tests
 passed 30/30. Source before this documentation commit: `322b9bc`. Final owner
 confirmation after the latest Android foreground-poll deployment is pending.
+
+## Final owner acceptance — 2026-10-27
+
+The final physical selected-sync check passed for `sync-v2-roundtrip`. The
+desktop reported `Completed`, with one requested revision confirmed, and its
+progress indicator cleared within seconds. Desktop pending and outgoing-ACK
+queues and Android's outgoing-ACK queue were empty. The unrelated Android-local
+pending edit for `Sen` remained pending and was not transmitted.
+
+The owner explicitly accepted both the desktop and phone apps as done. No new
+tests, builds, installations, deployments, synchronization, or application
+interaction occurred during this documentation checkpoint. The accepted
+desktop remains the isolated physical-test runtime; no production desktop
+cutover was performed or requested. No further engineering milestone is
+authorized. Potential next action: none unless the owner later requests
+maintenance or a separate production cutover.
