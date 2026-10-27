@@ -296,3 +296,19 @@ orphan icon assets remain untouched. One launcher and one desktop entry remain,
 with no ReasonNotes process. Packaging tests pass 5/5. Android was untouched.
 Deferred minor: `scripts/build-rpm.py --topdir` must be absolute when invoked
 outside the repository; the completed cutover used absolute paths.
+
+## 2026-10-27 public-release cleanup checkpoint
+
+The RPM is now the sole Fedora installation. Removed only verified legacy
+roots `/home/reason/.local/share/ReasonNotes`,
+`/home/reason/.local/share/ReasonNotesKvantum-candidate`, and
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Physical-Test`, plus package-unowned
+legacy ReasonNotes icons and explicitly enumerated ReasonNotes-only Trash
+entries. Unrelated Trash was not emptied: its 63 top-level names retain
+fingerprint `ba77a455191fcae2fbb829b9dab2922b39650509746119a7dbc7e505670a1486`.
+
+Protected live state is unchanged: 406 files, six current notes, tree hash
+`5be33acdf32f8d854587d851c0a926356dbff68d8b3c0cb2e7bd24d1929044c8`.
+The verified backup manifest passes unchanged. Host `rpm -V`, ownership, one
+launcher, and one desktop entry pass. No app launch or Android interaction.
+Publication is the remaining authorized work.

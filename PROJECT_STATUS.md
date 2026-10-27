@@ -1120,3 +1120,41 @@ currently requires an absolute path when called from outside the repository.
 This cutover used absolute build paths, so the retained and installed RPM is
 unaffected. Relative-path normalization is deferred maintenance, not remaining
 cutover acceptance.
+
+## Public-release cleanup complete — 2026-10-27
+
+The accepted RPM remains the sole Fedora installation:
+`reasonnotes-0.1.0-1.cdf6323.fc44.x86_64`. Host-namespace `rpm -V` is silent,
+its installed files are `root:root`, and exactly one launcher/desktop entry
+remains at `/usr/bin/reasonnotes` and
+`/usr/share/applications/org.reasonnotes.ReasonNotesKvantum.desktop`.
+
+Before cleanup, `/home/reason/.local/share/ReasonNotes` and
+`/home/reason/.local/share/ReasonNotesKvantum-candidate` were byte-identical to
+the `production/` and `candidate/` copies in the verified backup. The
+`/home/reason/Temporary/ReasonNotes-Sync-v2-Physical-Test/notes` tree was
+byte-identical to `accepted-physical-test/` in that backup; its separate APK was
+the obsolete offline candidate with SHA-256
+`eb0da72c4c6f281b4b2d3e4377f5b735cff3560330f5105956d7dd332a8519dd`,
+not the accepted Android release artifact. Those three redundant roots were
+removed, along with the six legacy hicolor PNG icons, one legacy YAMIS SVG,
+the earlier manual installation trees/launchers/desktop files, five obsolete
+transport ZIPs, and ReasonNotes-only screenshot/handoff artifacts already in
+Trash. Deletion was selective; unrelated Trash content was not emptied.
+
+The protected live repository was not modified. It contains 406 files and six
+current notes; aggregate tree SHA-256 is
+`5be33acdf32f8d854587d851c0a926356dbff68d8b3c0cb2e7bd24d1929044c8`,
+and current-note aggregate SHA-256 is
+`5e0a8cdd0217f81fbbc57cf55460082d4664057528bd647f971849bbf0537feb`.
+Its current notes still match the accepted recovery baseline, while its live
+processed-carrier/outbound synchronization state has legitimately advanced and
+was preserved exactly. The protected backup manifest still passes at
+`/ssd-storage/Backups/ReasonNotes/2026-10-27T173534+0100`; `SHA256SUMS` hash is
+`e12b23d4c2f94343a6169bf03c228a9e5cfae97ca63c328c8e21fe41151ca9be`.
+The 63 unrelated top-level Trash names retained their pre/post fingerprint
+`ba77a455191fcae2fbb829b9dab2922b39650509746119a7dbc7e505670a1486`.
+
+Public source/release publication remains the unfinished part of this milestone
+at this checkpoint. No application was launched and Android was not accessed or
+modified during cleanup.
