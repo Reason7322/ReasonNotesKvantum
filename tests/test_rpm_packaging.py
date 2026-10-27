@@ -129,6 +129,9 @@ class RpmPackagingTests(unittest.TestCase):
                 spec,
                 "the RPM payload must not inherit the unprivileged builder's ownership",
             )
+            self.assertIn("License:        MIT\n", spec)
+            description = spec.split("%description", 1)[1].split("%prep", 1)[0]
+            self.assertNotIn("private", description.lower())
 
             desktop = topdir / "SOURCES/org.reasonnotes.ReasonNotesKvantum.desktop"
             validation = subprocess.run(

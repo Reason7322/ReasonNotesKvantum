@@ -5,7 +5,7 @@ Name:           reasonnotes
 Version:        0.1.0
 Release:        1.cdf6323%{?dist}
 Summary:        Native Qt Widgets offline-first synchronized notes
-License:        LicenseRef-Private
+License:        MIT
 URL:            https://github.com/Reason7322/ReasonNotesKvantum
 Source0:        %{name}-%{version}.tar.gz
 Source1:        reasonnotes
@@ -23,7 +23,7 @@ Requires:       qt6-qtwayland
 Requires:       kde-connect
 
 %description
-ReasonNotes is a private native Qt Widgets note application with explicit,
+ReasonNotes is a native Qt Widgets note application with explicit,
 durably confirmed synchronization through KDE Connect.
 
 %prep
