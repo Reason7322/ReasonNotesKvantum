@@ -1056,3 +1056,24 @@ desktop remains the isolated physical-test runtime; no production desktop
 cutover was performed or requested. No further engineering milestone is
 authorized. Potential next action: none unless the owner later requests
 maintenance or a separate production cutover.
+
+## Native RPM cutover checkpoint — 2026-10-27 — PRODUCT INCOMPLETE
+
+The owner authorized packaging the accepted desktop checkpoint
+`cdf63233d2956718e5353ed58ad230dad07aad91` as the only installed ReasonNotes
+desktop application and explicitly allowed removal of older installed app
+versions. Read-only inventory found no existing ReasonNotes RPM, one manual
+production installation, one manual Kvantum candidate installation, and three
+data trees. The accepted physical-test store has the same six live note IDs as
+the legacy production store and is designated as the future live store; older
+data must be backed up before cutover.
+
+WIP now includes an RPM design and implementation plan, focused packaging
+tests, a Python launcher, desktop entry, RPM spec, and deterministic build
+driver. The required RED test run completed 3/3 failures because the build
+driver did not yet exist; the implementation files were then added but no GREEN
+test run occurred. `rpm-build` is not installed. No RPM was built or installed,
+no data was copied or deleted, no legacy application path was removed, and no
+desktop or Android app interaction occurred. Potential next action: run only
+`/usr/bin/python3 -m unittest tests.test_rpm_packaging -v` and continue from its
+result.

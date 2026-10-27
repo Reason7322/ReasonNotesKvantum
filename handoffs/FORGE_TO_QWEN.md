@@ -267,3 +267,16 @@ unsent. The owner accepted both apps as done. The desktop remains an isolated
 physical-test runtime; production cutover was not requested. No further
 milestone is authorized; there is no next action unless the owner later requests
 maintenance or a separate cutover.
+
+## 2026-10-27 native RPM cutover checkpoint — PRODUCT INCOMPLETE
+
+The owner authorized making accepted desktop commit `cdf6323` the sole
+installed ReasonNotes app and allowed removal of older app versions. Inventory
+found manual production and candidate installs but no ReasonNotes RPM; the
+accepted physical-test store has the same six live note IDs as legacy
+production. WIP adds the RPM design/plan, packaging tests, launcher, desktop
+entry, spec, and build driver. The RED test run failed 3/3 as expected before
+the implementation files existed; GREEN was not run. `rpm-build` is absent.
+Nothing was built, installed, copied, removed, synchronized, or launched.
+Potential next action: run only the focused packaging test and continue from
+its result.

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=ReasonNotes
+GenericName=Markdown Notes
+Comment=Private offline-first synchronized notes
+Exec=reasonnotes
+TryExec=reasonnotes
+Icon=org.reasonnotes.ReasonNotesKvantum
+Terminal=false
+Categories=Office;Utility;TextEditor;
+StartupNotify=true
+StartupWMClass=org.reasonnotes.ReasonNotesKvantum
+

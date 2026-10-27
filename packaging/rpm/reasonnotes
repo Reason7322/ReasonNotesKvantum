@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+"""System launcher for the RPM-managed ReasonNotes desktop application."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+import sys
+
+
+DEFAULT_LIBDIR = Path("/usr/lib64/reasonnotes")
+
+
+def _data_home(environ: dict[str, str]) -> Path:
+    configured = Path(environ.get("XDG_DATA_HOME", ""))
+    if configured.is_absolute():
+        return configured
+    return Path(environ.get("HOME", str(Path.home()))) / ".local/share"
+
+
+def command(
+    environ: dict[str, str],
+    arguments: list[str],
+    *,
+    libdir: Path = DEFAULT_LIBDIR,
+) -> list[str]:
+    data_root = _data_home(environ) / "reasonnotes"
+    return [
+        "/usr/bin/python3",
+        str(libdir / "linux-app/reasonnotes_widgets.py"),
+        "--root",
+        str(data_root / "repository"),
+        "--inbox",
+        str(data_root / "inbox"),
+        *arguments,
+    ]
+
+
+def main() -> None:
+    os.execv("/usr/bin/python3", command(dict(os.environ), sys.argv[1:]))
+
+
+if __name__ == "__main__":
+    main()
+
