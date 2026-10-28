@@ -1,4 +1,4 @@
-# ReasonNotes for Fedora - coded in its ENTIRETY by Codex. Use at your own discretion
+> ### This application is 100% vibe coded by OpenAI Codex and my locally running Qwen model. Use it at your own discretion.
 
 ReasonNotes is an offline-first notes application for Fedora and Android. This
 repository contains the accepted native Fedora desktop application. The
